@@ -11,6 +11,7 @@ import { PluginCommand } from '../../../types/PluginTypes';
 import { IConfigLoader } from '../../../types/ConfigTypes';
 import { CommandType, CommandPrefix } from '../../../types/CommandTypes';
 import { GitClientService } from './GitClientService';
+import { GitLlmService } from './GitLlmService';
 
 // VS Code API 접근 (LLM 서비스 사용 등을 위해)
 import * as vscode from 'vscode';
@@ -76,6 +77,11 @@ export class GitPluginService extends PluginBaseService {
   private llmService: LlmService | null = null;
   
   /**
+   * Git LLM 서비스
+   */
+  private gitLlmService: GitLlmService | null = null;
+  
+  /**
    * GitPluginService 생성자
    * @param configLoader 설정 로더
    */
@@ -134,9 +140,14 @@ export class GitPluginService extends PluginBaseService {
       // LLM 서비스 생성
       this.llmService = new LlmService();
       console.log('LLM 서비스 초기화 완료');
+      
+      // GitLlmService 인스턴스 생성
+      this.gitLlmService = new GitLlmService(this.llmService, this.client);
+      console.log('Git LLM 서비스 초기화 완료');
     } catch (error) {
       console.error('LLM 서비스 초기화 중 오류 발생:', error);
       this.llmService = null;
+      this.gitLlmService = null;
     }
   }
   

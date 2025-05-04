@@ -1,0 +1,150 @@
+/* 명령어 자동완성 스타일 */
+
+.command-suggestions {
+  position: absolute;
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-focusBorder, #007fd4);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, sans-serif);
+  overflow: hidden;
+  max-width: 500px;
+}
+
+.suggestion-title {
+  padding: 6px 10px;
+  background-color: var(--vscode-sideBar-background, #252526);
+  color: var(--vscode-foreground, #cccccc);
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, #3c3c3c);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background-color: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.suggestion-item.active {
+  background-color: var(--vscode-list-activeSelectionBackground, #094771);
+  color: var(--vscode-list-activeSelectionForeground, #ffffff);
+}
+
+.suggestion-item i {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.suggestion-label {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-description {
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 12px;
+  margin-left: 8px;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-item.active .suggestion-description {
+  color: var(--vscode-list-activeSelectionForeground, #ffffff);
+  opacity: 0.8;
+}
+
+.empty-command-message {
+  padding: 10px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-style: italic;
+  text-align: center;
+}
+
+/* 인라인 명령어 힌트 */
+.command-hint {
+  position: absolute;
+  pointer-events: none;
+  color: var(--vscode-editorSuggestWidget-foreground, #9d9d9d);
+  opacity: 0.8;
+  user-select: none;
+}
+
+/* Claude Code 스타일 명령어 입력 스타일 */
+.chat-input.with-hint {
+  color: transparent;
+  caret-color: var(--vscode-input-foreground, #cccccc);
+}
+
+.command-hint-container {
+  position: relative;
+}
+
+.command-hint-visible {
+  color: var(--vscode-input-foreground, #cccccc) !important;
+}
+
+.command-hint-suggestion {
+  color: var(--vscode-editorSuggestWidget-foreground, #9d9d9d);
+}
+
+/* 명령어 그룹별 색상 */
+.command-group-git i {
+  color: #0366d6 !important;
+}
+
+.command-group-jira i {
+  color: #0052cc !important;
+}
+
+.command-group-swdp i {
+  color: #ff9900 !important;
+}
+
+.command-group-system i {
+  color: #6f42c1 !important;
+}
+
+/* 아이콘 스타일링 */
+.codicon {
+  font-family: codicon;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+  font-variant-ligatures: discretionary-ligatures;
+  display: inline-block;
+  line-height: 1;
+  text-align: center;
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.suggestion-loading {
+  animation: blink 1.2s infinite ease-in-out;
+  margin: 8px auto;
+  text-align: center;
+  color: var(--vscode-foreground, #cccccc);
+}

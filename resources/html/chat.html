@@ -7,6 +7,7 @@
   <title>Axiom 채팅</title>
   <link href="${cssUri}" rel="stylesheet">
   <link href="${codeBlocksCssUri}" rel="stylesheet">
+  <link href="${commandAutocompleteCssUri}" rel="stylesheet">
   <script>
     // 디버깅 헬퍼
     window.axiomDebug = {
@@ -66,6 +67,7 @@
 
   <script src="${modelSelectorUri}"></script>
   <script src="${codeBlocksJsUri}"></script>
+  <script src="${commandAutocompleteJsUri}"></script>
   <script>
     (function() {
       // VS Code API
@@ -83,6 +85,9 @@
       
       // 모델 선택기 인스턴스
       let modelSelector;
+      
+      // 명령어 자동완성 인스턴스
+      let commandAutocomplete;
       
       // 메시지 상태 관리
       let messageState = vscode.getState() || { messages: [] };
@@ -345,6 +350,23 @@
             updateModelList(message.models);
             break;
             
+          case 'updateCommands':
+            console.log('명령어 목록 업데이트 요청 수신:', message.commands);
+            // 명령어 자동완성 초기화 또는 업데이트
+            if (message.commands && Array.isArray(message.commands)) {
+              if (!commandAutocomplete) {
+                // 자동완성 인스턴스 생성
+                commandAutocomplete = new CommandAutocomplete(chatInput, {
+                  onSelect: (commandId) => {
+                    console.log('명령어 선택됨:', commandId);
+                  }
+                });
+              }
+              // 명령어 목록 설정
+              commandAutocomplete.setCommands(message.commands);
+            }
+            break;
+            
           case 'setCurrentModel':
             console.log('현재 모델 설정 요청 수신:', message.modelId);
             setCurrentModel(message.modelId);
@@ -421,8 +443,19 @@
         }
       });
       
+      // 초기화 함수
+      function initialize() {
+        // 메시지 렌더링
+        renderMessages();
+        
+        // 명령어 목록 요청
+        vscode.postMessage({
+          command: 'getCommands'
+        });
+      }
+      
       // 초기 렌더링
-      renderMessages();
+      initialize();
     })();
   </script>
 </body>
