@@ -42,45 +42,13 @@ cd axiom-extension
 
 2. 의존성 설치 및 빌드:
 
-#### Windows에서 WSL을 사용하는 경우:
-
 ```bash
-# WSL 터미널에서 직접 실행
-./build_scripts/build-install.sh
+# 의존성 설치
+npm install
+
+# 빌드
+npm run build
 ```
-
-또는 Windows 명령 프롬프트에서:
-
-```cmd
-# WSL 경로 문제를 해결하는 특수 스크립트 사용
-build_scripts/wsl-build.bat
-```
-
-#### Windows에서 직접 실행 (WSL 없이):
-
-```cmd
-build_scripts/build-install.bat
-```
-
-#### Linux에서 실행:
-
-```bash
-./build_scripts/build-install.sh
-```
-
-### Windows-WSL 개발 환경에서의 주의사항
-
-Windows PowerShell/CMD에서 WSL 경로(`\\wsl.localhost\...`)를 직접 사용해 npm 명령어를 실행하면 심볼릭 링크 처리 문제가 발생할 수 있습니다:
-
-```
-npm error EISDIR: illegal operation on a directory, lstat '\\wsl.localhost\Ubuntu\home\...\node_modules\.bin\acorn'
-```
-
-이 문제를 해결하는 방법:
-
-1. **WSL 터미널 사용 (권장)**: WSL 터미널을 열고 Linux 환경에서 직접 명령어 실행
-2. **Windows 네트워크 드라이브 매핑**: PowerShell에서 WSL 경로를 드라이브 문자로 매핑
-3. **빌드 스크립트 사용**: 제공된 `wsl-build.bat` 또는 `windows-build.bat` 스크립트 사용
 
 ### 디버깅 및 테스트
 
@@ -140,9 +108,7 @@ axiom-extension/
 │   ├── css/               # 스타일 시트
 │   ├── html/              # HTML 템플릿
 │   └── js/                # 클라이언트 스크립트
-├── dist/                  # 빌드 출력 (자동 생성)
-├── .vscode/               # VS Code 설정
-└── package.json           # 프로젝트 메타데이터
+└── dist/                  # 빌드 출력 (자동 생성)
 ```
 
 ### 빌드 스크립트
@@ -154,12 +120,8 @@ axiom-extension/
 
 ## 라이선스
 
-이 프로젝트는 [라이선스 정보를 추가하세요] 라이선스 하에 배포됩니다.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
 ## 기여 방법
 
 이슈 등록 및 풀 리퀘스트를 통해 기여할 수 있습니다. 모든 기여는 환영합니다!
-
-## 연락처
-
-문의사항이 있으시면 [연락처 정보를 추가하세요]로 연락 주세요.
