@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "core": {
+      "type": "object",
+      "properties": {
+        "sslBypass": {
+          "type": "boolean",
+          "description": "SSL 인증서 검증 우회 (온프레미스 환경용)",
+          "default": true
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "로그 레벨"
+        },
+        "allow": {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "boolean",
+              "description": "모든 권한 허용",
+              "default": false
+            },
+            "ssl_bypass": {
+              "type": "boolean",
+              "description": "SSL 우회 권한",
+              "default": true
+            },
+            "file_system": {
+              "type": "boolean",
+              "description": "파일 시스템 접근 권한",
+              "default": true
+            },
+            "network": {
+              "type": "boolean",
+              "description": "네트워크 접근 권한",
+              "default": true
+            },
+            "terminal": {
+              "type": "boolean",
+              "description": "터미널 접근 권한",
+              "default": true
+            },
+            "clipboard": {
+              "type": "boolean",
+              "description": "클립보드 접근 권한",
+              "default": true
+            },
+            "notifications": {
+              "type": "boolean",
+              "description": "알림 권한",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "에이전트 활성화 여부"
+          },
+          "name": {
+            "type": "string",
+            "description": "에이전트 이름"
+          },
+          "description": {
+            "type": "string",
+            "description": "에이전트 설명"
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "API 엔드포인트"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "API 키"
+          },
+          "noProxy": {
+            "type": "boolean",
+            "description": "프록시 사용 여부",
+            "default": false
+          },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["token", "basic", "oauth"],
+                "description": "인증 타입"
+              },
+              "token": {
+                "type": "string",
+                "description": "API 토큰 (토큰 인증 시)"
+              },
+              "username": {
+                "type": "string",
+                "description": "사용자 이름 (기본 인증 시)"
+              },
+              "password": {
+                "type": "string",
+                "description": "비밀번호 (기본 인증 시)"
+              },
+              "clientId": {
+                "type": "string",
+                "description": "OAuth 클라이언트 ID (OAuth 인증 시)"
+              },
+              "clientSecret": {
+                "type": "string",
+                "description": "OAuth 클라이언트 시크릿 (OAuth 인증 시)"
+              }
+            },
+            "required": ["type"]
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "플러그인 활성화 여부"
+          },
+          "name": {
+            "type": "string",
+            "description": "플러그인 이름"
+          },
+          "description": {
+            "type": "string",
+            "description": "플러그인 설명"
+          },
+          "version": {
+            "type": "string",
+            "description": "플러그인 버전"
+          },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "명령어 이름"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "명령어 설명"
+                },
+                "syntax": {
+                  "type": "string",
+                  "description": "명령어 문법"
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "명령어 예시"
+                },
+                "api": {
+                  "type": "object",
+                  "properties": {
+                    "endpoint": {
+                      "type": "string",
+                      "description": "API 엔드포인트"
+                    },
+                    "method": {
+                      "type": "string",
+                      "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+                      "default": "GET",
+                      "description": "HTTP 메서드"
+                    },
+                    "headers": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "HTTP 헤더"
+                    },
+                    "body": {
+                      "type": "object",
+                      "description": "요청 본문"
+                    }
+                  },
+                  "required": ["endpoint"]
+                }
+              },
+              "required": ["name", "api"]
+            }
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "기본 API 엔드포인트"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "기본 API 키"
+          },
+          "noProxy": {
+            "type": "boolean",
+            "description": "프록시 사용 여부",
+            "default": false
+          }
+        },
+        "required": ["name", "commands"]
+      }
+    }
+  }
+}

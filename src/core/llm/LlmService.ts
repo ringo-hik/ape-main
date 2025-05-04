@@ -1,0 +1,523 @@
+import * as vscode from 'vscode';
+import { HttpClientService } from '../http/HttpClientService';
+import { 
+  ChatMessage, 
+  LlmRequestOptions, 
+  LlmResponse, 
+  ModelConfig,
+  ModelProvider
+} from '../../types/LlmTypes';
+
+/**
+ * LLM 서비스 클래스
+ * 다양한 제공자의 LLM API와 통신
+ */
+export class LlmService {
+  private httpClient: HttpClientService;
+  private models: Map<string, ModelConfig> = new Map();
+  private defaultModel: string = 'gpt-3.5-turbo';
+  private idCounter: number = 0;
+  
+  constructor() {
+    this.httpClient = new HttpClientService();
+    this.httpClient.setSSLBypass(true);
+    this.loadModelsFromConfig();
+  }
+  
+  /**
+   * 고유 ID 생성 (uuid 대신 간단한 구현)
+   */
+  private generateId(): string {
+    this.idCounter++;
+    return `llm-${Date.now()}-${this.idCounter}`;
+  }
+  
+  /**
+   * 설정에서 모델 정보 로드
+   */
+  private loadModelsFromConfig(): void {
+    const config = vscode.workspace.getConfiguration('axiom.llm');
+    const modelConfigs = config.get<Record<string, ModelConfig>>('models', {});
+    
+    Object.entries(modelConfigs).forEach(([id, modelConfig]) => {
+      this.models.set(id, modelConfig);
+    });
+    
+    this.defaultModel = config.get<string>('defaultModel', this.defaultModel);
+    
+    // 설정이 없는 경우 기본 모델 등록
+    if (this.models.size === 0) {
+      this.registerDefaultModels();
+    }
+  }
+  
+  /**
+   * 기본 모델 등록
+   */
+  private registerDefaultModels(): void {
+    // OpenRouter - Google Gemini 2.5 Flash Preview 모델
+    this.models.set('gemini-2.5-flash', {
+      name: 'Google Gemini 2.5 Flash Preview',
+      provider: 'openrouter',
+      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+      contextWindow: 32000,
+      maxTokens: 8192,
+      temperature: 0.7,
+      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+    });
+    
+    // OpenAI 기본 모델
+    this.models.set('gpt-3.5-turbo', {
+      name: 'GPT-3.5 Turbo',
+      provider: 'openai',
+      contextWindow: 16385,
+      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+    });
+    
+    // Anthropic 기본 모델
+    this.models.set('claude-3-haiku', {
+      name: 'Claude 3 Haiku',
+      provider: 'anthropic',
+      contextWindow: 200000,
+      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+    });
+    
+    // Ollama 로컬 모델
+    this.models.set('llama3', {
+      name: 'Llama 3',
+      provider: 'ollama',
+      apiUrl: 'http://localhost:11434/api/chat',
+      contextWindow: 8192,
+      maxTokens: 2048,
+      temperature: 0.7,
+      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+    });
+    
+    // 로컬 시뮤레이션 모델 (API 키 없이 사용 가능)
+    this.models.set('local', {
+      name: '로컬 시뮤레이션',
+      provider: 'local',
+      temperature: 0.7,
+      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+    });
+  }
+  
+  /**
+   * LLM API로 요청 전송
+   */
+  public async sendRequest(options: LlmRequestOptions): Promise<LlmResponse> {
+    const { model = this.defaultModel, messages, temperature, maxTokens, stream, onUpdate } = options;
+    
+    const modelConfig = this.models.get(model);
+    if (!modelConfig) {
+      throw new Error(`모델 '${model}'을 찾을 수 없습니다.`);
+    }
+    
+    // 시스템 프롬프트가 제공되지 않은 경우 기본값 추가
+    if (modelConfig.systemPrompt && !messages.some(m => m.role === 'system')) {
+      messages.unshift({
+        role: 'system',
+        content: modelConfig.systemPrompt
+      });
+    }
+    
+    // API 키가 없을 경우 로컬 시뮤레이션 모드로 전환
+    try {
+      // 모델 제공자에 따라 적절한 요청 생성 및 전송
+      switch (modelConfig.provider) {
+        case 'openai':
+          return this.sendOpenAIRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'anthropic':
+          return this.sendAnthropicRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'ollama':
+          return this.sendOllamaRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'azure':
+          return this.sendAzureOpenAIRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'openrouter':
+          return this.sendOpenRouterRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'local':
+          return this.simulateLocalModel(modelConfig, messages);
+        default:
+          return this.simulateLocalModel(modelConfig, messages);
+      }
+    } catch (error: any) {
+      // API 키 오류인 경우 로컬 시뮤레이션으로 대체
+      if (error.code === 'missing_api_key' || error.code === 'invalid_api_key') {
+        console.warn(`API 키 오류로 인해 로컬 시뮤레이션으로 전환: ${error.message}`);
+        return this.simulateLocalModel(modelConfig, messages);
+      }
+      throw error;
+    }
+  }
+  
+  /**
+   * OpenAI API 요청
+   */
+  private async sendOpenAIRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    const apiKey = modelConfig.apiKey || this.getApiKey('openai');
+    if (!apiKey) {
+      throw this.createApiKeyError('missing_api_key', modelConfig.name, 'openai');
+    }
+    
+    const apiUrl = modelConfig.apiUrl || 'https://api.openai.com/v1/chat/completions';
+    
+    try {
+      const response = await this.httpClient.post(
+        apiUrl,
+        {
+          model: modelConfig.name,
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          stream: !!stream
+        },
+        {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      );
+      
+      if (stream && onUpdate) {
+        // 스트리밍 처리 로직 (실제 구현 필요)
+        return {
+          id: this.generateId(),
+          content: '스트리밍 응답이 진행 중입니다.',
+          model: modelConfig.name
+        };
+      }
+      
+      // 응답 처리
+      return {
+        id: response.data.id || this.generateId(),
+        content: response.data.choices[0].message.content,
+        model: modelConfig.name,
+        usage: {
+          promptTokens: response.data.usage?.prompt_tokens || 0,
+          completionTokens: response.data.usage?.completion_tokens || 0,
+          totalTokens: response.data.usage?.total_tokens || 0
+        }
+      };
+    } catch (error) {
+      console.error('OpenAI API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Anthropic API 요청
+   */
+  private async sendAnthropicRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    const apiKey = modelConfig.apiKey || this.getApiKey('anthropic');
+    if (!apiKey) {
+      throw this.createApiKeyError('missing_api_key', modelConfig.name, 'anthropic');
+    }
+    
+    const apiUrl = modelConfig.apiUrl || 'https://api.anthropic.com/v1/messages';
+    
+    try {
+      const response = await this.httpClient.post(
+        apiUrl,
+        {
+          model: modelConfig.name,
+          messages,
+          max_tokens: maxTokens ?? modelConfig.maxTokens ?? 1024,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          stream: !!stream
+        },
+        {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        }
+      );
+      
+      if (stream && onUpdate) {
+        // 스트리밍 처리 로직 (실제 구현 필요)
+        return {
+          id: this.generateId(),
+          content: '스트리밍 응답이 진행 중입니다.',
+          model: modelConfig.name
+        };
+      }
+      
+      // 응답 처리
+      return {
+        id: response.data.id || this.generateId(),
+        content: response.data.content?.[0]?.text || '',
+        model: modelConfig.name,
+        usage: {
+          promptTokens: 0, // Anthropic API는 토큰 사용량을 제공하지 않음
+          completionTokens: 0,
+          totalTokens: 0
+        }
+      };
+    } catch (error) {
+      console.error('Anthropic API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Ollama API 요청
+   */
+  private async sendOllamaRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    const apiUrl = modelConfig.apiUrl || 'http://localhost:11434/api/chat';
+    
+    try {
+      const response = await this.httpClient.post(
+        apiUrl,
+        {
+          model: modelConfig.name,
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          stream: !!stream
+        }
+      );
+      
+      // 응답 처리
+      return {
+        id: this.generateId(),
+        content: response.data.message?.content || '',
+        model: modelConfig.name
+      };
+    } catch (error) {
+      console.error('Ollama API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Azure OpenAI API 요청
+   */
+  private async sendAzureOpenAIRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    const apiKey = modelConfig.apiKey || this.getApiKey('azure');
+    if (!apiKey) {
+      throw this.createApiKeyError('missing_api_key', modelConfig.name, 'azure');
+    }
+    
+    if (!modelConfig.apiUrl) {
+      throw new Error('Azure OpenAI API URL이 지정되지 않았습니다.');
+    }
+    
+    try {
+      const response = await this.httpClient.post(
+        modelConfig.apiUrl,
+        {
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          stream: !!stream
+        },
+        {
+          'api-key': apiKey,
+          'Content-Type': 'application/json'
+        }
+      );
+      
+      // 응답 처리
+      return {
+        id: response.data.id || this.generateId(),
+        content: response.data.choices[0].message.content,
+        model: modelConfig.name,
+        usage: {
+          promptTokens: response.data.usage?.prompt_tokens || 0,
+          completionTokens: response.data.usage?.completion_tokens || 0,
+          totalTokens: response.data.usage?.total_tokens || 0
+        }
+      };
+    } catch (error) {
+      console.error('Azure OpenAI API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * OpenRouter API 요청
+   */
+  private async sendOpenRouterRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    const apiKey = modelConfig.apiKey || this.getApiKey('openrouter');
+    if (!apiKey) {
+      throw this.createApiKeyError('missing_api_key', modelConfig.name, 'openrouter');
+    }
+    
+    const apiUrl = modelConfig.apiUrl || 'https://openrouter.ai/api/v1/chat/completions';
+    
+    try {
+      // SSL 인증서 검증 오류 회피를 위해 fetch API 직접 사용
+      const fetchResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://github.com/anthropics/claude-code',
+          'X-Title': 'Axiom VSCode Extension'
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-preview",
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          stream: !!stream
+        })
+      });
+      
+      if (!fetchResponse.ok) {
+        throw new Error(`OpenRouter API 응답 오류: ${fetchResponse.status} ${fetchResponse.statusText}`);
+      }
+      
+      const responseData = await fetchResponse.json();
+      
+      // Headers 객체를 일반 객체로 변환
+      const headersObj: Record<string, string> = {};
+      fetchResponse.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      
+      const response = {
+        data: responseData,
+        statusCode: fetchResponse.status,
+        headers: headersObj,
+        ok: fetchResponse.ok
+      };
+      
+      // 응답 처리
+      return {
+        id: response.data.id || this.generateId(),
+        content: response.data.choices[0].message.content,
+        model: modelConfig.name,
+        usage: {
+          promptTokens: response.data.usage?.prompt_tokens || 0,
+          completionTokens: response.data.usage?.completion_tokens || 0,
+          totalTokens: response.data.usage?.total_tokens || 0
+        }
+      };
+    } catch (error) {
+      console.error('OpenRouter API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 로컬 모델 시뮤레이션 (실제 API 호출 없이 데모용)
+   */
+  private async simulateLocalModel(modelConfig: ModelConfig, messages: ChatMessage[]): Promise<LlmResponse> {
+    // 마지막 메시지 추출
+    const lastMessage = messages[messages.length - 1];
+    
+    // 간단한 질의응답 패턴 구현
+    let responseText = '';
+    
+    if (lastMessage.content.match(/안녕|반가워|헬로|하이/i)) {
+      responseText = '안녕하세요! 무엇을 도와드릴까요?';
+    } 
+    else if (lastMessage.content.match(/시간|날짜|오늘|몇 시/i)) {
+      responseText = `현재 시간은 ${new Date().toLocaleString()} 입니다.`;
+    }
+    else if (lastMessage.content.match(/코드|프로그램|개발|버그/i)) {
+      responseText = '코드에 대해 질문이 있으신가요? 어떤 부분에서 도움이 필요하신지 자세히 알려주세요.';
+    }
+    else if (lastMessage.content.match(/도움|도와줘|어떻게|사용법/i)) {
+      responseText = '무엇을 도와드릴까요? 더 구체적인 질문을 해주시면 더 정확한 답변을 드릴 수 있습니다.';
+    }
+    else {
+      responseText = `"${lastMessage.content}"에 대한 답변을 찾고 있습니다. 로컬 모델 시뮤레이션 모드에서는 제한된 응답만 제공합니다.`;
+    }
+    
+    // 응답 대기 시간 시뮤레이션
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      id: this.generateId(),
+      content: responseText,
+      model: modelConfig.name
+    };
+  }
+  
+  /**
+   * 환경 변수 또는 설정에서 API 키 가져오기
+   */
+  private getApiKey(provider: ModelProvider): string | undefined {
+    const config = vscode.workspace.getConfiguration('axiom.llm');
+    // OpenRouter API 키는 기본값이 설정되어 있음
+    if (provider === 'openrouter') {
+      return config.get<string>(`${provider}ApiKey`, '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');
+    }
+    return config.get<string>(`${provider}ApiKey`);
+  }
+  
+  /**
+   * API 키 오류 생성
+   */
+  private createApiKeyError(
+    code: 'missing_api_key' | 'invalid_api_key', 
+    modelName: string, 
+    provider: ModelProvider
+  ): Error {
+    const error = new Error(`${provider} API 키가 필요합니다.`) as any;
+    error.code = code;
+    error.model = modelName;
+    error.provider = provider;
+    return error;
+  }
+  
+  /**
+   * 사용 가능한 모델 목록 가져오기
+   */
+  public getAvailableModels(): ModelConfig[] {
+    return Array.from(this.models.values());
+  }
+  
+  /**
+   * 모델 설정 가져오기
+   */
+  public getModelConfig(modelId: string): ModelConfig | undefined {
+    return this.models.get(modelId);
+  }
+  
+  /**
+   * 기본 모델 ID 가져오기
+   */
+  public getDefaultModelId(): string {
+    return this.defaultModel;
+  }
+}

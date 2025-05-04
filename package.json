@@ -1,0 +1,201 @@
+{
+  "name": "axiom",
+  "displayName": "Axiom 웹뷰",
+  "description": "간단한 사이드바 웹뷰 확장 및 채팅 기능",
+  "version": "0.0.1",
+  "publisher": "axiom-team",
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=16.0.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "axiom.openSidebar",
+        "title": "사이드바 열기",
+        "category": "Axiom"
+      },
+      {
+        "command": "axiom.openChat",
+        "title": "채팅 열기",
+        "category": "Axiom"
+      },
+      {
+        "command": "axiom.clearChat",
+        "title": "채팅 지우기",
+        "category": "Axiom"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "axiom-sidebar",
+          "title": "Axiom",
+          "icon": "resources/axiom_logo.png"
+        }
+      ]
+    },
+    "views": {
+      "axiom-sidebar": [
+        {
+          "id": "axiom.chatView",
+          "name": "Axiom 채팅",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Axiom",
+      "properties": {
+        "axiom.core.sslBypass": {
+          "type": "boolean",
+          "default": false,
+          "description": "SSL 인증서 검증 우회 여부"
+        },
+        "axiom.core.logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "로그 레벨"
+        },
+        "axiom.core.allow.all": {
+          "type": "boolean",
+          "default": true,
+          "description": "모든 권한 허용 여부"
+        },
+        "axiom.llm.defaultModel": {
+          "type": "string",
+          "default": "gemini-2.5-flash",
+          "description": "기본 LLM 모델"
+        },
+        "axiom.llm.supportsStreaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "스트리밍 응답 지원 여부"
+        },
+        "axiom.llm.openaiApiKey": {
+          "type": "string",
+          "description": "OpenAI API 키"
+        },
+        "axiom.llm.anthropicApiKey": {
+          "type": "string",
+          "description": "Anthropic API 키"
+        },
+        "axiom.llm.azureApiKey": {
+          "type": "string",
+          "description": "Azure OpenAI API 키"
+        },
+        "axiom.llm.openrouterApiKey": {
+          "type": "string",
+          "default": "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",
+          "description": "OpenRouter API 키"
+        },
+        "axiom.llm.models": {
+          "type": "object",
+          "description": "LLM 모델 설정",
+          "default": {
+            "gemini-2.5-flash": {
+              "name": "Google Gemini 2.5 Flash Preview",
+              "provider": "openrouter",
+              "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+              "contextWindow": 32000,
+              "maxTokens": 8192,
+              "temperature": 0.7,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "microsoft-phi-4": {
+              "name": "Microsoft Phi-4 Reasoning Plus", 
+              "provider": "openrouter",
+              "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+              "contextWindow": 4096,
+              "maxTokens": 4096,
+              "temperature": 0.7,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "narrans": {
+              "name": "NARRANS (Default)",
+              "provider": "custom",
+              "apiUrl": "https://api-se-dev.narrans.samsungds.net/v1/chat/completions",
+              "contextWindow": 10000,
+              "maxTokens": 10000,
+              "temperature": 0,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "llama-4-maverick": {
+              "name": "Llama 4 Maverick",
+              "provider": "custom",
+              "apiUrl": "http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions",
+              "contextWindow": 50000,
+              "maxTokens": 50000,
+              "temperature": 0,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "llama-4-scout": {
+              "name": "Llama 4 Scout",
+              "provider": "custom",
+              "apiUrl": "http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions",
+              "contextWindow": 50000,
+              "maxTokens": 50000,
+              "temperature": 0,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "gpt-3.5-turbo": {
+              "name": "GPT-3.5 Turbo",
+              "provider": "openai",
+              "contextWindow": 16385,
+              "maxTokens": 4096,
+              "temperature": 0.7,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "claude-3-haiku": {
+              "name": "Claude 3 Haiku",
+              "provider": "anthropic",
+              "contextWindow": 200000,
+              "maxTokens": 4096,
+              "temperature": 0.7,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            },
+            "llama3": {
+              "name": "Llama 3",
+              "provider": "ollama",
+              "apiUrl": "http://localhost:11434/api/chat",
+              "contextWindow": 8192,
+              "maxTokens": 2048,
+              "temperature": 0.7,
+              "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+            }
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.config.js",
+    "watch": "node esbuild.config.js --watch",
+    "package": "node esbuild.config.js --production",
+    "test": "node ./tests/runTest.js",
+    "build": "node esbuild.config.js",
+    "build:clean": "node esbuild.config.js --clean --build"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
+    "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.19.11",
+    "esbuild-node-externals": "^1.11.0",
+    "eslint": "^8.39.0",
+    "glob": "^8.1.0",
+    "typescript": "^5.0.4"
+  }
+}

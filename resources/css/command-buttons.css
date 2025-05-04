@@ -1,0 +1,86 @@
+:root {
+  --container-padding: 12px;
+  --button-margin: 6px;
+  --section-margin: 16px;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight);
+}
+
+.container {
+  padding: var(--container-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-margin);
+}
+
+.command-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.command-section h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  opacity: 0.8;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.commands-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.command-button {
+  margin: 0;
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.button-content:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.button-content i {
+  font-size: 14px;
+}
+
+/* 그룹별 색상 스타일 */
+.command-group-jira .button-content {
+  background-color: #0052CC;
+}
+
+.command-group-git .button-content {
+  background-color: #F14E32;
+}
+
+.command-group-swdp .button-content {
+  background-color: #6554C0;
+}
+
+.command-group-system .button-content {
+  background-color: #36B37E;
+}

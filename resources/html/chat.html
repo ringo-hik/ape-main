@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} data:;">
+  <title>Axiom 채팅</title>
+  <link href="${cssUri}" rel="stylesheet">
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h1><span class="logo">⚡</span> Axiom 채팅</h1>
+      <div id="modelSelector" class="model-selector"></div>
+    </div>
+    
+    <div class="chat-messages" id="messages">
+      <!-- 빈 상태 메시지 -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-state-icon">⚡</div>
+        <div class="empty-state-title">Axiom과 대화를 시작하세요</div>
+        <div class="empty-state-text">질문이나 명령어를 입력하여 대화를 시작할 수 있습니다.</div>
+      </div>
+      
+      <!-- 메시지는 여기에 추가됩니다 -->
+    </div>
+    
+    <div class="chat-input-container">
+      <div class="toolbar">
+        <button class="toolbar-button" id="clearButton" title="대화 내용 지우기">
+          🧹 지우기
+        </button>
+      </div>
+      
+      <div class="input-wrapper">
+        <textarea id="chatInput" class="chat-input" placeholder="메시지 입력..." rows="1"></textarea>
+        <button id="sendButton" class="send-button" disabled>↑</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="${modelSelectorUri}"></script>
+  <script>
+    (function() {
+      // VS Code API
+      const vscode = acquireVsCodeApi();
+      
+      // DOM 요소
+      const messagesContainer = document.getElementById('messages');
+      const chatInput = document.getElementById('chatInput');
+      const sendButton = document.getElementById('sendButton');
+      const clearButton = document.getElementById('clearButton');
+      const emptyState = document.getElementById('emptyState');
+      
+      // 모델 선택기 인스턴스
+      let modelSelector;
+      
+      // 메시지 상태 관리
+      let messageState = vscode.getState() || { messages: [] };
+      
+      // 텍스트 영역 자동 크기 조절
+      function autoResizeTextarea() {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (chatInput.scrollHeight) + 'px';
+      }
+      
+      // 스크롤을 최하단으로 이동
+      function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+      
+      // 메시지 표시 업데이트
+      function updateMessageDisplay() {
+        if (messageState.messages.length > 0) {
+          emptyState.style.display = 'none';
+        } else {
+          emptyState.style.display = 'flex';
+        }
+      }
+      
+      // 초기 메시지 렌더링
+      function renderMessages() {
+        if (messageState.messages.length > 0) {
+          emptyState.style.display = 'none';
+          
+          messageState.messages.forEach(msg => {
+            addMessageToDOM(msg);
+          });
+          
+          scrollToBottom();
+        }
+      }
+      
+      // DOM에 메시지 추가
+      function addMessageToDOM(message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        
+        if (message.type === 'user') {
+          messageElement.classList.add('message-user');
+        } else if (message.type === 'assistant') {
+          messageElement.classList.add('message-assistant');
+        } else if (message.type === 'system') {
+          messageElement.classList.add('message-system');
+        }
+        
+        messageElement.textContent = message.content;
+        messagesContainer.appendChild(messageElement);
+      }
+      
+      // 메시지 추가
+      function addMessage(type, content) {
+        const message = { type, content, timestamp: Date.now() };
+        
+        // 상태에 추가
+        messageState.messages.push(message);
+        vscode.setState(messageState);
+        
+        // DOM에 추가
+        addMessageToDOM(message);
+        updateMessageDisplay();
+        scrollToBottom();
+      }
+      
+      // 메시지 전송
+      function sendMessage() {
+        const text = chatInput.value.trim();
+        if (text) {
+          // 사용자 메시지 추가
+          addMessage('user', text);
+          
+          // 선택된 모델 가져오기
+          const selectedModel = modelSelector ? modelSelector.getCurrentModelId() : null;
+          
+          // VS Code에 메시지 전송
+          vscode.postMessage({
+            command: 'sendMessage',
+            text: text,
+            model: selectedModel
+          });
+          
+          // 입력 필드 초기화
+          chatInput.value = '';
+          chatInput.style.height = 'auto';
+          sendButton.disabled = true;
+        }
+      }
+      
+      // 채팅 초기화
+      function clearChat() {
+        messagesContainer.innerHTML = '';
+        messagesContainer.appendChild(emptyState);
+        emptyState.style.display = 'flex';
+        
+        messageState.messages = [];
+        vscode.setState(messageState);
+        
+        // 웹뷰 초기화 시에만 서버에 알림 (외부에서 호출된 경우는 제외)
+        if (!clearingFromServer) {
+          vscode.postMessage({
+            command: 'clearChat'
+          });
+        }
+      }
+      
+      // 서버에서 초기화 요청 시 플래그
+      let clearingFromServer = false;
+      
+      // 이벤트 리스너 설정
+      chatInput.addEventListener('input', () => {
+        sendButton.disabled = chatInput.value.trim() === '';
+        autoResizeTextarea();
+      });
+      
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (!sendButton.disabled) {
+            sendMessage();
+          }
+        }
+      });
+      
+      sendButton.addEventListener('click', sendMessage);
+      clearButton.addEventListener('click', clearChat);
+      
+      // 모델 목록 업데이트
+      function updateModelList(models) {
+        if (!models || !Array.isArray(models)) {
+          console.warn('유효하지 않은 모델 목록:', models);
+          return;
+        }
+        
+        // 모델 선택기가 초기화되지 않은 경우 초기화
+        if (!modelSelector) {
+          modelSelector = new ModelSelector('modelSelector', {
+            models: models,
+            onChange: (modelId) => {
+              // 모델 변경 이벤트 처리
+              vscode.postMessage({
+                command: 'changeModel',
+                model: modelId
+              });
+              
+              // 모델 변경시 시스템 메시지 표시
+              const selectedModel = models.find(model => model.id === modelId);
+              if (selectedModel) {
+                addMessage('system', `모델이 ${selectedModel.name}(으)로 변경되었습니다.`);
+              }
+            }
+          });
+        } else {
+          // 기존 선택기의 모델 목록 업데이트
+          modelSelector.options.models = models;
+          modelSelector.updateModels(models);
+        }
+      }
+      
+      // 현재 모델 설정
+      function setCurrentModel(modelId) {
+        if (modelSelector && modelId) {
+          modelSelector.setModelById(modelId);
+        }
+      }
+
+      // VS Code로부터 메시지 수신
+      window.addEventListener('message', event => {
+        const message = event.data;
+        
+        switch (message.command) {
+          case 'addMessage':
+            addMessage(message.type, message.content);
+            break;
+            
+          case 'clearChat':
+            clearingFromServer = true;
+            clearChat();
+            clearingFromServer = false;
+            break;
+            
+          case 'updateModels':
+            updateModelList(message.models);
+            break;
+            
+          case 'setCurrentModel':
+            setCurrentModel(message.modelId);
+            break;
+        }
+      });
+      
+      // 초기 렌더링
+      renderMessages();
+    })();
+  </script>
+</body>
+</html>
