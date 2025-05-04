@@ -3,9 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} data:; connect-src ${cspSource};">
   <title>Axiom 채팅</title>
   <link href="${cssUri}" rel="stylesheet">
+  <script>
+    // 디버깅 헬퍼
+    window.axiomDebug = {
+      log: function(message) {
+        console.log('[Axiom Debug]:', message);
+      }
+    };
+    
+    // 페이지 로드 시 디버깅 메시지
+    window.addEventListener('DOMContentLoaded', function() {
+      axiomDebug.log('채팅 인터페이스 로드됨');
+      axiomDebug.log('CSS URI: ${cssUri}');
+      axiomDebug.log('모델 선택기 URI: ${modelSelectorUri}');
+    });
+  </script>
 </head>
 <body>
   <div class="chat-container">
@@ -227,7 +242,14 @@
       window.addEventListener('message', event => {
         const message = event.data;
         
+        console.log('VS Code에서 메시지 수신:', message.command);
+        
         switch (message.command) {
+          case 'initialized':
+            console.log('VS Code 확장에서 초기화 완료 메시지 수신');
+            addMessage('system', '채팅 인터페이스가 초기화되었습니다.');
+            break;
+            
           case 'addMessage':
             addMessage(message.type, message.content);
             break;
@@ -239,12 +261,22 @@
             break;
             
           case 'updateModels':
+            console.log('모델 목록 업데이트 요청 수신:', message.models);
             updateModelList(message.models);
             break;
             
           case 'setCurrentModel':
+            console.log('현재 모델 설정 요청 수신:', message.modelId);
             setCurrentModel(message.modelId);
             break;
+            
+          case 'removeSystemMessage':
+            console.log('시스템 메시지 제거 요청 수신:', message.content);
+            // 시스템 메시지 제거 로직 (필요시 구현)
+            break;
+            
+          default:
+            console.log('처리되지 않은 메시지 타입:', message.command);
         }
       });
       

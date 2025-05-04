@@ -153,6 +153,17 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
     // 웹뷰 HTML 설정
     webviewView.webview.html = this._getHtmlContent(webviewView.webview);
     console.log('채팅 웹뷰 HTML이 설정되었습니다.');
+    
+    // 초기화 완료 메시지
+    setTimeout(() => {
+      if (this._view && this._view.visible) {
+        webviewView.webview.postMessage({
+          command: 'initialized',
+          timestamp: Date.now()
+        });
+        console.log('웹뷰 초기화 완료 메시지 전송');
+      }
+    }, 1000);
 
     // 웹뷰에서 메시지 받기
     webviewView.webview.onDidReceiveMessage(message => {

@@ -121,17 +121,22 @@ class ModelSelector {
    * 모델 목록 업데이트
    */
   updateModels(models) {
+    console.log('모델 목록 업데이트 시작');
+    
     // 드롭다운 비우기
     this.dropdown.innerHTML = '';
     
     // 모델이 없는 경우
     if (!models || models.length === 0) {
+      console.log('사용 가능한 모델이 없습니다.');
       const emptyOption = document.createElement('div');
       emptyOption.className = 'model-option';
       emptyOption.textContent = '사용 가능한 모델이 없습니다';
       this.dropdown.appendChild(emptyOption);
       return;
     }
+    
+    console.log(`${models.length}개의 모델 옵션 추가 중...`);
     
     // 모델 옵션 추가
     models.forEach(model => {
@@ -143,6 +148,8 @@ class ModelSelector {
       option.textContent = model.name;
       option.dataset.id = model.id;
       
+      console.log(`모델 옵션 추가: ${model.id} (${model.name})`);
+      
       // 옵션 클릭 이벤트
       option.addEventListener('click', () => {
         this.selectModel(model.id);
@@ -151,8 +158,16 @@ class ModelSelector {
       this.dropdown.appendChild(option);
     });
     
-    // 선택된 모델 표시 업데이트
-    this.updateSelectedModelDisplay();
+    // 모델이 있지만 선택된 모델이 없는 경우 첫 번째 모델 선택
+    if (models.length > 0 && !this.selectedModelId) {
+      console.log('기본 모델이 없어 첫 번째 모델을 선택합니다:', models[0].id);
+      this.selectModel(models[0].id);
+    } else {
+      // 선택된 모델 표시 업데이트
+      this.updateSelectedModelDisplay();
+    }
+    
+    console.log('모델 목록 업데이트 완료');
   }
   
   /**
