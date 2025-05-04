@@ -15,7 +15,7 @@ import {
 export class LlmService {
   private httpClient: HttpClientService;
   private models: Map<string, ModelConfig> = new Map();
-  private defaultModel: string = 'gpt-3.5-turbo';
+  private defaultModel: string = 'gemini-2.5-flash'; // 기본 모델을 Gemini로 변경
   private idCounter: number = 0;
   
   constructor() {
@@ -69,7 +69,12 @@ export class LlmService {
    * 기본 모델 등록
    */
   private registerDefaultModels(): void {
-    // OpenRouter - Google Gemini 2.5 Flash Preview 모델
+    // 기본 시스템 프롬프트
+    const defaultSystemPrompt = '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.';
+    
+    // ----- OpenRouter 모델들 -----
+    
+    // OpenRouter - Google Gemini 2.5 Flash Preview 모델 (기본 모델)
     this.models.set('gemini-2.5-flash', {
       name: 'Google Gemini 2.5 Flash Preview',
       provider: 'openrouter',
@@ -77,8 +82,43 @@ export class LlmService {
       contextWindow: 32000,
       maxTokens: 8192,
       temperature: 0.7,
-      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      systemPrompt: defaultSystemPrompt
     });
+    
+    // OpenRouter - Claude 3 Opus
+    this.models.set('claude-3-opus', {
+      name: 'Claude 3 Opus',
+      provider: 'openrouter',
+      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+      contextWindow: 200000,
+      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // OpenRouter - Claude 3 Sonnet
+    this.models.set('claude-3-sonnet', {
+      name: 'Claude 3 Sonnet',
+      provider: 'openrouter',
+      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+      contextWindow: 200000,
+      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // OpenRouter - GPT-4o
+    this.models.set('gpt-4o', {
+      name: 'GPT-4o',
+      provider: 'openrouter',
+      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+      contextWindow: 128000,
+      maxTokens: 4096,
+      temperature: 0.7,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // ----- 직접 API 연결 모델들 -----
     
     // OpenAI 기본 모델
     this.models.set('gpt-3.5-turbo', {
@@ -87,7 +127,7 @@ export class LlmService {
       contextWindow: 16385,
       maxTokens: 4096,
       temperature: 0.7,
-      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      systemPrompt: defaultSystemPrompt
     });
     
     // Anthropic 기본 모델
@@ -97,8 +137,10 @@ export class LlmService {
       contextWindow: 200000,
       maxTokens: 4096,
       temperature: 0.7,
-      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      systemPrompt: defaultSystemPrompt
     });
+    
+    // ----- 로컬 모델들 -----
     
     // Ollama 로컬 모델
     this.models.set('llama3', {
@@ -108,7 +150,7 @@ export class LlmService {
       contextWindow: 8192,
       maxTokens: 2048,
       temperature: 0.7,
-      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      systemPrompt: defaultSystemPrompt
     });
     
     // 로컬 시뮤레이션 모델 (API 키 없이 사용 가능)
@@ -116,8 +158,10 @@ export class LlmService {
       name: '로컬 시뮤레이션',
       provider: 'local',
       temperature: 0.7,
-      systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      systemPrompt: defaultSystemPrompt
     });
+    
+    console.log(`기본 모델 ${this.models.size}개가 등록되었습니다.`);
   }
   
   /**
@@ -415,9 +459,27 @@ export class LlmService {
     const apiUrl = modelConfig.apiUrl || 'https://openrouter.ai/api/v1/chat/completions';
     
     try {
-      // 요청 모델 설정 (Gemini 모델 특별 처리)
-      const requestModel = modelConfig.name === 'Google Gemini 2.5 Flash Preview' ? 
-                          "google/gemini-2.5-flash-preview" : modelConfig.name;
+      // 요청 모델 설정 (OpenRouter API 모델명 포맷으로 변환)
+      let requestModel: string;
+      
+      // 모델명에 따른 적절한 API 모델 ID 매핑
+      switch (modelConfig.name) {
+        case 'Google Gemini 2.5 Flash Preview':
+          requestModel = "google/gemini-2.5-flash-preview";
+          break;
+        case 'Claude 3 Opus':
+          requestModel = "anthropic/claude-3-opus";
+          break;
+        case 'Claude 3 Sonnet':
+          requestModel = "anthropic/claude-3-sonnet";
+          break;
+        case 'GPT-4o':
+          requestModel = "openai/gpt-4o";
+          break;
+        default:
+          // 기본적으로 모델 이름을 그대로 사용
+          requestModel = modelConfig.name;
+      }
       
       console.log(`OpenRouter API 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
       console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}, 스트리밍: ${stream ? '켜짐' : '꺼짐'}`);
@@ -451,7 +513,7 @@ export class LlmService {
           model: requestModel,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0.7,
-          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
           stream: false
         })
       });
@@ -507,9 +569,27 @@ export class LlmService {
     onUpdate: (chunk: string) => void
   ): Promise<LlmResponse> {
     try {
-      // 요청 모델 설정 (Gemini 모델 특별 처리)
-      const requestModel = modelConfig.name === 'Google Gemini 2.5 Flash Preview' ? 
-                           "google/gemini-2.5-flash-preview" : modelConfig.name;
+      // 요청 모델 설정 (OpenRouter API 모델명 포맷으로 변환)
+      let requestModel: string;
+      
+      // 모델명에 따른 적절한 API 모델 ID 매핑
+      switch (modelConfig.name) {
+        case 'Google Gemini 2.5 Flash Preview':
+          requestModel = "google/gemini-2.5-flash-preview";
+          break;
+        case 'Claude 3 Opus':
+          requestModel = "anthropic/claude-3-opus";
+          break;
+        case 'Claude 3 Sonnet':
+          requestModel = "anthropic/claude-3-sonnet";
+          break;
+        case 'GPT-4o':
+          requestModel = "openai/gpt-4o";
+          break;
+        default:
+          // 기본적으로 모델 이름을 그대로 사용
+          requestModel = modelConfig.name;
+      }
       
       console.log(`OpenRouter 스트리밍 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
       console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}`);
@@ -528,7 +608,7 @@ export class LlmService {
           model: requestModel,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0.7,
-          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
           stream: true
         })
       });
