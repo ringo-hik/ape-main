@@ -2,15 +2,29 @@
 
 ## v0.0.1 (2025-05-04)
 
-### 2025-05-04: 코드베이스 정리 및 WSL 개발 환경 지원 개선
-- 백업 파일, 테스트 파일, 불필요한 임시 파일 제거 (test-*.js, *-test.html, *.backup)
-- 오픈소스 공개를 위한 코드베이스 정리 및 최적화
-- WSL에서 개발 및 Windows에서 테스트하기 위한 가이드 추가
-- wsl-build.bat 및 windows-build.bat 스크립트 추가: WSL과 Windows 간의 경로 문제 해결
-- map-wsl.ps1 스크립트 추가: WSL 파일 시스템 매핑 지원
-- WSL_README.md 문서 작성: 개발 및 테스트 워크플로우 상세 설명
+### 2025-05-04 15:27: 문서화 및 요청 이력 관리 개선
+- REQUEST_HISTORY.md 파일 생성 및 초기 요청 기록 작성
+- HISTORY.md 상세 업데이트: 코드베이스 정리 작업 내용 추가
+- 개발 지침 준수: 변경 관리 정책에 따른 문서 관리 강화
+- 개발자 문서 일관성 개선: 모든 문서 포맷 통일
+
+### 2025-05-04 14:52: 오픈소스 공개 준비를 위한 코드베이스 정리
+- 백업 파일(src/extension.ts.backup) 삭제: 더 이상 필요없는 백업 파일 제거
+- 테스트 관련 파일 정리: test-command.js, test-llm.js, test-plugins.js, chat-test.html, inject-test.js 삭제
+- 불필요한 개발 임시 파일 제거: TEST_README.md, enable-test-mode.js, restore-extension.js
+- 코드 품질 향상: 불필요한 테스트 코드 및 임시 코드 제거로 코드베이스 간소화
+- 빌드 프로세스 테스트: 정리 후 빌드 검증 완료
+- 설정 파일 업데이트: 개발 환경 설정 개선
+
+### 2025-05-04 13:10: WSL 개발 환경 지원 개선
+- WSL에서 개발 및 Windows에서 테스트하기 위한 상세 가이드 추가
+- 윈도우-WSL 호환성 개선: wsl-build.bat 및 windows-build.bat 스크립트 개발
+- WSL 파일 시스템 접근 최적화: map-wsl.ps1 스크립트 추가
+- 환경 설정 문제 해결: npm install 실패 시 대응 방법 문서화
+- WSL_README.md 문서 작성: 개발 및 테스트 워크플로우 상세 설명 (126줄 분량)
+- 환경 변수 및 경로 처리 개선: 크로스 플랫폼 호환성 강화
 - CLAUDE.md 업데이트: WSL과 Windows 환경 차이 섹션 추가
-- README.md 업데이트: 설치 방법 개선
+- README.md 업데이트: WSL 및 Windows 설치 방법 개선
 
 ### 2025-05-03: 명령어 시스템 및 UI 개선
 - 명령어 시스템 연결 및 디버그 명령어 개선
