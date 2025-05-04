@@ -46,26 +46,26 @@ cd axiom-extension
 
 ```bash
 # WSL 터미널에서 직접 실행
-./build-install.sh
+./build_scripts/build-install.sh
 ```
 
 또는 Windows 명령 프롬프트에서:
 
 ```cmd
 # WSL 경로 문제를 해결하는 특수 스크립트 사용
-wsl-build.bat
+build_scripts/wsl-build.bat
 ```
 
 #### Windows에서 직접 실행 (WSL 없이):
 
 ```cmd
-build-install.bat
+build_scripts/build-install.bat
 ```
 
 #### Linux에서 실행:
 
 ```bash
-./build-install.sh
+./build_scripts/build-install.sh
 ```
 
 ### Windows-WSL 개발 환경에서의 주의사항
