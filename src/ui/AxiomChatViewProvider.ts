@@ -125,7 +125,7 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         this._changeModel(selectedModel);
       }
       
-      // 시스템 로딩 메시지 제거 (스트리밍 모드에서는 바로 제거)
+      // 시스템 로딩 메시지 제거
       if (this._view && this._view.visible) {
         this._view.webview.postMessage({
           command: 'removeSystemMessage',
@@ -133,6 +133,60 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         });
       }
       
+      // @ 명령어 및 / 명령어 처리 (명령어 형식인지 확인)
+      const isAtCommand = text.trim().startsWith('@');
+      const isSlashCommand = text.trim().startsWith('/');
+      
+      // 명령어인 경우 스트리밍 없이 직접 처리
+      if (isAtCommand || isSlashCommand) {
+        console.log(`AxiomChatViewProvider: ${isAtCommand ? '@' : '/'}명령어 감지 - "${text}"`);
+        
+        // 명령어 처리 전 로딩 표시
+        const commandResponseId = `cmd-${Date.now()}`;
+        this._view.webview.postMessage({
+          command: 'startStreaming',
+          responseId: commandResponseId,
+          type: 'system'
+        });
+        
+        // 명령어 실행 (스트리밍 없이)
+        const commandResponse = await this._chatService.processMessage(text);
+        
+        // 명령어 응답 처리
+        if (commandResponse) {
+          // 응답 형식에 따라 처리
+          let responseContent = '';
+          let responseType = 'system';
+          
+          if (typeof commandResponse === 'object') {
+            // 객체 응답 처리
+            if (commandResponse.content) {
+              responseContent = commandResponse.content;
+              responseType = commandResponse.error ? 'system' : 'assistant';
+            } else {
+              responseContent = JSON.stringify(commandResponse, null, 2);
+            }
+          } else {
+            responseContent = commandResponse.toString();
+          }
+          
+          // 스트리밍 종료 및 응답 표시
+          if (this._view && this._view.visible) {
+            // 스트리밍 애니메이션 중지
+            this._view.webview.postMessage({
+              command: 'endStreaming',
+              responseId: commandResponseId
+            });
+            
+            // 명령어 응답 표시
+            this._sendResponse(responseContent, responseType);
+          }
+        }
+        
+        return;
+      }
+      
+      // 일반 메시지는 스트리밍 모드로 처리
       if (useStreaming) {
         // 스트리밍 응답 처리를 위한 변수
         let isFirstChunk = true;
@@ -148,7 +202,7 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         this._view.webview.postMessage({
           command: 'startStreaming',
           responseId: responseId,
-          type: text.startsWith('/') ? 'system' : 'assistant'
+          type: 'assistant'
         });
         
         // 스트리밍 콜백
@@ -173,7 +227,7 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
             command: 'appendStreamChunk',
             responseId: responseId,
             content: chunk,
-            type: text.startsWith('/') ? 'system' : 'assistant'
+            type: 'assistant'
           });
         };
         
@@ -197,8 +251,18 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         const response = await this._chatService.processMessage(text);
         
         // 응답이 비어있지 않은 경우만 전송
-        if (response && response.trim() !== '' && this._view && this._view.visible) {
-          this._sendResponse(response, text.startsWith('/') ? 'system' : 'assistant');
+        if (response && this._view && this._view.visible) {
+          // 응답 형식에 따라 처리
+          if (typeof response === 'object') {
+            if (response.content) {
+              const responseType = response.error ? 'system' : 'assistant';
+              this._sendResponse(response.content, responseType);
+            } else {
+              this._sendResponse(JSON.stringify(response, null, 2), 'assistant');
+            }
+          } else if (response.trim && response.trim() !== '') {
+            this._sendResponse(response, 'assistant');
+          }
         }
       }
     } catch (error) {
