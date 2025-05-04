@@ -1,0 +1,26 @@
+{
+    "markdown.preview.openMarkdownLinks": "inPreview",
+    "markdown.preview.doubleClickToSwitchToEditor": true,
+    "workbench.editorAssociations": {
+        "*.md": "default"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules": false,
+        "**/dist": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true
+    }
+}

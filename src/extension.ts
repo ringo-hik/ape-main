@@ -338,6 +338,12 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
     const modelSelectorUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'js', 'model-selector.js'));
     
     try {
+      // HTML 파일이 존재하는지 확인
+      if (!fs.existsSync(htmlPath.fsPath)) {
+        console.error(`HTML 파일을 찾을 수 없습니다: ${htmlPath.fsPath}`);
+        throw new Error('HTML 파일을 찾을 수 없습니다.');
+      }
+      
       // HTML 파일 읽기
       let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
       
@@ -346,6 +352,10 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
       htmlContent = htmlContent.replace(/\$\{cspSource\}/g, cspSource);
       htmlContent = htmlContent.replace(/\$\{cssUri\}/g, cssUri.toString());
       htmlContent = htmlContent.replace(/\$\{modelSelectorUri\}/g, modelSelectorUri.toString());
+      
+      console.log('HTML 파일 로드 성공:', htmlPath.fsPath);
+      console.log('CSS URI:', cssUri.toString());
+      console.log('JS URI:', modelSelectorUri.toString());
       
       return htmlContent;
     } catch (error) {
@@ -357,7 +367,7 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'unsafe-inline';">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
         <title>Axiom 채팅</title>
         <style>
           body {
@@ -376,6 +386,7 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         <div class="error">
           <p>오류: 채팅 인터페이스를 로드할 수 없습니다.</p>
           <p>HTML 파일을 찾을 수 없거나 읽는 중 오류가 발생했습니다.</p>
+          <p>경로: ${htmlPath.fsPath}</p>
         </div>
         <script>
           const vscode = acquireVsCodeApi();

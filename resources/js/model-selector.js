@@ -5,9 +5,16 @@
  */
 class ModelSelector {
   constructor(containerId, options = {}) {
+    // 디버깅 메시지
+    console.log('ModelSelector 초기화 시작:', containerId);
+    console.log('제공된 옵션:', JSON.stringify(options));
+    
     this.container = document.getElementById(containerId);
     if (!this.container) {
       console.error(`모델 선택기 컨테이너를 찾을 수 없습니다: ${containerId}`);
+      // 디버깅: 현재 DOM에 있는 모든 요소의 ID 출력
+      console.log('현재 DOM의 모든 요소 ID:');
+      document.querySelectorAll('[id]').forEach(el => console.log(el.id));
       return;
     }
     
@@ -19,9 +26,11 @@ class ModelSelector {
     };
     
     this.selectedModelId = this.options.defaultModelId;
+    console.log('선택된 기본 모델 ID:', this.selectedModelId);
     
     this.render();
     this.bindEvents();
+    console.log('ModelSelector 초기화 완료');
   }
   
   /**

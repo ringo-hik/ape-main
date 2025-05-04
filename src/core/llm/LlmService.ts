@@ -36,19 +36,33 @@ export class LlmService {
    * 설정에서 모델 정보 로드
    */
   private loadModelsFromConfig(): void {
+    console.log('LLM 모델 설정 로드 시작');
     const config = vscode.workspace.getConfiguration('axiom.llm');
     const modelConfigs = config.get<Record<string, ModelConfig>>('models', {});
     
+    console.log(`설정에서 ${Object.keys(modelConfigs).length}개의 모델 구성 로드됨`);
+    
     Object.entries(modelConfigs).forEach(([id, modelConfig]) => {
+      console.log(`모델 등록: ${id} (${modelConfig.name})`);
       this.models.set(id, modelConfig);
     });
     
     this.defaultModel = config.get<string>('defaultModel', this.defaultModel);
+    console.log(`기본 모델 ID: ${this.defaultModel}`);
     
     // 설정이 없는 경우 기본 모델 등록
     if (this.models.size === 0) {
+      console.log('등록된 모델이 없습니다. 기본 모델을 등록합니다.');
       this.registerDefaultModels();
     }
+    
+    // 모든 등록된 모델 로깅
+    console.log('등록된 모든 모델:');
+    this.models.forEach((config, id) => {
+      console.log(`- ${id}: ${config.name} (${config.provider})`);
+    });
+    
+    console.log('LLM 모델 설정 로드 완료');
   }
   
   /**
