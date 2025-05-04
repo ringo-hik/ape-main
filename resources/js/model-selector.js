@@ -138,30 +138,80 @@ class ModelSelector {
     
     console.log(`${models.length}개의 모델 옵션 추가 중...`);
     
-    // 모델 옵션 추가
-    models.forEach(model => {
-      const option = document.createElement('div');
-      option.className = 'model-option';
-      if (model.id === this.selectedModelId) {
-        option.classList.add('selected');
-      }
-      option.textContent = model.name;
-      option.dataset.id = model.id;
-      
-      console.log(`모델 옵션 추가: ${model.id} (${model.name})`);
-      
-      // 옵션 클릭 이벤트
-      option.addEventListener('click', () => {
-        this.selectModel(model.id);
-      });
-      
-      this.dropdown.appendChild(option);
-    });
+    // 모델 카테고리 분류
+    const onPremModels = models.filter(model => model.name.includes('온프레미스'));
+    const testModels = models.filter(model => model.name.includes('테스트용'));
+    const localModels = models.filter(model => model.name.includes('로컬') || model.name.includes('오프라인'));
+    const otherModels = models.filter(model => 
+      !model.name.includes('온프레미스') && 
+      !model.name.includes('테스트용') && 
+      !model.name.includes('로컬') &&
+      !model.name.includes('오프라인')
+    );
     
-    // 모델이 있지만 선택된 모델이 없는 경우 첫 번째 모델 선택
+    // 카테고리별 헤더 및 모델 추가 함수
+    const addCategoryHeader = (title) => {
+      const header = document.createElement('div');
+      header.className = 'model-category-header';
+      header.textContent = title;
+      this.dropdown.appendChild(header);
+    };
+    
+    const addModelOptions = (categoryModels) => {
+      categoryModels.forEach(model => {
+        const option = document.createElement('div');
+        option.className = 'model-option';
+        if (model.id === this.selectedModelId) {
+          option.classList.add('selected');
+        }
+        option.textContent = model.name;
+        option.dataset.id = model.id;
+        
+        console.log(`모델 옵션 추가: ${model.id} (${model.name})`);
+        
+        // 옵션 클릭 이벤트
+        option.addEventListener('click', () => {
+          this.selectModel(model.id);
+        });
+        
+        this.dropdown.appendChild(option);
+      });
+    };
+    
+    // 온프레미스 모델 (최우선 순위)
+    if (onPremModels.length > 0) {
+      addCategoryHeader('온프레미스 모델');
+      addModelOptions(onPremModels);
+    }
+    
+    // 테스트용 모델
+    if (testModels.length > 0) {
+      addCategoryHeader('테스트용 모델 (외부망)');
+      addModelOptions(testModels);
+    }
+    
+    // 로컬 모델
+    if (localModels.length > 0) {
+      addCategoryHeader('로컬/오프라인 모델');
+      addModelOptions(localModels);
+    }
+    
+    // 기타 모델
+    if (otherModels.length > 0) {
+      addCategoryHeader('기타 모델');
+      addModelOptions(otherModels);
+    }
+    
+    // 모델이 있지만 선택된 모델이 없는 경우 온프레미스 또는 첫 번째 모델 선택
     if (models.length > 0 && !this.selectedModelId) {
-      console.log('기본 모델이 없어 첫 번째 모델을 선택합니다:', models[0].id);
-      this.selectModel(models[0].id);
+      // 온프레미스 모델 중 첫 번째 모델을 우선 선택
+      if (onPremModels.length > 0) {
+        console.log('온프레미스 모델을 기본으로 선택합니다:', onPremModels[0].id);
+        this.selectModel(onPremModels[0].id);
+      } else {
+        console.log('기본 모델이 없어 첫 번째 모델을 선택합니다:', models[0].id);
+        this.selectModel(models[0].id);
+      }
     } else {
       // 선택된 모델 표시 업데이트
       this.updateSelectedModelDisplay();

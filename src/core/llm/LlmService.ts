@@ -72,11 +72,46 @@ export class LlmService {
     // 기본 시스템 프롬프트
     const defaultSystemPrompt = '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.';
     
-    // ----- OpenRouter 모델들 -----
+    // ===== 온프레미스 모델 (기본 모델) =====
     
-    // OpenRouter - Google Gemini 2.5 Flash Preview 모델 (기본 모델)
+    // Narrans (온프레미스 기본 모델)
+    this.models.set('narrans', {
+      name: 'NARRANS (온프레미스)',
+      provider: 'custom',
+      apiUrl: 'https://api-se-dev.narrans.samsungds.net/v1/chat/completions',
+      contextWindow: 10000,
+      maxTokens: 10000,
+      temperature: 0,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // Llama 4 Maverick (온프레미스)
+    this.models.set('llama-4-maverick', {
+      name: 'Llama 4 Maverick (온프레미스)',
+      provider: 'custom',
+      apiUrl: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions',
+      contextWindow: 50000,
+      maxTokens: 50000,
+      temperature: 0,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // Llama 4 Scout (온프레미스)
+    this.models.set('llama-4-scout', {
+      name: 'Llama 4 Scout (온프레미스)',
+      provider: 'custom',
+      apiUrl: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions',
+      contextWindow: 50000,
+      maxTokens: 50000,
+      temperature: 0,
+      systemPrompt: defaultSystemPrompt
+    });
+    
+    // ===== 테스트용 OpenRouter 모델 (외부망에서만 사용) =====
+    
+    // OpenRouter - Google Gemini 2.5 Flash Preview
     this.models.set('gemini-2.5-flash', {
-      name: 'Google Gemini 2.5 Flash Preview',
+      name: 'Google Gemini 2.5 Flash (테스트용)',
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
       contextWindow: 32000,
@@ -87,7 +122,7 @@ export class LlmService {
     
     // OpenRouter - Claude 3 Opus
     this.models.set('claude-3-opus', {
-      name: 'Claude 3 Opus',
+      name: 'Claude 3 Opus (테스트용)',
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
       contextWindow: 200000,
@@ -98,7 +133,7 @@ export class LlmService {
     
     // OpenRouter - Claude 3 Sonnet
     this.models.set('claude-3-sonnet', {
-      name: 'Claude 3 Sonnet',
+      name: 'Claude 3 Sonnet (테스트용)',
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
       contextWindow: 200000,
@@ -109,7 +144,7 @@ export class LlmService {
     
     // OpenRouter - GPT-4o
     this.models.set('gpt-4o', {
-      name: 'GPT-4o',
+      name: 'GPT-4o (테스트용)',
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
       contextWindow: 128000,
@@ -118,11 +153,11 @@ export class LlmService {
       systemPrompt: defaultSystemPrompt
     });
     
-    // ----- 직접 API 연결 모델들 -----
+    // ===== 기타 테스트용 모델 =====
     
-    // OpenAI 기본 모델
+    // OpenAI 직접 연결 (테스트용)
     this.models.set('gpt-3.5-turbo', {
-      name: 'GPT-3.5 Turbo',
+      name: 'GPT-3.5 Turbo (테스트용)',
       provider: 'openai',
       contextWindow: 16385,
       maxTokens: 4096,
@@ -130,9 +165,9 @@ export class LlmService {
       systemPrompt: defaultSystemPrompt
     });
     
-    // Anthropic 기본 모델
+    // Anthropic 직접 연결 (테스트용)
     this.models.set('claude-3-haiku', {
-      name: 'Claude 3 Haiku',
+      name: 'Claude 3 Haiku (테스트용)',
       provider: 'anthropic',
       contextWindow: 200000,
       maxTokens: 4096,
@@ -140,11 +175,11 @@ export class LlmService {
       systemPrompt: defaultSystemPrompt
     });
     
-    // ----- 로컬 모델들 -----
+    // ===== 로컬 모델/대체 모드 =====
     
-    // Ollama 로컬 모델
+    // Ollama 로컬 모델 (개발환경용)
     this.models.set('llama3', {
-      name: 'Llama 3',
+      name: 'Llama 3 (로컬)',
       provider: 'ollama',
       apiUrl: 'http://localhost:11434/api/chat',
       contextWindow: 8192,
@@ -153,15 +188,19 @@ export class LlmService {
       systemPrompt: defaultSystemPrompt
     });
     
-    // 로컬 시뮤레이션 모델 (API 키 없이 사용 가능)
+    // 로컬 시뮤레이션 모델 (API 키/연결 없이 사용 가능)
     this.models.set('local', {
-      name: '로컬 시뮤레이션',
+      name: '로컬 시뮤레이션 (오프라인)',
       provider: 'local',
       temperature: 0.7,
       systemPrompt: defaultSystemPrompt
     });
     
+    // 온프레미스/테스트/로컬 포함 등록된 모든 모델 수 로깅
     console.log(`기본 모델 ${this.models.size}개가 등록되었습니다.`);
+    console.log('- 온프레미스 모델: 3개 (Narrans, Llama-4-Maverick, Llama-4-Scout)');
+    console.log('- 테스트용 외부 모델: 6개 (OpenRouter 4개, 직접 연결 2개)');
+    console.log('- 로컬/개발 모델: 2개 (Ollama, 시뮤레이션)');
   }
   
   /**

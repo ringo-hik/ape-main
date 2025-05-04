@@ -97,6 +97,20 @@ body {
 
 .model-selector-dropdown.open {
   display: block;
+  width: 240px; /* 더 넓은 드롭다운 */
+}
+
+.model-category-header {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-sideBarSectionHeader-background);
+  border-top: 1px solid var(--vscode-sideBarSectionHeader-border);
+  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .model-option {
