@@ -153,6 +153,23 @@ body {
   padding: 4px 8px;
 }
 
+/* 스트리밍 효과 */
+.streaming::after {
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  width: 5px;
+  height: 1.2em;
+  background-color: var(--vscode-editor-foreground);
+  animation: blink 1s step-end infinite;
+  margin-left: 3px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
 /* 입력 영역 */
 .chat-input-container {
   padding: 10px;

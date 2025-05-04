@@ -114,6 +114,7 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
 
     const text = message.text;
     const selectedModel = message.model; // 선택된 모델 ID
+    const useStreaming = true; // 스트리밍 사용 여부 (추후 설정으로 변경 가능)
 
     try {
       // 로딩 상태 표시
@@ -124,21 +125,64 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         this._changeModel(selectedModel);
       }
       
-      // 메시지 처리 및 응답 생성
-      const response = await this._chatService.processMessage(text);
-      
-      // 시스템 로딩 메시지 제거
+      // 시스템 로딩 메시지 제거 (스트리밍 모드에서는 바로 제거)
       if (this._view && this._view.visible) {
-        // 로딩 메시지 제거 (필요한 경우)
         this._view.webview.postMessage({
           command: 'removeSystemMessage',
           content: '생각 중...'
         });
       }
       
-      // 응답이 비어있지 않은 경우만 전송
-      if (response && response.trim() !== '' && this._view && this._view.visible) {
-        this._sendResponse(response, text.startsWith('/') ? 'system' : 'assistant');
+      if (useStreaming) {
+        // 스트리밍 응답 처리를 위한 변수
+        let isFirstChunk = true;
+        
+        // 스트리밍 응답 ID
+        const responseId = `resp-${Date.now()}`;
+        
+        // 스트리밍 시작 메시지 전송
+        this._view.webview.postMessage({
+          command: 'startStreaming',
+          responseId: responseId,
+          type: text.startsWith('/') ? 'system' : 'assistant'
+        });
+        
+        // 스트리밍 콜백
+        const streamHandler = (chunk: string) => {
+          if (!this._view || !this._view.visible) return;
+          
+          // 첫 청크인 경우 초기화 메시지 전송
+          if (isFirstChunk) {
+            isFirstChunk = false;
+          }
+          
+          // 청크 전송
+          this._view.webview.postMessage({
+            command: 'appendStreamChunk',
+            responseId: responseId,
+            content: chunk,
+            type: text.startsWith('/') ? 'system' : 'assistant'
+          });
+        };
+        
+        // 스트리밍 모드로 처리
+        await this._chatService.processMessage(text, streamHandler);
+        
+        // 스트리밍 완료 메시지 전송
+        if (this._view && this._view.visible) {
+          this._view.webview.postMessage({
+            command: 'endStreaming',
+            responseId: responseId
+          });
+        }
+      } else {
+        // 일반 모드로 처리
+        const response = await this._chatService.processMessage(text);
+        
+        // 응답이 비어있지 않은 경우만 전송
+        if (response && response.trim() !== '' && this._view && this._view.visible) {
+          this._sendResponse(response, text.startsWith('/') ? 'system' : 'assistant');
+        }
       }
     } catch (error) {
       console.error('메시지 처리 중 오류 발생:', error);

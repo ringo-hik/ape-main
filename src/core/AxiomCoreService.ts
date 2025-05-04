@@ -206,9 +206,13 @@ export class AxiomCoreService extends EventEmitter {
    * 사용자 메시지 처리
    * 명령어 파싱 및 실행
    * @param text 사용자 입력 텍스트
+   * @param options 처리 옵션 (스트리밍 등)
    * @returns 처리 결과
    */
-  public async processMessage(text: string): Promise<any> {
+  public async processMessage(text: string, options?: {
+    stream?: boolean;
+    onUpdate?: (chunk: string) => void;
+  }): Promise<any> {
     try {
       this._logger.info(`메시지 처리 시작: "${text}"`);
       
@@ -245,14 +249,65 @@ export class AxiomCoreService extends EventEmitter {
         };
       }
       
-      // 일반 텍스트는 LLM 응답 생성
-      this._logger.info('일반 텍스트로 처리: LLM 응답 생성');
-      return await this.generateResponse(text);
+      // 일반 텍스트는 LLM 응답 생성 (스트리밍 옵션 포함)
+      this._logger.info(`일반 텍스트로 처리: LLM 응답 생성 (스트리밍: ${options?.stream ? '켜짐' : '꺼짐'})`);
+      
+      if (options?.stream && options?.onUpdate) {
+        // 스트리밍 모드
+        return await this.generateStreamingResponse(text, options.onUpdate);
+      } else {
+        // 일반 모드
+        return await this.generateResponse(text);
+      }
     } catch (error) {
       this._logger.error('메시지 처리 중 오류 발생:', error);
       return {
         content: `메시지 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
         error: true
+      };
+    }
+  }
+  
+  /**
+   * 스트리밍 응답 생성
+   * @param text 사용자 입력 텍스트
+   * @param onUpdate 스트리밍 업데이트 콜백
+   * @returns 생성된 응답
+   */
+  private async generateStreamingResponse(text: string, onUpdate: (chunk: string) => void): Promise<any> {
+    try {
+      // 프롬프트 어셈블러로 컨텍스트 주입
+      const promptData = await this._promptAssembler.assemblePrompt(text);
+      
+      this._logger.info(`스트리밍 프롬프트 생성 완료: 메시지 ${promptData.messages.length}개`);
+      
+      // 메시지가 비어있는 경우 기본 메시지 추가
+      if (!promptData.messages || promptData.messages.length === 0) {
+        promptData.messages = [
+          {
+            role: 'user',
+            content: text || '안녕하세요'
+          }
+        ];
+      }
+      
+      // LLM 서비스로 응답 생성 (스트리밍 모드)
+      const response = await this._llmService.sendRequest({
+        model: this._llmService.getDefaultModelId(),
+        messages: promptData.messages,
+        temperature: promptData.temperature,
+        stream: true,
+        onUpdate: onUpdate
+      });
+      
+      return response;
+    } catch (error) {
+      this._logger.error('스트리밍 응답 생성 중 오류 발생:', error);
+      onUpdate(`\n\n오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      
+      // 오류 발생 시 기본 응답 반환
+      return {
+        content: `죄송합니다. 응답을 생성하는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
       };
     }
   }
@@ -281,6 +336,18 @@ export class AxiomCoreService extends EventEmitter {
       // 프롬프트 어셈블러로 컨텍스트 주입
       const promptData = await this._promptAssembler.assemblePrompt(text);
       
+      this._logger.info(`프롬프트 생성 완료: 메시지 ${promptData.messages.length}개, 온도 ${promptData.temperature}`);
+      
+      // 메시지가 비어있는 경우 기본 메시지 추가
+      if (!promptData.messages || promptData.messages.length === 0) {
+        promptData.messages = [
+          {
+            role: 'user',
+            content: text || '안녕하세요'
+          }
+        ];
+      }
+      
       // LLM 서비스로 응답 생성
       const response = await this._llmService.sendRequest({
         model: this._llmService.getDefaultModelId(),
@@ -291,7 +358,11 @@ export class AxiomCoreService extends EventEmitter {
       return response;
     } catch (error) {
       this._logger.error('응답 생성 중 오류 발생:', error);
-      throw error;
+      
+      // 오류 발생 시 기본 응답 반환
+      return {
+        content: `죄송합니다. 응답을 생성하는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      };
     }
   }
   

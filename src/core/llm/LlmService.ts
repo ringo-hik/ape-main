@@ -124,10 +124,26 @@ export class LlmService {
    * LLM API로 요청 전송
    */
   public async sendRequest(options: LlmRequestOptions): Promise<LlmResponse> {
-    const { model = this.defaultModel, messages, temperature, maxTokens, stream, onUpdate } = options;
+    const { model = this.defaultModel, messages = [], temperature, maxTokens, stream, onUpdate } = options;
+    
+    // 메시지 배열이 유효한지 확인
+    if (!Array.isArray(messages)) {
+      console.error('sendRequest: messages is not an array:', messages);
+      throw new Error('요청 메시지가 유효하지 않습니다.');
+    }
+    
+    // 메시지가 비어있는 경우 기본 메시지 추가
+    if (messages.length === 0) {
+      console.warn('sendRequest: empty messages array, adding default message');
+      messages.push({
+        role: 'user',
+        content: '안녕하세요'
+      });
+    }
     
     const modelConfig = this.models.get(model);
     if (!modelConfig) {
+      console.error(`sendRequest: model '${model}' not found`);
       throw new Error(`모델 '${model}'을 찾을 수 없습니다.`);
     }
     
@@ -138,6 +154,8 @@ export class LlmService {
         content: modelConfig.systemPrompt
       });
     }
+    
+    console.log('sendRequest: prepared messages:', JSON.stringify(messages));
     
     // API 키가 없을 경우 로컬 시뮤레이션 모드로 전환
     try {
@@ -397,6 +415,20 @@ export class LlmService {
     const apiUrl = modelConfig.apiUrl || 'https://openrouter.ai/api/v1/chat/completions';
     
     try {
+      // 스트리밍 모드인 경우
+      if (stream && onUpdate) {
+        return await this.handleOpenRouterStream(
+          apiUrl,
+          apiKey,
+          modelConfig,
+          messages,
+          temperature,
+          maxTokens,
+          onUpdate
+        );
+      }
+      
+      // 일반 모드 (비스트리밍)
       // SSL 인증서 검증 오류 회피를 위해 fetch API 직접 사용
       const fetchResponse = await fetch(apiUrl, {
         method: 'POST',
@@ -411,7 +443,7 @@ export class LlmService {
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0.7,
           max_tokens: maxTokens ?? modelConfig.maxTokens,
-          stream: !!stream
+          stream: false
         })
       });
       
@@ -447,6 +479,100 @@ export class LlmService {
       };
     } catch (error) {
       console.error('OpenRouter API 요청 오류:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * OpenRouter 스트리밍 응답 처리
+   */
+  private async handleOpenRouterStream(
+    apiUrl: string,
+    apiKey: string,
+    modelConfig: ModelConfig,
+    messages: ChatMessage[],
+    temperature?: number, 
+    maxTokens?: number,
+    onUpdate: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    try {
+      // 스트리밍 요청 전송
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'HTTP-Referer': 'https://github.com/anthropics/claude-code',
+          'X-Title': 'Axiom VSCode Extension'
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-preview",
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0.7,
+          max_tokens: maxTokens ?? modelConfig.maxTokens,
+          stream: true
+        })
+      });
+      
+      if (!response.ok || !response.body) {
+        throw new Error(`OpenRouter 스트리밍 API 응답 오류: ${response.status} ${response.statusText}`);
+      }
+      
+      // 응답 ID 및 누적 콘텐츠
+      let responseId = this.generateId();
+      let accumulatedContent = '';
+      
+      // 스트림 리더 생성
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // 스트림 처리
+      let done = false;
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // Server-Sent Events 형식 파싱
+        const events = chunk
+          .split('\n\n')
+          .filter(line => line.trim() !== '' && line.trim() !== 'data: [DONE]');
+        
+        for (const event of events) {
+          // 'data: ' 접두사 제거 및 JSON 파싱
+          if (event.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(event.slice(6));
+              
+              if (data.id) {
+                responseId = data.id;
+              }
+              
+              // 실제 콘텐츠 추출
+              const content = data.choices[0]?.delta?.content || '';
+              if (content) {
+                accumulatedContent += content;
+                onUpdate(content);
+              }
+            } catch (error) {
+              console.warn('스트리밍 데이터 파싱 오류:', error);
+            }
+          }
+        }
+      }
+      
+      // 완료된 응답 반환
+      return {
+        id: responseId,
+        content: accumulatedContent,
+        model: modelConfig.name
+      };
+    } catch (error) {
+      console.error('OpenRouter 스트리밍 오류:', error);
       throw error;
     }
   }

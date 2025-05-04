@@ -173,7 +173,49 @@ export class PromptAssemblerService implements IPromptAssembler {
    * @param context 컨텍스트
    * @returns 완성된 프롬프트
    */
-  assemblePrompt(basePrompt: string, context: PromptContext): string {
+  /**
+   * 텍스트를 기반으로 프롬프트 데이터 생성
+   */
+  async assemblePrompt(text: string): Promise<{ messages: Array<{role: string, content: string}>, temperature: number }> {
+    try {
+      // 기본 메시지 구성
+      const messages = [
+        {
+          role: 'system',
+          content: this.defaultSystemPrompt
+        },
+        {
+          role: 'user',
+          content: text
+        }
+      ];
+      
+      // 기본 온도값
+      const temperature = 0.7;
+      
+      return {
+        messages,
+        temperature
+      };
+    } catch (error) {
+      console.error('프롬프트 생성 중 오류 발생:', error);
+      // 오류 발생 시 최소한의 메시지 반환
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: text || '안녕하세요'
+          }
+        ],
+        temperature: 0.7
+      };
+    }
+  }
+  
+  /**
+   * 기존 메서드 (이전 버전과의 호환성을 위해 유지)
+   */
+  assemblePromptLegacy(basePrompt: string, context: PromptContext): string {
     try {
       // 변수 치환
       const prompt = this.replaceVariables(basePrompt, context);

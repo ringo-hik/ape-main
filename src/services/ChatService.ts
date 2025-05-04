@@ -44,7 +44,7 @@ export class ChatService {
   /**
    * 사용자 메시지 처리 후 응답 생성
    */
-  public async processMessage(text: string): Promise<string> {
+  public async processMessage(text: string, onUpdate?: (chunk: string) => void): Promise<string> {
     // 대화 기록에 사용자 메시지 추가
     this.addMessage('user', text);
     
@@ -57,19 +57,36 @@ export class ChatService {
     }
     
     try {
-      // Axiom 코어 서비스를 통한 메시지 처리
-      const response = await this.axiomCore.processMessage(text);
+      // 스트리밍 처리를 위한 내부 콜백
+      let accumulatedResponse = '';
+      
+      const streamingCallback = onUpdate ? (chunk: string) => {
+        accumulatedResponse += chunk;
+        onUpdate(chunk);
+      } : undefined;
+      
+      // Axiom 코어 서비스를 통한 메시지 처리 (스트리밍 지원)
+      const response = await this.axiomCore.processMessage(text, streamingCallback ? {
+        stream: true,
+        onUpdate: streamingCallback
+      } : undefined);
       
       let responseContent: string;
       
-      if (typeof response === 'object') {
-        if (response.content) {
-          responseContent = response.content;
-        } else {
-          responseContent = JSON.stringify(response, null, 2);
-        }
+      // 스트리밍 모드에서는 누적된 응답 사용
+      if (streamingCallback && accumulatedResponse) {
+        responseContent = accumulatedResponse;
       } else {
-        responseContent = response.toString();
+        // 비스트리밍 모드에서는 응답 객체에서 콘텐츠 추출
+        if (typeof response === 'object') {
+          if (response.content) {
+            responseContent = response.content;
+          } else {
+            responseContent = JSON.stringify(response, null, 2);
+          }
+        } else {
+          responseContent = response.toString();
+        }
       }
       
       // 응답 추가

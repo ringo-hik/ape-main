@@ -34,12 +34,13 @@ export interface ModelConfig {
  * LLM 요청 옵션
  */
 export interface LlmRequestOptions {
-  model: string;
+  model?: string;
   messages: ChatMessage[];
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
   onUpdate?: (chunk: string) => void;
+  signal?: AbortSignal; // 요청 취소 시그널
 }
 
 /**

@@ -149,12 +149,19 @@ export interface Rule {
  */
 export interface IPromptAssembler {
   /**
-   * 프롬프트 생성
+   * 프롬프트 생성 (신규 버전)
+   * @param text 사용자 입력 텍스트
+   * @returns 프롬프트 데이터 (메시지 배열 및 설정)
+   */
+  assemblePrompt(text: string): Promise<{ messages: Array<{role: string, content: string}>, temperature: number }>;
+  
+  /**
+   * 프롬프트 생성 (legacy)
    * @param basePrompt 기본 프롬프트
    * @param context 컨텍스트
    * @returns 완성된 프롬프트
    */
-  assemblePrompt(basePrompt: string, context: PromptContext): string;
+  assemblePromptLegacy(basePrompt: string, context: PromptContext): string;
   
   /**
    * 템플릿 ID로 프롬프트 생성

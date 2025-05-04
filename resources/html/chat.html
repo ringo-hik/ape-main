@@ -73,6 +73,12 @@
       // 메시지 상태 관리
       let messageState = vscode.getState() || { messages: [] };
       
+      // 스트리밍 상태 관리
+      let streamingState = {
+        activeStreams: {},
+        isStreaming: false
+      };
+      
       // 텍스트 영역 자동 크기 조절
       function autoResizeTextarea() {
         chatInput.style.height = 'auto';
@@ -119,8 +125,44 @@
           messageElement.classList.add('message-system');
         }
         
+        // ID 설정 (스트리밍용)
+        if (message.id) {
+          messageElement.setAttribute('id', message.id);
+        }
+        
         messageElement.textContent = message.content;
         messagesContainer.appendChild(messageElement);
+        return messageElement;
+      }
+      
+      // 스트리밍 메시지 요소 생성
+      function createStreamingMessageElement(responseId, type) {
+        // 이미 존재하는 스트리밍 요소가 있는지 확인
+        const existingElement = document.getElementById(responseId);
+        if (existingElement) {
+          return existingElement;
+        }
+        
+        // 새 요소 생성
+        const message = { 
+          type: type, 
+          content: '', 
+          id: responseId,
+          timestamp: Date.now() 
+        };
+        
+        // 상태에 메시지 추가하지 않음 (스트리밍 완료 후 추가)
+        const element = addMessageToDOM(message);
+        
+        // 스트리밍 상태 업데이트
+        streamingState.activeStreams[responseId] = {
+          element: element,
+          content: ''
+        };
+        
+        streamingState.isStreaming = true;
+        
+        return element;
       }
       
       // 메시지 추가
@@ -273,6 +315,55 @@
           case 'removeSystemMessage':
             console.log('시스템 메시지 제거 요청 수신:', message.content);
             // 시스템 메시지 제거 로직 (필요시 구현)
+            break;
+            
+          // 스트리밍 관련 명령어
+          case 'startStreaming':
+            console.log('스트리밍 시작:', message.responseId);
+            createStreamingMessageElement(message.responseId, message.type);
+            updateMessageDisplay();
+            scrollToBottom();
+            break;
+            
+          case 'appendStreamChunk':
+            // 스트리밍 청크 추가
+            if (streamingState.activeStreams[message.responseId]) {
+              const stream = streamingState.activeStreams[message.responseId];
+              stream.content += message.content;
+              stream.element.textContent = stream.content;
+              stream.element.classList.add('streaming');
+              scrollToBottom();
+            } else {
+              console.warn('존재하지 않는 스트림에 청크 추가 시도:', message.responseId);
+            }
+            break;
+            
+          case 'endStreaming':
+            console.log('스트리밍 종료:', message.responseId);
+            if (streamingState.activeStreams[message.responseId]) {
+              // 스트림 콘텐츠를 메시지 상태에 저장
+              const stream = streamingState.activeStreams[message.responseId];
+              const element = stream.element;
+              const type = element.classList.contains('message-assistant') ? 'assistant' : 
+                           element.classList.contains('message-system') ? 'system' : 'assistant';
+              
+              // 스트리밍 애니메이션 제거
+              element.classList.remove('streaming');
+              
+              // 메시지 상태에 추가
+              messageState.messages.push({
+                type: type,
+                content: stream.content,
+                timestamp: Date.now()
+              });
+              vscode.setState(messageState);
+              
+              // 스트리밍 상태에서 제거
+              delete streamingState.activeStreams[message.responseId];
+              if (Object.keys(streamingState.activeStreams).length === 0) {
+                streamingState.isStreaming = false;
+              }
+            }
             break;
             
           default:
