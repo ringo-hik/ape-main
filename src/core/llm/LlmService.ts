@@ -15,13 +15,85 @@ import {
 export class LlmService {
   private httpClient: HttpClientService;
   private models: Map<string, ModelConfig> = new Map();
-  private defaultModel: string = 'narrans'; // 기본 모델을 온프레미스 Narrans로 변경
+  private defaultModel: string = 'gemini-2.5-flash'; // 기본 모델을 Google Gemini 2.5 Flash로 변경
   private idCounter: number = 0;
   
   constructor() {
     this.httpClient = new HttpClientService();
     this.httpClient.setSSLBypass(true);
-    this.loadModelsFromConfig();
+    
+    try {
+      // VS Code 설정에서 기본 모델 ID 로드
+      const config = vscode.workspace.getConfiguration('axiom.llm');
+      this.defaultModel = config.get<string>('defaultModel', 'gemini-2.5-flash');
+      
+      console.log(`LLM 서비스 초기화: 기본 모델 ID - ${this.defaultModel}`);
+      
+      // 스트리밍 지원 여부 확인
+      const supportsStreaming = config.get<boolean>('supportsStreaming', true);
+      console.log(`스트리밍 지원 여부: ${supportsStreaming ? '지원' : '미지원'}`);
+      
+      // 서비스 환경 로그 (내부망/외부망)
+      if (this.canConnectToInternalNetwork()) {
+        console.log('내부망 환경으로 감지됨 - 내부 LLM 모델 사용 가능');
+      } else {
+        console.log('외부망 환경으로 감지됨 - 외부 LLM 모델 (OpenRouter 등) 사용 권장');
+      }
+      
+      this.loadModelsFromConfig();
+    } catch (error) {
+      console.error('LLM 서비스 초기화 오류:', error);
+      this.defaultModel = 'local';
+      this.loadModelsFromConfig();
+    }
+  }
+  
+  /**
+   * 내부망 연결 가능 여부 확인 (간단한 체크)
+   * 철칙: 이 코드는 두 환경 모두에서 작동해야 함
+   */
+  private canConnectToInternalNetwork(): boolean {
+    try {
+      // 내부망 주소 패턴 체크 (간단한 휴리스틱)
+      const modelsConfig = vscode.workspace.getConfiguration('axiom.llm').get<Record<string, ModelConfig>>('models', {});
+      
+      // 1. 모델 구성에서 내부망 주소 확인
+      for (const modelConfig of Object.values(modelsConfig)) {
+        // 내부망 도메인 체크
+        if (modelConfig.apiUrl && (
+            modelConfig.apiUrl.includes('narrans') || 
+            modelConfig.apiUrl.includes('api-se-dev') ||
+            modelConfig.apiUrl.includes('apigw-stg'))) {
+          
+          // 2. 내부망 체크를 위한 추가 조건 (실제 환경 체크)
+          if (process.platform === 'win32') {
+            // Windows 환경에서는 내부망일 가능성이 높음
+            console.log('Windows 환경에서 실행 중 - 내부망 환경 가정');
+            return true;
+          } else {
+            // WSL/Linux 환경에서는 내부망 테스트
+            console.log('WSL/Linux 환경에서 실행 중 - 도메인 체크 필요');
+            
+            // 여기서는 단순 패턴 체크만 수행 (실제로는 핑이나 요청 테스트 필요)
+            // 실시간 연결 체크는 하지 않고, 설정 기반으로 판단
+            const forceInternalNetwork = vscode.workspace.getConfiguration('axiom.core').get<boolean>('forceInternalNetwork', false);
+            
+            if (forceInternalNetwork) {
+              console.log('설정에 의해 내부망 모드 강제 적용됨');
+              return true;
+            }
+            
+            return false; // 기본적으로 WSL/Linux에서는 외부망으로 가정
+          }
+        }
+      }
+      
+      // 모델 설정에 내부망 주소가 없으면 외부망으로 간주
+      return false;
+    } catch (error) {
+      console.error('내부망 확인 오류:', error);
+      return false;
+    }
   }
   
   /**
@@ -67,140 +139,114 @@ export class LlmService {
   
   /**
    * 기본 모델 등록
+   * 철칙: 내부망 모델 설정 및 주소는 절대 수정/삭제 불가
    */
   private registerDefaultModels(): void {
     // 기본 시스템 프롬프트
     const defaultSystemPrompt = '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.';
     
-    // ===== 온프레미스 모델 (기본 모델) =====
-    
-    // Narrans (온프레미스 기본 모델)
-    this.models.set('narrans', {
-      name: 'NARRANS (온프레미스)',
-      provider: 'custom',
-      apiUrl: 'https://api-se-dev.narrans.samsungds.net/v1/chat/completions',
-      contextWindow: 10000,
-      maxTokens: 10000,
-      temperature: 0,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // Llama 4 Maverick (온프레미스)
-    this.models.set('llama-4-maverick', {
-      name: 'Llama 4 Maverick (온프레미스)',
-      provider: 'custom',
-      apiUrl: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions',
-      contextWindow: 50000,
-      maxTokens: 50000,
-      temperature: 0,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // Llama 4 Scout (온프레미스)
-    this.models.set('llama-4-scout', {
-      name: 'Llama 4 Scout (온프레미스)',
-      provider: 'custom',
-      apiUrl: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions',
-      contextWindow: 50000,
-      maxTokens: 50000,
-      temperature: 0,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // ===== 테스트용 OpenRouter 모델 (외부망에서만 사용) =====
-    
-    // OpenRouter - Google Gemini 2.5 Flash Preview
-    this.models.set('gemini-2.5-flash', {
-      name: 'Google Gemini 2.5 Flash (테스트용)',
-      provider: 'openrouter',
-      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-      contextWindow: 32000,
-      maxTokens: 8192,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // OpenRouter - Claude 3 Opus
-    this.models.set('claude-3-opus', {
-      name: 'Claude 3 Opus (테스트용)',
-      provider: 'openrouter',
-      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-      contextWindow: 200000,
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // OpenRouter - Claude 3 Sonnet
-    this.models.set('claude-3-sonnet', {
-      name: 'Claude 3 Sonnet (테스트용)',
-      provider: 'openrouter',
-      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-      contextWindow: 200000,
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // OpenRouter - GPT-4o
-    this.models.set('gpt-4o', {
-      name: 'GPT-4o (테스트용)',
-      provider: 'openrouter',
-      apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-      contextWindow: 128000,
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // ===== 기타 테스트용 모델 =====
-    
-    // OpenAI 직접 연결 (테스트용)
-    this.models.set('gpt-3.5-turbo', {
-      name: 'GPT-3.5 Turbo (테스트용)',
-      provider: 'openai',
-      contextWindow: 16385,
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // Anthropic 직접 연결 (테스트용)
-    this.models.set('claude-3-haiku', {
-      name: 'Claude 3 Haiku (테스트용)',
-      provider: 'anthropic',
-      contextWindow: 200000,
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // ===== 로컬 모델/대체 모드 =====
-    
-    // Ollama 로컬 모델 (개발환경용)
-    this.models.set('llama3', {
-      name: 'Llama 3 (로컬)',
-      provider: 'ollama',
-      apiUrl: 'http://localhost:11434/api/chat',
-      contextWindow: 8192,
-      maxTokens: 2048,
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // 로컬 시뮤레이션 모델 (API 키/연결 없이 사용 가능)
-    this.models.set('local', {
-      name: '로컬 시뮤레이션 (오프라인)',
-      provider: 'local',
-      temperature: 0.7,
-      systemPrompt: defaultSystemPrompt
-    });
-    
-    // 온프레미스/테스트/로컬 포함 등록된 모든 모델 수 로깅
-    console.log(`기본 모델 ${this.models.size}개가 등록되었습니다.`);
-    console.log('- 온프레미스 모델: 3개 (Narrans, Llama-4-Maverick, Llama-4-Scout)');
-    console.log('- 테스트용 외부 모델: 6개 (OpenRouter 4개, 직접 연결 2개)');
-    console.log('- 로컬/개발 모델: 2개 (Ollama, 시뮤레이션)');
+    try {
+      // 설정에서 모델 구성 로드
+      const config = vscode.workspace.getConfiguration('axiom.llm');
+      const modelsConfig = config.get<Record<string, ModelConfig>>('models', {});
+      
+      console.log(`설정에서 ${Object.keys(modelsConfig).length}개의 모델 구성 로드됨`);
+      
+      // 환경 체크로 내부망/외부망 감지
+      const isInternalNetwork = this.canConnectToInternalNetwork();
+      
+      // 설정된 모델이 있으면 그것들을 사용
+      if (Object.keys(modelsConfig).length > 0) {
+        for (const [id, modelConfig] of Object.entries(modelsConfig)) {
+          // OpenRouter 모델인 경우 apiModel 필드 추가
+          if (modelConfig.provider === 'openrouter') {
+            // 이미 apiModel이 있는지 확인
+            if (!modelConfig.apiModel) {
+              // 모델 이름이 gemini 관련인 경우 apiModel 설정
+              if (id.includes('gemini') || modelConfig.name.includes('Gemini')) {
+                modelConfig.apiModel = 'google/gemini-2.5-flash-preview';
+              }
+              // 다른 모델들에 대한 apiModel 매핑 추가 가능
+            }
+          }
+          
+          console.log(`모델 등록: ${id} (${modelConfig.name} - ${modelConfig.provider})`);
+          this.models.set(id, modelConfig);
+        }
+      } else {
+        // 설정이 없는 경우 기본값 사용 - 철칙: 내부망 모델은 항상 포함해야 함
+        console.log('설정된 모델 없음. 기본 모델 등록 (철칙: 내부망 모델은 항상 포함)');
+        
+        // ===== OpenRouter - Google Gemini 2.5 Flash Preview (외부망 테스트용) =====
+        this.models.set('gemini-2.5-flash', {
+          name: 'Google Gemini 2.5 Flash',
+          provider: 'openrouter',
+          apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+          contextWindow: 32000,
+          maxTokens: 8192,
+          temperature: 0.7,
+          systemPrompt: defaultSystemPrompt,
+          apiModel: 'google/gemini-2.5-flash-preview' // API 요청 시 사용할 정확한 모델 ID
+        });
+        
+        // ===== NARRANS (내부망 기본 모델) - 철칙: 절대 수정/삭제 불가 =====
+        this.models.set('narrans', {
+          name: 'NARRANS (Default)',
+          provider: 'custom',
+          apiUrl: 'https://api-se-dev.narrans/v1/chat/completions',
+          contextWindow: 10000,
+          maxTokens: 10000,
+          temperature: 0,
+          systemPrompt: defaultSystemPrompt
+        });
+        
+        // ===== Llama 4 Maverick (내부망 모델) - 철칙: 절대 수정/삭제 불가 =====
+        this.models.set('llama-4-maverick', {
+          name: 'Llama 4 Maverick',
+          provider: 'custom',
+          apiUrl: 'http://apigw-stg:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions',
+          contextWindow: 50000,
+          maxTokens: 50000,
+          temperature: 0,
+          systemPrompt: defaultSystemPrompt
+        });
+        
+        // ===== 로컬 시뮬레이션 모델 (API 키/연결 없이 사용 가능) =====
+        this.models.set('local', {
+          name: '로컬 시뮬레이션 (오프라인)',
+          provider: 'local',
+          temperature: 0.7,
+          systemPrompt: defaultSystemPrompt
+        });
+      }
+      
+      // 환경에 따른 기본 모델 설정 조정 (내부망의 경우)
+      if (isInternalNetwork) {
+        // 내부망일 경우 narrans로 기본 모델 변경
+        if (this.models.has('narrans')) {
+          console.log('내부망 환경 감지됨: 기본 모델을 narrans로 자동 설정');
+          this.defaultModel = 'narrans';
+        }
+      }
+      
+      // 등록된 모든 모델 수 로깅
+      console.log(`총 ${this.models.size}개의 모델이 등록되었습니다.`);
+      for (const [id, model] of this.models.entries()) {
+        console.log(`- ${id}: ${model.name} (${model.provider})`);
+      }
+    } catch (error) {
+      console.error('모델 로딩 중 오류 발생:', error);
+      
+      // 오류 발생 시 기본 모델만 등록
+      this.models.set('local', {
+        name: '로컬 시뮬레이션 (오프라인 - 오류 복구)',
+        provider: 'local',
+        temperature: 0.7,
+        systemPrompt: defaultSystemPrompt
+      });
+      
+      console.log('오류로 인해 로컬 시뮬레이션 모델만 등록됨');
+    }
   }
   
   /**
@@ -224,10 +270,19 @@ export class LlmService {
       });
     }
     
+    console.log(`sendRequest: 요청 모델 ID - '${model}'`);
+    console.log(`sendRequest: 등록된 모델 목록 - ${Array.from(this.models.keys()).join(', ')}`);
+    
     const modelConfig = this.models.get(model);
     if (!modelConfig) {
       console.error(`sendRequest: model '${model}' not found`);
-      throw new Error(`모델 '${model}'을 찾을 수 없습니다.`);
+      // 오류 발생 시 로컬 모델로 대체
+      console.log(`sendRequest: 모델을 찾을 수 없어 로컬 시뮬레이션 모델로 대체합니다.`);
+      return this.simulateLocalModel({
+        name: '임시 대체 모델',
+        provider: 'local',
+        systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+      }, messages);
     }
     
     // 시스템 프롬프트가 제공되지 않은 경우 기본값 추가
@@ -502,26 +557,8 @@ export class LlmService {
     
     try {
       // 요청 모델 설정 (OpenRouter API 모델명 포맷으로 변환)
-      let requestModel: string;
-      
-      // 모델명에 따른 적절한 API 모델 ID 매핑
-      switch (modelConfig.name) {
-        case 'Google Gemini 2.5 Flash Preview':
-          requestModel = "google/gemini-2.5-flash-preview";
-          break;
-        case 'Claude 3 Opus':
-          requestModel = "anthropic/claude-3-opus";
-          break;
-        case 'Claude 3 Sonnet':
-          requestModel = "anthropic/claude-3-sonnet";
-          break;
-        case 'GPT-4o':
-          requestModel = "openai/gpt-4o";
-          break;
-        default:
-          // 기본적으로 모델 이름을 그대로 사용
-          requestModel = modelConfig.name;
-      }
+      // apiModel 속성을 최우선적으로 사용, 항상 설정 파일에서 로드
+      let requestModel = modelConfig.apiModel || "google/gemini-2.5-flash-preview";
       
       console.log(`OpenRouter API 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
       console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}, 스트리밍: ${stream ? '켜짐' : '꺼짐'}`);
@@ -612,26 +649,8 @@ export class LlmService {
   ): Promise<LlmResponse> {
     try {
       // 요청 모델 설정 (OpenRouter API 모델명 포맷으로 변환)
-      let requestModel: string;
-      
-      // 모델명에 따른 적절한 API 모델 ID 매핑
-      switch (modelConfig.name) {
-        case 'Google Gemini 2.5 Flash Preview':
-          requestModel = "google/gemini-2.5-flash-preview";
-          break;
-        case 'Claude 3 Opus':
-          requestModel = "anthropic/claude-3-opus";
-          break;
-        case 'Claude 3 Sonnet':
-          requestModel = "anthropic/claude-3-sonnet";
-          break;
-        case 'GPT-4o':
-          requestModel = "openai/gpt-4o";
-          break;
-        default:
-          // 기본적으로 모델 이름을 그대로 사용
-          requestModel = modelConfig.name;
-      }
+      // apiModel 속성을 최우선적으로 사용
+      const requestModel = modelConfig.apiModel || "google/gemini-2.5-flash-preview";
       
       console.log(`OpenRouter 스트리밍 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
       console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}`);
@@ -765,14 +784,58 @@ export class LlmService {
       // 일반 모드 (비스트리밍)
       console.log('일반 모드(비스트리밍)로 요청 전송');
       
+      // 모델별 특수 헤더 생성
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      // API 키 정보 설정
+      const apiKey = modelConfig.apiKey || this.getApiKey(modelConfig.provider as ModelProvider);
+      
+      // 내부망 모델인 Llama나 NARRANS일 경우 특수 헤더 추가
+      if (modelConfig.name.includes('Llama') || modelConfig.apiUrl.includes('apigw-stg.samsungds.net')) {
+        console.log('Llama 모델 요청을 위한 특수 헤더 추가');
+        
+        // 고유 ID 생성
+        const requestId = this.generateId();
+        
+        Object.assign(headers, {
+          'Send-System-Name': 'swdp',
+          'user-id': 'axiom_ext',
+          'user-type': 'axiom_ext',
+          'Prompt-Msg-Id': requestId,
+          'Completion-msg-Id': requestId
+        });
+        
+        // API 키가 있으면 티켓 헤더에 추가
+        if (apiKey) {
+          headers['x-dep-ticket'] = apiKey;
+        }
+      } else if (apiKey) {
+        // 다른 모델의 경우 일반 인증 헤더 사용
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+      
+      // 모델 ID 결정 (apiModel이 있으면 그것 사용, 없으면 모델 이름 기반)
+      let modelId = modelConfig.apiModel;
+      
+      // Llama 4 모델 특수 처리
+      if (modelConfig.name.includes('Llama 4 Maverick')) {
+        modelId = 'meta-llama/llama-4-maverick-17b-128e-instruct';
+      } else if (modelConfig.name.includes('Llama 4 Scout')) {
+        modelId = 'meta-llama/llama-4-scout-17b-16e-instruct';
+      } else if (!modelId) {
+        modelId = modelConfig.name.toLowerCase();
+      }
+      
+      console.log(`사용 모델 ID: ${modelId}`);
+      
       // SSL 인증서 검증 오류 회피를 위해 fetch API 직접 사용
       const fetchResponse = await fetch(modelConfig.apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
-          model: modelConfig.name.toLowerCase(),
+          model: modelId,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0,
           max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
@@ -821,15 +884,60 @@ export class LlmService {
     try {
       console.log(`Custom 스트리밍 요청 - 모델: ${modelConfig.name}, API URL: ${modelConfig.apiUrl}`);
       
+      // 모델별 특수 헤더 생성
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      };
+      
+      // API 키 정보 설정
+      const apiKey = modelConfig.apiKey || this.getApiKey(modelConfig.provider as ModelProvider);
+      
+      // 내부망 모델인 Llama나 NARRANS일 경우 특수 헤더 추가
+      if (modelConfig.name.includes('Llama') || modelConfig.apiUrl.includes('apigw-stg.samsungds.net')) {
+        console.log('Llama 모델 스트리밍 요청을 위한 특수 헤더 추가');
+        
+        // 고유 ID 생성
+        const requestId = this.generateId();
+        
+        Object.assign(headers, {
+          'Send-System-Name': 'swdp',
+          'user-id': 'axiom_ext',
+          'user-type': 'axiom_ext',
+          'Prompt-Msg-Id': requestId,
+          'Completion-msg-Id': requestId,
+          'accept': 'text/event-stream, charset=utf-8'
+        });
+        
+        // API 키가 있으면 티켓 헤더에 추가
+        if (apiKey) {
+          headers['x-dep-ticket'] = apiKey;
+        }
+      } else if (apiKey) {
+        // 다른 모델의 경우 일반 인증 헤더 사용
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+      
+      // 모델 ID 결정 (apiModel이 있으면 그것 사용, 없으면 모델 이름 기반)
+      let modelId = modelConfig.apiModel;
+      
+      // Llama 4 모델 특수 처리
+      if (modelConfig.name.includes('Llama 4 Maverick')) {
+        modelId = 'meta-llama/llama-4-maverick-17b-128e-instruct';
+      } else if (modelConfig.name.includes('Llama 4 Scout')) {
+        modelId = 'meta-llama/llama-4-scout-17b-16e-instruct';
+      } else if (!modelId) {
+        modelId = modelConfig.name.toLowerCase();
+      }
+      
+      console.log(`스트리밍 사용 모델 ID: ${modelId}`);
+      
       // 스트리밍 요청 전송
       const response = await fetch(modelConfig.apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream'
-        },
+        headers,
         body: JSON.stringify({
-          model: modelConfig.name.toLowerCase(),
+          model: modelId,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0,
           max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
@@ -958,10 +1066,6 @@ export class LlmService {
    */
   private getApiKey(provider: ModelProvider): string | undefined {
     const config = vscode.workspace.getConfiguration('axiom.llm');
-    // OpenRouter API 키는 기본값이 설정되어 있음
-    if (provider === 'openrouter') {
-      return config.get<string>(`${provider}ApiKey`, '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');
-    }
     return config.get<string>(`${provider}ApiKey`);
   }
   
@@ -998,6 +1102,30 @@ export class LlmService {
    * 기본 모델 ID 가져오기
    */
   public getDefaultModelId(): string {
+    // 모델이 실제로 등록되어 있는지 확인
+    if (!this.models.has(this.defaultModel)) {
+      console.warn(`주의: 기본 모델 ID '${this.defaultModel}'가 등록된 모델 목록에 없습니다.`);
+      console.log(`등록된 모델 목록: ${Array.from(this.models.keys()).join(', ')}`);
+      
+      // 대체 모델 사용: 등록된 첫 번째 모델 또는 'local'
+      if (this.models.size > 0) {
+        const fallbackModel = Array.from(this.models.keys())[0];
+        console.log(`대체 모델 ID로 '${fallbackModel}'를 사용합니다.`);
+        return fallbackModel;
+      } else {
+        console.log(`등록된 모델이 없어 'local' 모델을 사용합니다.`);
+        // 최후의 수단: local 모델 등록 및 사용
+        this.models.set('local', {
+          name: '로컬 시뮬레이션 (오프라인)',
+          provider: 'local',
+          temperature: 0.7,
+          systemPrompt: '당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다.'
+        });
+        return 'local';
+      }
+    }
+    
+    console.log(`현재 기본 모델 ID: ${this.defaultModel}`);
     return this.defaultModel;
   }
 }

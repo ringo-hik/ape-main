@@ -1,0 +1,83 @@
+{
+  "axiom": {
+    "core": {
+      "logLevel": "debug"
+    },
+    "llm": {
+      "models": {
+        "qwen3-30b-a3b": {
+          "name": "Qwen 3 30B A3B",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 32000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "qwen/qwen3-30b-a3b",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        },
+        "deepseek-r1t-chimera": {
+          "name": "DeepSeek R1T Chimera",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 32000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "tngtech/deepseek-r1t-chimera:free",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        },
+        "phi-4-reasoning-plus": {
+          "name": "Microsoft Phi-4 Reasoning Plus",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 32000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "microsoft/phi-4-reasoning-plus",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        },
+        "gpt-4-1-mini": {
+          "name": "OpenAI GPT-4.1-mini",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 128000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "openai/gpt-4.1-mini",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        },
+        "o4-mini-high": {
+          "name": "OpenAI O4 Mini High",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 128000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "openai/o4-mini-high",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        },
+        "deepseek-r1-zero": {
+          "name": "DeepSeek R1 Zero",
+          "provider": "openrouter",
+          "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+          "contextWindow": 32000,
+          "maxTokens": 8192,
+          "temperature": 0.7,
+          "apiModel": "deepseek/deepseek-r1-zero:free",
+          "systemPrompt": "당신은 코딩과 개발을 도와주는 유능한 AI 어시스턴트입니다."
+        }
+      }
+    },
+    "internalPlugins": {
+      "git": {
+        "enabled": true,
+        "credentials": {
+          "username": "your-github-username",
+          "token": "your-github-token"
+        },
+        "remotes": {
+          "github": "https://github.com/your-username/axiom-extension.git"
+        }
+      }
+    }
+  }
+}

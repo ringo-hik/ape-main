@@ -499,9 +499,40 @@ export class GitPluginService extends PluginBaseService {
     try {
       const args = ['diff'];
       
-      // 스테이징된 변경 사항 확인
+      // Git 버전 호환성 확인
+      try {
+        const versionCheck = await this.client.executeGitCommand(['--version']);
+        const gitVersion = versionCheck.stdout.trim();
+        console.log(`Git 버전: ${gitVersion}`);
+      } catch (versionError) {
+        console.warn('Git 버전 확인 실패:', versionError);
+      }
+      
+      // Git 저장소 상태 확인
+      try {
+        const repoCheck = await this.client.executeGitCommand(['rev-parse', '--is-inside-work-tree']);
+        if (!repoCheck.success || repoCheck.stdout.trim() !== 'true') {
+          return {
+            content: '# Git 저장소 오류\n\n현재 디렉토리는 Git 저장소가 아닙니다. Git 명령어를 실행하려면 Git 저장소에서 작업해야 합니다.',
+            type: 'git-error'
+          };
+        }
+      } catch (repoError) {
+        console.warn('Git 저장소 확인 실패:', repoError);
+      }
+      
+      // 스테이징된 변경 사항 확인 (--staged 또는 --cached 사용)
       if (options.staged) {
-        args.push('--staged');
+        // 먼저 --staged 옵션이 지원되는지 확인
+        const stagedCheck = await this.client.executeGitCommand(['diff', '--staged', '--quiet']);
+        
+        if (stagedCheck.stderr && stagedCheck.stderr.includes('unknown option')) {
+          // --staged가 지원되지 않는 경우 --cached 사용
+          console.log('Git diff --staged 옵션이 지원되지 않아 --cached 사용');
+          args.push('--cached');
+        } else {
+          args.push('--staged');
+        }
       }
       
       // 특정 파일만 확인
@@ -509,6 +540,7 @@ export class GitPluginService extends PluginBaseService {
         args.push(file);
       }
       
+      console.log(`Git diff 명령어 실행: git ${args.join(' ')}`);
       const result = await this.client.executeGitCommand(args);
       
       if (!result.success) {
@@ -532,7 +564,17 @@ export class GitPluginService extends PluginBaseService {
       };
     } catch (error) {
       console.error('Git 변경 내역 확인 중 오류 발생:', error);
-      throw error;
+      
+      // 오류 발생 시 사용자 친화적 메시지 반환
+      return {
+        content: `# Git 오류 발생\n\n오류 메시지: ${error instanceof Error ? error.message : String(error)}\n\n` +
+                '가능한 원인:\n' +
+                '1. 현재 디렉토리가 Git 저장소가 아닙니다\n' +
+                '2. Git이 설치되지 않았거나 PATH에 없습니다\n' +
+                '3. 지정한 파일이 존재하지 않습니다\n' +
+                '4. 파일 경로에 오타가 있습니다',
+        type: 'git-error'
+      };
     }
   }
   

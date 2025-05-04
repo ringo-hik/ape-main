@@ -68,21 +68,16 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
           this._changeModel(message.model);
           return;
           
+        case 'getCommands':
+          // 명령어 목록 요청 처리
+          this._sendCommandsList();
+          return;
+          
         case 'executeCommand':
           // 웹뷰에서 직접 명령어 실행 요청
           console.log('명령어 실행 요청:', message.commandId);
           if (message.commandId) {
-            // axiomCore를 통해 명령어 실행
-            vscode.commands.executeCommand(message.commandId)
-              .then(result => {
-                console.log('명령어 실행 결과:', result);
-                // 결과를 웹뷰에 전송
-                this._sendResponse(`명령어 '${message.commandId}' 실행 결과: ${JSON.stringify(result)}`, 'system');
-              })
-              .catch(err => {
-                console.error('명령어 실행 오류:', err);
-                this._sendResponse(`명령어 실행 오류: ${err.message || '알 수 없는 오류'}`, 'system');
-              });
+            this._executeCommand(message.commandId);
           }
           return;
       }
@@ -323,6 +318,111 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
   }
   
   /**
+   * 명령어 목록 전송
+   */
+  private _sendCommandsList() {
+    if (!this._view) {
+      return;
+    }
+    
+    try {
+      const coreService = AxiomCoreService.getInstance();
+      const commandRegistry = coreService.commandRegistry;
+      
+      // 모든 명령어 사용법 가져오기
+      const allUsages = commandRegistry.getAllCommandUsages();
+      
+      // 명령어 목록 생성
+      const commands = allUsages.map(usage => {
+        // 명령어 타입 결정
+        const isAtCommand = usage.syntax.startsWith('@');
+        const isSlashCommand = usage.syntax.startsWith('/');
+        
+        return {
+          id: usage.syntax,
+          label: usage.command,
+          description: usage.description,
+          type: isAtCommand ? 'at' : (isSlashCommand ? 'slash' : 'other'),
+          frequent: ['help', 'model', 'debug', 'clear'].includes(usage.command)
+        };
+      });
+      
+      // 명령어 목록 전송
+      this._view.webview.postMessage({
+        command: 'updateCommands',
+        commands: commands
+      });
+      
+      console.log(`${commands.length}개의 명령어를 웹뷰로 전송했습니다.`);
+    } catch (error) {
+      console.error('명령어 목록 전송 중 오류 발생:', error);
+    }
+  }
+  
+  /**
+   * 명령어 실행
+   */
+  private async _executeCommand(commandId: string) {
+    if (!this._view) {
+      return;
+    }
+    
+    try {
+      console.log(`명령어 실행: ${commandId}`);
+      
+      // 명령어 실행 전 로딩 표시
+      this._sendResponse(`명령어 '${commandId}' 실행 중...`, 'system');
+      
+      // 내부 명령어와 외부 명령어 구분하여 처리
+      const isInternalCommand = commandId.startsWith('/');
+      const isExternalCommand = commandId.startsWith('@');
+      
+      if (isInternalCommand || isExternalCommand) {
+        // AxiomCoreService를 통해 명령어 실행
+        const result = await this._chatService.processMessage(commandId);
+        
+        // 명령어 결과를 채팅으로 표시
+        if (result) {
+          // 시스템 메시지 삭제
+          if (this._view && this._view.visible) {
+            this._view.webview.postMessage({
+              command: 'removeSystemMessage',
+              content: `명령어 '${commandId}' 실행 중...`
+            });
+          }
+          
+          // 결과 형식에 따른 처리
+          if (typeof result === 'object') {
+            if (result.content) {
+              const responseType = result.error ? 'system' : 'assistant';
+              this._sendResponse(result.content, responseType);
+            } else {
+              this._sendResponse(JSON.stringify(result, null, 2), 'assistant');
+            }
+          } else {
+            this._sendResponse(result, 'assistant');
+          }
+        }
+      } else {
+        // VS Code 명령어 실행
+        vscode.commands.executeCommand(commandId)
+          .then(result => {
+            console.log('VS Code 명령어 실행 결과:', result);
+            // 결과를 웹뷰에 전송
+            this._sendResponse(`명령어 '${commandId}' 실행 완료`, 'system');
+          })
+          .catch(err => {
+            console.error('VS Code 명령어 실행 오류:', err);
+            this._sendResponse(`명령어 실행 오류: ${err.message || '알 수 없는 오류'}`, 'system');
+          });
+      }
+    } catch (error) {
+      console.error('명령어 실행 중 오류 발생:', error);
+      this._sendResponse(`명령어 실행 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`, 'system');
+    }
+  }
+  
+  /**
    * 모델 변경
    */
   private _changeModel(modelId: string) {
@@ -374,7 +474,12 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
     
     // CSS 및 JS 경로 설정
     const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'css', 'chat.css'));
+    const codeBlocksCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'css', 'code-blocks.css'));
     const modelSelectorUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'js', 'model-selector.js'));
+    const codeBlocksJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'js', 'code-blocks.js'));
+    const commandsHtmlUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'html', 'command-buttons.html'));
+    const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'codicons', 'codicon.css'));
+    const commandButtonsJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'js', 'command-buttons.js'));
     
     try {
       // HTML 파일이 존재하는지 확인
@@ -390,7 +495,12 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
       const cspSource = webview.cspSource;
       htmlContent = htmlContent.replace(/\$\{cspSource\}/g, cspSource);
       htmlContent = htmlContent.replace(/\$\{cssUri\}/g, cssUri.toString());
+      htmlContent = htmlContent.replace(/\$\{codeBlocksCssUri\}/g, codeBlocksCssUri.toString());
       htmlContent = htmlContent.replace(/\$\{modelSelectorUri\}/g, modelSelectorUri.toString());
+      htmlContent = htmlContent.replace(/\$\{codeBlocksJsUri\}/g, codeBlocksJsUri.toString());
+      htmlContent = htmlContent.replace(/\$\{commandsHtmlUri\}/g, commandsHtmlUri.toString());
+      htmlContent = htmlContent.replace(/\$\{codiconsUri\}/g, codiconsUri.toString());
+      htmlContent = htmlContent.replace(/\$\{commandButtonsJsUri\}/g, commandButtonsJsUri.toString());
       
       console.log('HTML 파일 로드 성공:', htmlPath.fsPath);
       console.log('CSS URI:', cssUri.toString());

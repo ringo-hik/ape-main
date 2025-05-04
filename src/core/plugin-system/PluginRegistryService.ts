@@ -45,6 +45,14 @@ export class PluginRegistryService extends EventEmitter implements IPluginRegist
         return false;
       }
       
+      // 플러그인 인터페이스 디버깅
+      console.log('플러그인 등록 시도:', {
+        id: plugin.id,
+        name: plugin.name,
+        methods: Object.getOwnPropertyNames(plugin),
+        type: type
+      });
+      
       // 문자열로 전달된 경우 PluginType 열거형으로 변환
       const pluginType = typeof type === 'string' ? 
         (type === 'internal' ? PluginType.INTERNAL : PluginType.EXTERNAL) : type;
@@ -60,10 +68,12 @@ export class PluginRegistryService extends EventEmitter implements IPluginRegist
       
       // 플러그인 등록
       pluginMap.set(plugin.id, plugin);
+      console.log(`플러그인 등록 성공: ${plugin.id} (${pluginType})`);
       this.emit('plugin-registered', { id: plugin.id, type: pluginType });
       return true;
     } catch (error) {
       console.error(`플러그인 등록 중 오류 발생 (${plugin?.id}):`, error);
+      console.error('오류 세부 정보:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       return false;
     }
   }

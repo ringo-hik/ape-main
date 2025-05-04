@@ -122,9 +122,10 @@ export interface IPluginRegistry {
   /**
    * 플러그인 등록
    * @param plugin 등록할 플러그인
+   * @param type 플러그인 타입 (기본: 외부)
    * @returns 등록 성공 여부
    */
-  registerPlugin(plugin: IPlugin): boolean;
+  registerPlugin(plugin: IPlugin, type?: PluginType | string): boolean;
   
   /**
    * 플러그인 가져오기

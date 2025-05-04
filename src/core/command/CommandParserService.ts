@@ -30,6 +30,13 @@ export class CommandParserService implements ICommandParser {
     let commandType = CommandType.NONE;
     
     if (trimmed.startsWith('@')) {
+      // '@' 명령어는 반드시 ':' 형식을 가져야 함 (에이전트:명령)
+      // ':' 없이 '@알려줘'와 같은 형식은 명령어가 아닌 일반 텍스트로 처리
+      if (!trimmed.includes(':')) {
+        // '@'로 시작하지만 ':' 없음 - 일반 텍스트로 처리
+        return null;
+      }
+      
       prefix = CommandPrefix.AT;
       commandType = CommandType.AT;
       content = trimmed.substring(1);
@@ -51,6 +58,11 @@ export class CommandParserService implements ICommandParser {
     
     // 에이전트 및 명령어 추출
     const [agentId, commandName] = this.extractAgentAndCommand(tokens[0]);
+    
+    // agentId가 없는 경우 명령어로 처리하지 않음
+    if (!agentId || !commandName) {
+      return null;
+    }
     
     // 인자 및 플래그 추출
     const { args, flags } = this.extractArgsAndFlags(tokens.slice(1));
@@ -96,19 +108,26 @@ export class CommandParserService implements ICommandParser {
   /**
    * 에이전트 ID와 명령어 이름 추출
    * @param token 첫 번째 토큰
-   * @returns [에이전트 ID, 명령어 이름]
+   * @returns [에이전트 ID, 명령어 이름] 또는 잘못된 형식이면 [null, null]
    */
-  private extractAgentAndCommand(token: string): [string, string] {
+  private extractAgentAndCommand(token: string): [string | null, string | null] {
     const parts = token.split(':');
     
     if (parts.length > 1) {
       // 'agent:command' 형식
-      const agentId = parts[0];
-      const commandName = parts.slice(1).join(':');
+      const agentId = parts[0].trim();
+      const commandName = parts.slice(1).join(':').trim();
+      
+      // 빈 에이전트 ID 또는 명령어 체크
+      if (!agentId || !commandName) {
+        return [null, null];
+      }
+      
       return [agentId, commandName];
     }
     
-    // 콜론이 없는 경우, 전체를 명령어로 간주하고 기본 에이전트 사용
+    // @ 명령어는 항상 ':' 형식이어야 함 (이미 상위 메서드에서 처리)
+    // / 명령어는 기본 'core' 에이전트에 할당
     return ['core', token];
   }
   

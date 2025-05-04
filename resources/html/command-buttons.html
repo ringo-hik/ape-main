@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; font-src ${cspSource};">
+  <title>Axiom 명령어 패널</title>
+  <link rel="stylesheet" href="${codiconsUri}">
+  <link rel="stylesheet" href="${cssUri}">
+</head>
+<body>
+  <div class="container">
+    <div class="command-section">
+      <div class="command-section-header" onclick="toggleCommandSection('frequentCommands')">
+        <h3>자주 사용하는 명령어</h3>
+        <span id="frequentCommands-toggle" class="toggle-icon">▼</span>
+      </div>
+      <div class="commands-container" id="frequentCommands">
+        <!-- 자주 사용하는 명령어 버튼이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+
+    <div class="command-section">
+      <div class="command-section-header" onclick="toggleCommandSection('gitCommands')">
+        <h3>Git 명령어</h3>
+        <span id="gitCommands-toggle" class="toggle-icon">▼</span>
+      </div>
+      <div class="commands-container" id="gitCommands">
+        <!-- Git 명령어 버튼이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+
+    <div class="command-section">
+      <div class="command-section-header" onclick="toggleCommandSection('jiraCommands')">
+        <h3>Jira 명령어</h3>
+        <span id="jiraCommands-toggle" class="toggle-icon">▼</span>
+      </div>
+      <div class="commands-container" id="jiraCommands">
+        <!-- Jira 명령어 버튼이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+
+    <div class="command-section">
+      <div class="command-section-header" onclick="toggleCommandSection('swdpCommands')">
+        <h3>SWDP 명령어</h3>
+        <span id="swdpCommands-toggle" class="toggle-icon">▼</span>
+      </div>
+      <div class="commands-container" id="swdpCommands">
+        <!-- SWDP 명령어 버튼이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+
+    <div class="command-section">
+      <div class="command-section-header" onclick="toggleCommandSection('systemCommands')">
+        <h3>시스템 명령어</h3>
+        <span id="systemCommands-toggle" class="toggle-icon">▼</span>
+      </div>
+      <div class="commands-container" id="systemCommands">
+        <!-- 시스템 명령어 버튼이 여기에 동적으로 추가됩니다 -->
+      </div>
+    </div>
+  </div>
+
+  <script src="${commandButtonsJsUri}"></script>
+  <script>
+    (function() {
+      // VS Code API
+      const vscode = acquireVsCodeApi();
+      
+      // 명령어 로딩 및 UI 구성
+      function loadCommands() {
+        vscode.postMessage({
+          command: 'getCommands'
+        });
+      }
+      
+      // 명령어 처리
+      window.addEventListener('message', event => {
+        const message = event.data;
+        
+        switch (message.command) {
+          case 'updateCommands':
+            renderCommands(message.commands);
+            break;
+        }
+      });
+      
+      // 명령어 렌더링
+      function renderCommands(commands) {
+        // 명령어 그룹
+        const frequentContainer = document.getElementById('frequentCommands');
+        const gitContainer = document.getElementById('gitCommands');
+        const jiraContainer = document.getElementById('jiraCommands');
+        const swdpContainer = document.getElementById('swdpCommands');
+        const systemContainer = document.getElementById('systemCommands');
+        
+        // 컨테이너 초기화
+        frequentContainer.innerHTML = '';
+        gitContainer.innerHTML = '';
+        jiraContainer.innerHTML = '';
+        swdpContainer.innerHTML = '';
+        systemContainer.innerHTML = '';
+        
+        // 명령어 분류
+        const frequentCommands = commands.filter(cmd => cmd.frequent);
+        const gitCommands = commands.filter(cmd => cmd.id.startsWith('git'));
+        const jiraCommands = commands.filter(cmd => cmd.id.startsWith('jira'));
+        const swdpCommands = commands.filter(cmd => cmd.id.startsWith('swdp'));
+        const systemCommands = commands.filter(cmd => 
+          !cmd.id.startsWith('git') && 
+          !cmd.id.startsWith('jira') && 
+          !cmd.id.startsWith('swdp') &&
+          !cmd.frequent
+        );
+        
+        // 각 그룹 렌더링
+        renderCommandGroup(frequentCommands, frequentContainer);
+        renderCommandGroup(gitCommands, gitContainer);
+        renderCommandGroup(jiraCommands, jiraContainer);
+        renderCommandGroup(swdpCommands, swdpContainer);
+        renderCommandGroup(systemCommands, systemContainer);
+      }
+      
+      // 명령어 그룹 렌더링
+      function renderCommandGroup(commands, container) {
+        if (commands.length === 0) {
+          const emptyMessage = document.createElement('div');
+          emptyMessage.className = 'empty-command-message';
+          emptyMessage.textContent = '사용 가능한 명령어가 없습니다.';
+          container.appendChild(emptyMessage);
+          return;
+        }
+        
+        commands.forEach(command => {
+          const button = createCommandButton(command);
+          container.appendChild(button);
+        });
+      }
+      
+      // 초기 로딩
+      loadCommands();
+    })();
+  </script>
+</body>
+</html>

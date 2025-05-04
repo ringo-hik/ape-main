@@ -24,8 +24,8 @@
         "**/dist": true
     },
     "workbench.colorCustomizations": {
-        "statusBar.background": "#0ecf65", // 파란색 (JavaScript/Node 프로젝트)
-        "titleBar.activeBackground": "#0ecf65",
-        "activityBar.background": "#0ecf65"
+        "statusBar.background": "#260a66", // 파란색 (JavaScript/Node 프로젝트)
+        "titleBar.activeBackground": "#260a66",
+        "activityBar.background": "#260a66"
     }
 }

@@ -142,6 +142,11 @@ export class CommandExecutorService implements ICommandExecutor {
     let content = commandString;
     
     if (commandString.startsWith('@')) {
+      // @ 명령어는 반드시 : 형식을 가져야 함
+      if (!commandString.includes(':')) {
+        throw new Error('@ 명령어는 반드시 [에이전트]:[명령어] 형식이어야 합니다 (예: @git:status)');
+      }
+      
       prefix = CommandPrefix.AT;
       type = CommandType.AT;
       content = commandString.substring(1);
@@ -160,12 +165,18 @@ export class CommandExecutorService implements ICommandExecutor {
     
     if (parts.length === 1) {
       // 내부 명령어 (core 플러그인)
+      // @ 명령어는 이미 위에서 : 형식 검사를 했으므로 여기에 올 수 없음
       agentId = 'core';
       command = parts[0];
     } else {
       // 플러그인 명령어 (agentId:command)
       agentId = parts[0];
       command = parts.slice(1).join(':');
+      
+      // 빈 agentId 또는 command 체크
+      if (!agentId.trim() || !command.trim()) {
+        throw new Error('잘못된 명령어 형식입니다. 에이전트와 명령어가 모두 필요합니다.');
+      }
     }
     
     // Command 객체 생성

@@ -28,6 +28,7 @@ export interface ModelConfig {
   maxTokens?: number;
   temperature?: number;
   systemPrompt?: string;
+  apiModel?: string; // API 호출 시 사용할 정확한 모델 ID
 }
 
 /**

@@ -13,6 +13,9 @@ const COMMAND_ICONS = {
   'search': 'search',
   'chat': 'comment',
   'code': 'code',
+  'model': 'hubot',
+  'debug': 'bug',
+  'clear': 'trash',
   'default': 'play'
 };
 
@@ -25,18 +28,26 @@ function getIconForCommand(commandId) {
   if (!commandId) return COMMAND_ICONS.default;
   
   // 명령어 ID에서 주요 그룹 추출
-  const parts = commandId.split('.');
+  const parts = commandId.split(':');
   const mainGroup = parts[0];
   
+  // 명령어 이름은 콜론 이후 부분
+  const commandName = parts.length > 1 ? parts[1] : mainGroup;
+  
   // 특정 명령어 패턴 매칭
-  if (commandId.includes('issue')) return 'issue-opened';
-  if (commandId.includes('pull') || commandId.includes('pr')) return 'git-pull-request';
-  if (commandId.includes('commit')) return 'git-commit';
-  if (commandId.includes('build')) return 'rocket';
-  if (commandId.includes('deploy')) return 'cloud-upload';
-  if (commandId.includes('test')) return 'beaker';
-  if (commandId.includes('help')) return 'question';
-  if (commandId.includes('settings')) return 'gear';
+  if (commandName.includes('issue')) return 'issue-opened';
+  if (commandName.includes('pull') || commandName.includes('pr')) return 'git-pull-request';
+  if (commandName.includes('commit')) return 'git-commit';
+  if (commandName.includes('build')) return 'rocket';
+  if (commandName.includes('deploy')) return 'cloud-upload';
+  if (commandName.includes('test')) return 'beaker';
+  if (commandName.includes('help')) return 'question';
+  if (commandName.includes('settings')) return 'gear';
+  
+  // 명령어 이름에 따른 매핑
+  if (COMMAND_ICONS[commandName]) {
+    return COMMAND_ICONS[commandName];
+  }
   
   // 주요 그룹 매칭
   return COMMAND_ICONS[mainGroup] || COMMAND_ICONS.default;
@@ -50,13 +61,24 @@ function getIconForCommand(commandId) {
 function getCommandGroupClass(commandId) {
   if (!commandId) return '';
   
-  const parts = commandId.split('.');
-  return parts.length > 0 ? `command-group-${parts[0]}` : '';
+  const parts = commandId.split(':');
+  const mainGroup = parts[0];
+  
+  // @ 또는 / 접두사가 있는 경우 제거
+  let groupName = mainGroup;
+  if (groupName.startsWith('@')) {
+    groupName = groupName.substring(1);
+  } else if (groupName.startsWith('/')) {
+    groupName = 'system';
+  }
+  
+  return `command-group-${groupName}`;
 }
 
 /**
- * 기존 createCommandButton 함수를 확장한 버전입니다.
- * 아이콘 자동 결정 및 그룹 스타일링을 추가합니다.
+ * 명령어 버튼 생성 함수
+ * @param {Object} command 명령어 객체
+ * @returns {HTMLElement} 버튼 컨테이너
  */
 function createCommandButton(command) {
   const buttonContainer = document.createElement('div');
@@ -80,9 +102,26 @@ function createCommandButton(command) {
   
   // 레이블 추가
   const label = document.createElement('span');
-  label.textContent = command.label || command.id.split('.').pop() || command.id;
+  label.textContent = command.label || command.id.split(':').pop() || command.id;
   button.appendChild(label);
   
   buttonContainer.appendChild(button);
   return buttonContainer;
+}
+
+/**
+ * 명령어 카테고리 토글
+ * @param {string} sectionId 카테고리 섹션 ID 
+ */
+function toggleCommandSection(sectionId) {
+  const container = document.getElementById(sectionId);
+  const toggleIcon = document.querySelector(`#${sectionId}-toggle`);
+  
+  if (container.classList.contains('collapsed')) {
+    container.classList.remove('collapsed');
+    toggleIcon.classList.remove('collapsed');
+  } else {
+    container.classList.add('collapsed');
+    toggleIcon.classList.add('collapsed');
+  }
 }

@@ -1,0 +1,258 @@
+  "axiom.services": {
+          "type": "object",
+          "default": {
+            "chat": {
+              "enabled": true,
+              "models": [
+  {
+    "id": "narrans",
+    "name": "NARRANS (Default)",
+    "description": "Standard model for most tasks",
+    "endpoint": "https://api-se-dev.narrans.samsungds.net/v1/chat/completions",
+    "apiKey": "dummy api",
+    "maxTokens": 10000,
+    "temperature": 0,
+    "noProxy": true,
+    "requestTemplate": {
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${API_KEY}"
+      },
+      "payload": {
+        "model": "${MODEL_ID}",
+        "messages": "${MESSAGES}",
+        "stream": "${STREAM}"
+      }
+    },
+    "responseMapping": {
+      "content": "choices[0].message.content",
+      "model": "model"
+    }
+  },
+  {
+    "id": "meta-llama/llama-4-maverick",
+    "name": "Llama 4 Maverick",
+    "description": "Meta's Llama 4 Maverick model via API Gateway",
+    "endpoint": "http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions",
+    "apiKey": "dummy api_llama",
+    "maxTokens": 50000,
+    "temperature": 0,
+    "noProxy": true,
+    "requestTemplate": {
+      "headers": {
+        "Content-Type": "application/json",
+        "Send-System-Name": "swdp",
+        "user-id": "dummy_id",
+        "user-type": "dummy_id",
+        "Prompt-Msg-Id": "${UUID}",
+        "Completion-msg-Id": "${UUID}",
+        "accept": "text/event-stream, charset=utf-8",
+        "x-dep-ticket": "${API_KEY}"
+      },
+      "payload": {
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "messages": "${MESSAGES}",
+        "temperature": 0,
+        "stream": "${STREAM}"
+      }
+    },
+    "responseMapping": {
+      "content": "choices[0].message.content",
+      "model": "model"
+    }
+  },
+  {
+    "id": "meta-llama/llama-4-scout",
+    "name": "Llama 4 Scout",
+    "description": "Meta's Llama 4 Scout model via API Gateway",
+    "endpoint": "http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions",
+    "apiKey": "dummy api_llama",
+    "maxTokens": 50000,
+    "temperature": 0,
+    "noProxy": true,
+    "requestTemplate": {
+      "headers": {
+        "Content-Type": "application/json",
+        "Send-System-Name": "swdp",
+        "user-id": "dummy_id",
+        "user-type": "dummy_id",
+        "Prompt-Msg-Id": "${UUID}",
+        "Completion-msg-Id": "${UUID}",
+        "accept": "text/event-stream, charset=utf-8",
+        "x-dep-ticket": "${API_KEY}"
+      },
+      "payload": {
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "messages": "${MESSAGES}",
+        "temperature": 0,
+        "stream": "${STREAM}"
+      }
+    },
+    "responseMapping": {
+      "content": "choices[0].message.content",
+      "model": "model"
+    }
+  },
+  {
+    "id": "meta-llama/llama-4-maverick",
+    "name": "meta-llama/llama-4-maverick",
+    "description": "meta-llama/llama-4-maverick model via OpenRouter",
+    "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+    "apiKey": "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",
+    "maxTokens": 4096,
+    "temperature": 0.7,
+    "noProxy": true,
+    "requestTemplate": {
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${API_KEY}"
+      },
+      "payload": {
+        "model": "meta-llama/llama-4-maverick",
+        "messages": "${MESSAGES}",
+        "temperature": 0.7,
+        "stream": "${STREAM}"
+      }
+    },
+    "responseMapping": {
+      "content": "choices[0].message.content",
+      "model": "model"
+    }
+  }
+],
+              "messageFormats": {
+                "system": {
+                  "role": "system",
+                  "content": "${CONTENT}"
+                },
+                "user": {
+                  "role": "user",
+                  "content": "${CONTENT}"
+                },
+                "assistant": {
+                  "role": "assistant",
+                  "content": "${CONTENT}"
+                }
+              },
+              "defaultModel": "narrans",
+              "supportsStreaming": true
+            },
+            "tools": {
+              "enabled": true,
+              "defaultTool": "",
+              "items": {
+                "rag": {
+                  "id": "rag",
+                  "name": "RAG Search Tool",
+                  "description": "Retrieval Augmented Generation search tool",
+                  "type": "external",
+                  "enabled": true,
+                  "endpoint": "http://localhost:8001/search",
+                  "apiKey": "",
+                  "requestTemplate": {
+                    "headers": {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer ${API_KEY}"
+                    },
+                    "payload": {
+                      "query": "${QUERY}",
+                      "search_mode": "${SEARCH_MODE}",
+                      "limit": "${LIMIT}",
+                      "filter": "${FILTER}"
+                    }
+                  },
+                  "defaultOptions": {
+                    "searchMode": "semantic",
+                    "limit": 5
+                  },
+                  "responseMapping": {
+                    "results": "results",
+                    "metadata": "metadata"
+                  }
+                }
+              }
+            },
+            "agents": {
+              "enabled": true,
+              "defaultAgent": "",
+              "items": {
+                "swdp": {
+                  "id": "swdp",
+                  "name": "SWDP Agent",
+                  "description": "Software Development Process management agent",
+                  "type": "external",
+                  "enabled": true,
+                  "endpoint": "http://localhost:8001/run/swdp",
+                  "apiKey": "",
+                  "noProxy": true,
+                  "requestTemplate": {
+                    "headers": {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer ${API_KEY}"
+                    },
+                    "payload": {
+                      "query": "${QUERY}",
+                      "parameters": "${PARAMETERS}"
+                    }
+                  },
+                  "responseMapping": {
+                    "results": "results",
+                    "metadata": "metadata"
+                  }
+                },
+                "bitbucket": {
+                  "id": "bitbucket",
+                  "name": "Bitbucket Agent",
+                  "description": "Bitbucket repository management agent",
+                  "type": "external",
+                  "enabled": true,
+                  "endpoint": "http://localhost:8001/run/bitbucket",
+                  "apiKey": "",
+                  "noProxy": true,
+                  "requestTemplate": {
+                    "headers": {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer ${API_KEY}"
+                    },
+                    "payload": {
+                      "query": "${QUERY}",
+                      "parameters": "${PARAMETERS}"
+                    }
+                  },
+                  "responseMapping": {
+                    "results": "results",
+                    "metadata": "metadata"
+                  }
+                },
+                "jira": {
+                  "id": "jira",
+                  "name": "Jira Agent",
+                  "description": "Jira issue management agent",
+                  "type": "external",
+                  "enabled": true,
+                  "endpoint": "http://localhost:8001/run/jira",
+                  "apiKey": "",
+                  "noProxy": true,
+                  "requestTemplate": {
+                    "headers": {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer ${API_KEY}"
+                    },
+                    "payload": {
+                      "query": "${QUERY}",
+                      "parameters": "${PARAMETERS}"
+                    }
+                  },
+                  "responseMapping": {
+                    "results": "results",
+                    "metadata": "metadata"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Service configuration (chat, RAG, analysis, etc.)"
+        }
+      }
+    }
+  },

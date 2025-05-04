@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 
 /**
  * Git 명령어 결과 인터페이스
@@ -146,13 +147,141 @@ export class GitClientService {
    */
   private initWorkingDirectory(): void {
     try {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      
-      if (workspaceFolders && workspaceFolders.length > 0) {
-        this.workingDirectory = workspaceFolders[0].uri.fsPath;
+      // 1. VS Code 워크스페이스 폴더 확인 (확장 실행 시)
+      try {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          this.workingDirectory = workspaceFolders[0].uri.fsPath;
+          console.log(`VS Code 워크스페이스 디렉토리 설정: ${this.workingDirectory}`);
+          
+          // Git 저장소인지 확인
+          this.isGitRepository(this.workingDirectory).then(isRepo => {
+            if (!isRepo) {
+              console.warn(`워크스페이스 디렉토리(${this.workingDirectory})는 Git 저장소가 아닙니다. 대체 경로를 찾습니다.`);
+              this.findGitRepository();
+            }
+          });
+          
+          return;
+        }
+      } catch (workspaceError) {
+        console.error('VS Code 워크스페이스 접근 중 오류 발생:', workspaceError);
       }
+      
+      // 2. 현재 프로세스 작업 디렉토리 확인 (CLI 모드)
+      this.workingDirectory = process.cwd();
+      console.log(`현재 작업 디렉토리 설정: ${this.workingDirectory}`);
+      
+      // Git 저장소인지 확인
+      this.isGitRepository(this.workingDirectory).then(isRepo => {
+        if (!isRepo) {
+          console.warn(`현재 디렉토리(${this.workingDirectory})는 Git 저장소가 아닙니다. 대체 경로를 찾습니다.`);
+          this.findGitRepository();
+        }
+      });
     } catch (error) {
       console.error('Git 작업 디렉토리 초기화 중 오류 발생:', error);
+      
+      // 3. 최후의 방법: 홈 디렉토리
+      this.workingDirectory = os.homedir();
+      console.log(`홈 디렉토리로 설정: ${this.workingDirectory}`);
+    }
+  }
+  
+  /**
+   * 디렉토리가 Git 저장소인지 확인
+   * @param directory 확인할 디렉토리
+   * @returns Git 저장소 여부
+   */
+  private async isGitRepository(directory: string): Promise<boolean> {
+    try {
+      return new Promise<boolean>((resolve) => {
+        const gitProcess = spawn('git', ['rev-parse', '--is-inside-work-tree'], { cwd: directory });
+        
+        gitProcess.stdout.on('data', (data) => {
+          const output = data.toString().trim();
+          resolve(output === 'true');
+        });
+        
+        gitProcess.on('error', () => resolve(false));
+        gitProcess.on('close', (code) => {
+          if (code !== 0) resolve(false);
+        });
+      });
+    } catch (error) {
+      console.error(`Git 저장소 확인 중 오류: ${error}`);
+      return false;
+    }
+  }
+  
+  /**
+   * Git 저장소 탐색
+   * 현재 디렉토리에서 상위 디렉토리로 이동하며 Git 저장소를 찾음
+   */
+  private async findGitRepository(): Promise<void> {
+    try {
+      // 현재 디렉토리
+      let currentDir = this.workingDirectory || process.cwd();
+      
+      // 최대 5단계 상위 디렉토리까지 탐색
+      for (let i = 0; i < 5; i++) {
+        const parentDir = path.dirname(currentDir);
+        
+        // 루트 디렉토리인 경우 중단
+        if (parentDir === currentDir) {
+          break;
+        }
+        
+        // 상위 디렉토리로 이동
+        currentDir = parentDir;
+        
+        // Git 저장소 확인
+        const isRepo = await this.isGitRepository(currentDir);
+        if (isRepo) {
+          this.workingDirectory = currentDir;
+          console.log(`Git 저장소 발견: ${currentDir}`);
+          return;
+        }
+      }
+      
+      // 가장 가능성 높은 경로: 확장 프로그램 디렉토리
+      try {
+        // __dirname은 컴파일된 JS 파일 위치이므로 적절한 상위 디렉토리로 이동
+        let extensionDir = __dirname;
+        
+        // dist/extension.js, out/extension.js 등의 패턴 처리
+        if (extensionDir.includes('dist') || extensionDir.includes('out')) {
+          extensionDir = path.resolve(extensionDir, '..', '..');
+        }
+        
+        if (await this.isGitRepository(extensionDir)) {
+          this.workingDirectory = extensionDir;
+          console.log(`확장 프로그램 디렉토리가 Git 저장소임: ${extensionDir}`);
+          return;
+        }
+      } catch (dirError) {
+        console.error('확장 프로그램 디렉토리 확인 중 오류:', dirError);
+      }
+      
+      // 대체 위치: 프로젝트 루트 (package.json이 있는 위치)
+      let currentSearchDir = this.workingDirectory || process.cwd();
+      
+      for (let i = 0; i < 5; i++) {
+        if (fs.existsSync(path.join(currentSearchDir, 'package.json'))) {
+          this.workingDirectory = currentSearchDir;
+          console.log(`Package.json 발견, 작업 디렉토리 설정: ${currentSearchDir}`);
+          return;
+        }
+        
+        const parentDir = path.dirname(currentSearchDir);
+        if (parentDir === currentSearchDir) break;
+        currentSearchDir = parentDir;
+      }
+      
+      console.warn('Git 저장소를 찾을 수 없습니다.');
+    } catch (error) {
+      console.error('Git 저장소 탐색 중 오류 발생:', error);
     }
   }
   
@@ -302,10 +431,30 @@ export class GitClientService {
     try {
       const args = ['diff'];
       
+      // 버전 호환성을 위한 옵션 선택 (--staged 또는 --cached)
       if (staged) {
-        args.push('--staged');
+        // 먼저 --staged 옵션이 지원되는지 확인
+        try {
+          const stagedCheck = await this.executeGitCommand(['diff', '--staged', '--quiet']);
+          
+          if (stagedCheck.stderr && stagedCheck.stderr.includes('unknown option')) {
+            // --staged가 지원되지 않는 경우 --cached 사용
+            console.log('Git diff --staged 옵션이 지원되지 않아 --cached 사용');
+            args.push('--cached');
+          } else {
+            args.push('--staged');
+          }
+        } catch (optError) {
+          // 오류 발생 시 기본적으로 --cached 사용 (더 오래된 Git 버전과 호환)
+          console.log('옵션 확인 실패, 안전하게 --cached 사용');
+          args.push('--cached');
+        }
       }
       
+      // Git 명령어 실행 로그
+      console.log(`Git diff 명령어 실행: git ${args.join(' ')}`);
+      
+      // 명령어 실행
       const result = await this.executeGitCommand(args);
       
       if (!result.success) {

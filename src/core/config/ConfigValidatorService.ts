@@ -16,9 +16,18 @@ export class ConfigValidatorService {
   private schemas: Map<string, any> = new Map();
   
   /**
-   * 생성자
+   * 설정 로더
    */
-  constructor() {
+  private _configLoader: any;
+  
+  /**
+   * 생성자
+   * @param configLoader 설정 로더 (선택 사항)
+   */
+  constructor(configLoader?: any) {
+    // 설정 로더 저장
+    this._configLoader = configLoader;
+    
     // 기본 스키마 로드
     this.loadDefaultSchemas();
   }
@@ -146,6 +155,22 @@ export class ConfigValidatorService {
       }
       
       return true;
+    } catch (error) {
+      console.error('설정 검증 중 오류 발생:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * 설정 유효성 검증 (호환성 함수)
+   * AxiomCoreService에서 호출하는 함수명을 맞추기 위한 별칭
+   * @returns 유효성 여부
+   */
+  public async validateConfig(): Promise<boolean> {
+    try {
+      // ConfigLoaderService에서 설정 가져오기
+      const config = this._configLoader?.getConfig<any>() || {};
+      return this.validate(config);
     } catch (error) {
       console.error('설정 검증 중 오류 발생:', error);
       return false;

@@ -11,6 +11,7 @@ body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   font-weight: var(--vscode-font-weight);
+  background-color: var(--vscode-sideBar-background);
 }
 
 .container {
@@ -82,5 +83,45 @@ body {
 }
 
 .command-group-system .button-content {
-  background-color: #36B37E;
+  background-color: var(--vscode-button-background);
+}
+
+/* 명령어 영역 확장 */
+.empty-command-message {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* 모바일 대응 */
+@media (max-width: 480px) {
+  .commands-container {
+    flex-direction: column;
+  }
+  
+  .command-button {
+    width: 100%;
+  }
+}
+
+/* 커맨드 영역 접기/펼치기 */
+.command-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-icon {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.commands-container.collapsed {
+  display: none;
 }

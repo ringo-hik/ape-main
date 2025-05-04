@@ -51,3 +51,30 @@ mkdir -p "$EXTENSION_DIR/node_modules"
 echo "===== Axiom 확장 빌드 및 설치 완료 ====="
 echo "설치 위치: $EXTENSION_DIR"
 echo "VS Code를 다시 시작하여 확장을 로드하세요."
+
+# VS Code 다시 시작 (선택적)
+if [ "$1" = "--start" ]; then
+  echo "VS Code 다시 시작..."
+  # VS Code 프로세스 종료 시도
+  pkill -f "code" || true
+  # 잠시 대기
+  sleep 2
+  # VS Code 다시 시작 (백그라운드에서)
+  code . &
+  
+  # 로그 확인을 위한 대기
+  sleep 10
+  
+  # 최신 로그 찾기 및 표시
+  echo "=== 최신 Axiom 로그 찾기... ==="
+  LATEST_LOG=$(find ~/.vscode-server/data/logs -path "*/2025*" -name "*output_logging*" -type d -mmin -20 | xargs -I {} find {} -name "*Axiom.log" 2>/dev/null | sort -r | head -1)
+  
+  if [ -n "$LATEST_LOG" ]; then
+    echo "=== 최신 로그 파일: $LATEST_LOG ==="
+    cat "$LATEST_LOG"
+  else
+    echo "최신 Axiom 로그 파일을 찾을 수 없습니다."
+    echo "=== 디버그 출력: 최근 exthost 디렉토리 ==="
+    find ~/.vscode-server/data/logs -path "*/2025*" -type d -mmin -20 | grep exthost | sort -r | head -5
+  fi
+fi

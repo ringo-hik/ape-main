@@ -6,6 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} data:; connect-src ${cspSource};">
   <title>Axiom 채팅</title>
   <link href="${cssUri}" rel="stylesheet">
+  <link href="${codeBlocksCssUri}" rel="stylesheet">
   <script>
     // 디버깅 헬퍼
     window.axiomDebug = {
@@ -19,6 +20,7 @@
       axiomDebug.log('채팅 인터페이스 로드됨');
       axiomDebug.log('CSS URI: ${cssUri}');
       axiomDebug.log('모델 선택기 URI: ${modelSelectorUri}');
+      axiomDebug.log('코드 블록 CSS URI: ${codeBlocksCssUri}');
     });
   </script>
 </head>
@@ -45,6 +47,14 @@
         <button class="toolbar-button" id="clearButton" title="대화 내용 지우기">
           🧹 지우기
         </button>
+        <button class="toolbar-button" id="commandsButton" title="명령어 패널 열기/닫기">
+          🛠️ 명령어
+        </button>
+      </div>
+      
+      <div id="commandsPanelContainer" class="commands-panel-container" style="display: none;">
+        <!-- 명령어 버튼 패널이 여기에 로드됩니다 -->
+        <iframe id="commandsPanel" class="commands-panel" src="${commandsHtmlUri}"></iframe>
       </div>
       
       <div class="input-wrapper">
@@ -55,6 +65,7 @@
   </div>
 
   <script src="${modelSelectorUri}"></script>
+  <script src="${codeBlocksJsUri}"></script>
   <script>
     (function() {
       // VS Code API
@@ -65,6 +76,9 @@
       const chatInput = document.getElementById('chatInput');
       const sendButton = document.getElementById('sendButton');
       const clearButton = document.getElementById('clearButton');
+      const commandsButton = document.getElementById('commandsButton');
+      const commandsPanelContainer = document.getElementById('commandsPanelContainer');
+      const commandsPanel = document.getElementById('commandsPanel');
       const emptyState = document.getElementById('emptyState');
       
       // 모델 선택기 인스턴스
@@ -119,10 +133,19 @@
         
         if (message.type === 'user') {
           messageElement.classList.add('message-user');
+          // User messages don't need code block processing
+          messageElement.textContent = message.content;
         } else if (message.type === 'assistant') {
           messageElement.classList.add('message-assistant');
+          // Process assistant messages for code blocks
+          messageElement.innerHTML = codeBlockProcessor.processContent(message.content);
+          // Initialize code block functionality
+          codeBlockProcessor.initializeCopyButtons(messageElement);
+          codeBlockProcessor.applySyntaxHighlighting(messageElement);
         } else if (message.type === 'system') {
           messageElement.classList.add('message-system');
+          // System messages don't need code block processing
+          messageElement.textContent = message.content;
         }
         
         // ID 설정 (스트리밍용)
@@ -130,7 +153,6 @@
           messageElement.setAttribute('id', message.id);
         }
         
-        messageElement.textContent = message.content;
         messagesContainer.appendChild(messageElement);
         return messageElement;
       }
@@ -241,6 +263,22 @@
       sendButton.addEventListener('click', sendMessage);
       clearButton.addEventListener('click', clearChat);
       
+      // 명령어 패널 토글
+      commandsButton.addEventListener('click', () => {
+        if (commandsPanelContainer.style.display === 'none') {
+          commandsPanelContainer.style.display = 'block';
+          commandsButton.style.opacity = '1';
+          
+          // 명령어 목록 요청
+          vscode.postMessage({
+            command: 'getCommands'
+          });
+        } else {
+          commandsPanelContainer.style.display = 'none';
+          commandsButton.style.opacity = '0.7';
+        }
+      });
+      
       // 모델 목록 업데이트
       function updateModelList(models) {
         if (!models || !Array.isArray(models)) {
@@ -330,6 +368,9 @@
             if (streamingState.activeStreams[message.responseId]) {
               const stream = streamingState.activeStreams[message.responseId];
               stream.content += message.content;
+              
+              // 스트리밍 중에는 코드 블록 처리를 하지 않고 단순 텍스트로 표시
+              // 스트리밍이 완료된 후에 코드 블록 처리를 수행
               stream.element.textContent = stream.content;
               stream.element.classList.add('streaming');
               scrollToBottom();
@@ -357,6 +398,15 @@
                 timestamp: Date.now()
               });
               vscode.setState(messageState);
+              
+              // 스트리밍이 완료된 후 code block 처리 적용
+              if (type === 'assistant') {
+                // 코드 블록 처리 적용
+                element.innerHTML = codeBlockProcessor.processContent(stream.content);
+                // 코드 블록 기능 초기화
+                codeBlockProcessor.initializeCopyButtons(element);
+                codeBlockProcessor.applySyntaxHighlighting(element);
+              }
               
               // 스트리밍 상태에서 제거
               delete streamingState.activeStreams[message.responseId];
