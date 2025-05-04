@@ -2,9 +2,12 @@
 
 ## v0.0.1 (2025-05-04)
 
-### 2025-05-04: WSL 개발 환경 지원 개선
+### 2025-05-04: 코드베이스 정리 및 WSL 개발 환경 지원 개선
+- 백업 파일, 테스트 파일, 불필요한 임시 파일 제거 (test-*.js, *-test.html, *.backup)
+- 오픈소스 공개를 위한 코드베이스 정리 및 최적화
 - WSL에서 개발 및 Windows에서 테스트하기 위한 가이드 추가
-- wsl-build.bat 스크립트 추가: WSL과 Windows 간의 경로 문제 해결
+- wsl-build.bat 및 windows-build.bat 스크립트 추가: WSL과 Windows 간의 경로 문제 해결
+- map-wsl.ps1 스크립트 추가: WSL 파일 시스템 매핑 지원
 - WSL_README.md 문서 작성: 개발 및 테스트 워크플로우 상세 설명
 - CLAUDE.md 업데이트: WSL과 Windows 환경 차이 섹션 추가
 - README.md 업데이트: 설치 방법 개선
