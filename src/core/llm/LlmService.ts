@@ -15,7 +15,7 @@ import {
 export class LlmService {
   private httpClient: HttpClientService;
   private models: Map<string, ModelConfig> = new Map();
-  private defaultModel: string = 'gemini-2.5-flash'; // 기본 모델을 Gemini로 변경
+  private defaultModel: string = 'narrans'; // 기본 모델을 온프레미스 Narrans로 변경
   private idCounter: number = 0;
   
   constructor() {
@@ -215,9 +215,12 @@ export class LlmService {
           return this.sendAzureOpenAIRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
         case 'openrouter':
           return this.sendOpenRouterRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
+        case 'custom':
+          return this.sendCustomRequest(modelConfig, messages, temperature, maxTokens, stream, onUpdate);
         case 'local':
           return this.simulateLocalModel(modelConfig, messages);
         default:
+          console.warn(`알 수 없는 프로바이더: ${modelConfig.provider}, 로컬 시뮤레이션으로 전환합니다.`);
           return this.simulateLocalModel(modelConfig, messages);
       }
     } catch (error: any) {
@@ -690,6 +693,191 @@ export class LlmService {
     }
   }
   
+  /**
+   * Custom API 요청 (Narrans, Llama 등 온프레미스 모델)
+   */
+  private async sendCustomRequest(
+    modelConfig: ModelConfig, 
+    messages: ChatMessage[], 
+    temperature?: number, 
+    maxTokens?: number,
+    stream?: boolean,
+    onUpdate?: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    if (!modelConfig.apiUrl) {
+      throw new Error(`Custom 모델 ${modelConfig.name}의 API URL이 지정되지 않았습니다.`);
+    }
+    
+    console.log(`Custom API 요청 - 모델: ${modelConfig.name}, API URL: ${modelConfig.apiUrl}`);
+    console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0}, 스트리밍: ${stream ? '켜짐' : '꺼짐'}`);
+    
+    try {
+      // 스트리밍 모드인 경우
+      if (stream && onUpdate) {
+        return await this.handleCustomStream(
+          modelConfig,
+          messages,
+          temperature,
+          maxTokens,
+          onUpdate
+        );
+      }
+      
+      // 일반 모드 (비스트리밍)
+      console.log('일반 모드(비스트리밍)로 요청 전송');
+      
+      // SSL 인증서 검증 오류 회피를 위해 fetch API 직접 사용
+      const fetchResponse = await fetch(modelConfig.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: modelConfig.name.toLowerCase(),
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0,
+          max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
+          stream: false
+        })
+      });
+      
+      if (!fetchResponse.ok) {
+        throw new Error(`Custom API 응답 오류: ${fetchResponse.status} ${fetchResponse.statusText}`);
+      }
+      
+      console.log(`Custom API 응답 성공 - 상태 코드: ${fetchResponse.status}`);
+      
+      const responseData = await fetchResponse.json();
+      
+      // 응답 처리
+      return {
+        id: responseData.id || this.generateId(),
+        content: responseData.choices[0].message.content,
+        model: modelConfig.name,
+        usage: responseData.usage ? {
+          promptTokens: responseData.usage.prompt_tokens || 0,
+          completionTokens: responseData.usage.completion_tokens || 0,
+          totalTokens: responseData.usage.total_tokens || 0
+        } : undefined
+      };
+    } catch (error) {
+      console.error(`Custom API(${modelConfig.name}) 요청 오류:`, error);
+      
+      // 오류 발생 시 로컬 시뮤레이션으로 대체
+      console.warn(`API 오류로 인해 로컬 시뮤레이션으로 전환: ${error}`);
+      return this.simulateLocalModel(modelConfig, messages);
+    }
+  }
+  
+  /**
+   * Custom 스트리밍 응답 처리
+   */
+  private async handleCustomStream(
+    modelConfig: ModelConfig,
+    messages: ChatMessage[],
+    temperature?: number, 
+    maxTokens?: number,
+    onUpdate: (chunk: string) => void
+  ): Promise<LlmResponse> {
+    try {
+      console.log(`Custom 스트리밍 요청 - 모델: ${modelConfig.name}, API URL: ${modelConfig.apiUrl}`);
+      
+      // 스트리밍 요청 전송
+      const response = await fetch(modelConfig.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify({
+          model: modelConfig.name.toLowerCase(),
+          messages,
+          temperature: temperature ?? modelConfig.temperature ?? 0,
+          max_tokens: maxTokens ?? modelConfig.maxTokens ?? 4096,
+          stream: true
+        })
+      });
+      
+      if (!response.ok || !response.body) {
+        throw new Error(`Custom 스트리밍 API 응답 오류: ${response.status} ${response.statusText}`);
+      }
+      
+      console.log('Custom 스트리밍 연결 성공 - 응답 처리 시작');
+      
+      // 응답 ID 및 누적 콘텐츠
+      let responseId = this.generateId();
+      let accumulatedContent = '';
+      
+      // 스트림 리더 생성
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // 스트림 처리
+      let done = false;
+      let eventCount = 0;
+      let contentChunks = 0;
+      
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // Server-Sent Events 형식 파싱
+        const events = chunk
+          .split('\n\n')
+          .filter(line => line.trim() !== '' && line.trim() !== 'data: [DONE]');
+        
+        eventCount += events.length;
+        
+        for (const event of events) {
+          // 'data: ' 접두사 제거 및 JSON 파싱
+          if (event.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(event.slice(6));
+              
+              if (data.id) {
+                responseId = data.id;
+              }
+              
+              // 실제 콘텐츠 추출
+              const content = data.choices[0]?.delta?.content || '';
+              if (content) {
+                accumulatedContent += content;
+                onUpdate(content);
+                contentChunks++;
+                
+                // 처음 몇 개의 청크만 로깅
+                if (contentChunks <= 3 || contentChunks % 50 === 0) {
+                  console.log(`스트리밍 청크 수신 #${contentChunks}: ${content.length > 20 ? content.substring(0, 20) + '...' : content}`);
+                }
+              }
+            } catch (error) {
+              console.warn('스트리밍 데이터 파싱 오류:', error);
+            }
+          }
+        }
+      }
+      
+      console.log(`스트리밍 완료 - 총 이벤트: ${eventCount}, 콘텐츠 청크: ${contentChunks}, 응답 길이: ${accumulatedContent.length}자`);
+      
+      // 완료된 응답 반환
+      return {
+        id: responseId,
+        content: accumulatedContent,
+        model: modelConfig.name
+      };
+    } catch (error) {
+      console.error(`Custom 스트리밍 오류(${modelConfig.name}):`, error);
+      
+      // 오류 발생 시 로컬 시뮤레이션으로 대체
+      console.warn(`API 오류로 인해 로컬 시뮤레이션으로 전환: ${error}`);
+      return this.simulateLocalModel(modelConfig, messages);
+    }
+  }
+
   /**
    * 로컬 모델 시뮤레이션 (실제 API 호출 없이 데모용)
    */
