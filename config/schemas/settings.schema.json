@@ -2,6 +2,117 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "internalPlugins": {
+      "type": "object",
+      "properties": {
+        "git": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Git 플러그인 활성화 여부",
+              "default": true
+            },
+            "useLocalGit": {
+              "type": "boolean",
+              "description": "로컬 Git 구성 사용 여부 (.git 폴더)",
+              "default": true
+            },
+            "autoCommitMessage": {
+              "type": "boolean",
+              "description": "LLM을 사용하여 커밋 메시지 자동 생성",
+              "default": true
+            },
+            "commitMessageModel": {
+              "type": "string",
+              "description": "커밋 메시지 생성에 사용할 LLM 모델 (기본값: defaultModel)",
+              "default": ""
+            },
+            "defaultBranch": {
+              "type": "string",
+              "description": "기본 브랜치",
+              "default": "master"
+            },
+            "commitMessageTemplate": {
+              "type": "string",
+              "description": "커밋 메시지 템플릿",
+              "default": "{{type}}: {{subject}}\n\n{{body}}"
+            },
+            "credentials": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string",
+                  "description": "GitHub 사용자 이름 (로컬 설정이 없는 경우)"
+                },
+                "token": {
+                  "type": "string",
+                  "description": "GitHub 개인 액세스 토큰 (로컬 설정이 없는 경우)"
+                }
+              }
+            },
+            "remotes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "description": "원격 저장소 URL"
+              },
+              "description": "원격 저장소 목록 (로컬 설정이 없는 경우)"
+            }
+          }
+        },
+        "jira": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Jira 플러그인 활성화 여부",
+              "default": true
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "Jira 기본 URL"
+            },
+            "credentials": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string",
+                  "description": "Jira API 토큰"
+                },
+                "username": {
+                  "type": "string", 
+                  "description": "Jira 사용자 이름"
+                }
+              }
+            }
+          }
+        },
+        "swdp": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "SWDP 플러그인 활성화 여부",
+              "default": true
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "SWDP 기본 URL"
+            },
+            "credentials": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string",
+                  "description": "SWDP API 토큰"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "core": {
       "type": "object",
       "properties": {
@@ -55,6 +166,82 @@
               "default": true
             }
           }
+        }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "properties": {
+        "defaultModel": {
+          "type": "string",
+          "description": "기본적으로 사용할 LLM 모델 ID",
+          "default": "gemini-2.5-flash"
+        },
+        "openrouterApiKey": {
+          "type": "string",
+          "description": "OpenRouter API 키"
+        },
+        "openaiApiKey": {
+          "type": "string",
+          "description": "OpenAI API 키"
+        },
+        "anthropicApiKey": {
+          "type": "string",
+          "description": "Anthropic API 키"
+        },
+        "azureApiKey": {
+          "type": "string",
+          "description": "Azure OpenAI API 키"
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "모델 표시 이름"
+              },
+              "provider": {
+                "type": "string",
+                "enum": ["openai", "anthropic", "ollama", "azure", "openrouter", "local", "custom"],
+                "description": "모델 제공자"
+              },
+              "apiKey": {
+                "type": "string",
+                "description": "모델별 API 키 (선택 사항)"
+              },
+              "apiUrl": {
+                "type": "string",
+                "description": "모델별 API URL (선택 사항)"
+              },
+              "apiModel": {
+                "type": "string",
+                "description": "API 요청 시 사용할 정확한 모델 ID (예: google/gemini-2.5-flash-preview)"
+              },
+              "contextWindow": {
+                "type": "number",
+                "description": "컨텍스트 창 크기 (최대 토큰 수)"
+              },
+              "maxTokens": {
+                "type": "number",
+                "description": "응답 생성 최대 토큰 수"
+              },
+              "temperature": {
+                "type": "number",
+                "description": "응답 다양성 (0.0~1.0)",
+                "minimum": 0,
+                "maximum": 1,
+                "default": 0.7
+              },
+              "systemPrompt": {
+                "type": "string",
+                "description": "기본 시스템 프롬프트"
+              }
+            },
+            "required": ["name", "provider"]
+          },
+          "description": "사용 가능한 LLM 모델 정의"
         }
       }
     },
