@@ -93,14 +93,57 @@ export class CommandRegistryService extends EventEmitter implements ICommandRegi
       const commands = this.getAllCommandUsages();
       const slashCommands = commands.filter(cmd => cmd.syntax.startsWith('/'));
       
-      let helpText = '사용 가능한 / 명령어:\n\n';
+      let helpText = '# 사용 가능한 명령어\n\n';
       
+      // 슬래시 명령어 목록
+      helpText += '## / 명령어 (내부 기능)\n\n';
       slashCommands.forEach(cmd => {
-        helpText += `${cmd.syntax} - ${cmd.description}\n`;
+        helpText += `- \`${cmd.syntax}\` - ${cmd.description}\n`;
       });
       
-      helpText += '\n/clear - 대화 기록 지우기\n';
-      helpText += '/model <모델ID> - 사용할 모델 변경\n';
+      // 추가 내장 명령어
+      helpText += '\n### 기본 명령어\n\n';
+      helpText += '- `/clear` - 대화 기록 지우기\n';
+      helpText += '- `/model <모델ID>` - 사용할 모델 변경\n';
+      helpText += '- `/debug` - 디버그 정보 표시\n';
+      
+      // @ 명령어 안내
+      helpText += '\n## @ 명령어 (외부 시스템 연동)\n\n';
+      helpText += '@ 명령어 목록을 보려면 `/help:at` 명령어를 사용하세요.\n';
+      
+      return helpText;
+    });
+    
+    // @ 명령어 도움말
+    this.register('core', '/help:at', async (args, flags) => {
+      const commands = this.getAllCommandUsages();
+      const atCommands = commands.filter(cmd => cmd.syntax.startsWith('@'));
+      
+      let helpText = '# @ 명령어 목록\n\n';
+      
+      // 플러그인별로 그룹화
+      const pluginGroups = new Map<string, CommandUsage[]>();
+      atCommands.forEach(cmd => {
+        const groupName = cmd.agentId;
+        if (!pluginGroups.has(groupName)) {
+          pluginGroups.set(groupName, []);
+        }
+        pluginGroups.get(groupName)!.push(cmd);
+      });
+      
+      // 각 그룹 출력
+      if (pluginGroups.size === 0) {
+        helpText += '등록된 @ 명령어가 없습니다.\n\n';
+        helpText += '각 플러그인은 자체 명령어를 제공합니다. 설정에 플러그인을 추가하면 더 많은 명령어를 사용할 수 있습니다.';
+      } else {
+        for (const [plugin, cmds] of pluginGroups.entries()) {
+          helpText += `## ${plugin} 플러그인\n\n`;
+          cmds.forEach(cmd => {
+            helpText += `- \`${cmd.syntax}\` - ${cmd.description}\n`;
+          });
+          helpText += '\n';
+        }
+      }
       
       return helpText;
     });
@@ -138,19 +181,48 @@ export class CommandRegistryService extends EventEmitter implements ICommandRegi
           { id: 'claude-instant', name: 'Claude Instant', provider: 'Anthropic' }
         ];
         
-        let response = '사용 가능한 LLM 모델:\n\n';
+        let response = '# 사용 가능한 LLM 모델\n\n';
         
         // 모델 정보 포맷팅
         for (const model of models) {
-          response += `- ${model.name} (${model.provider})\n  ID: ${model.id}\n\n`;
+          response += `## ${model.name} (${model.provider})\n`;
+          response += `- ID: \`${model.id}\`\n\n`;
         }
         
-        response += '모델을 변경하려면 /model <모델ID> 명령어를 사용하세요.';
+        response += '모델을 변경하려면 `/model <모델ID>` 명령어를 사용하세요.';
         
         return response;
       } catch (error) {
         console.error('모델 목록 조회 중 오류 발생:', error);
         return '모델 목록을 가져오는 중 오류가 발생했습니다.';
+      }
+    });
+    
+    // 디버그 명령어
+    this.register('core', '/debug', async (args, flags) => {
+      try {
+        const debugInfo = {
+          timestamp: new Date().toISOString(),
+          commands: this.getAllCommandUsages().length,
+          handlers: Array.from(this._handlers.keys()).map(agent => ({
+            agent,
+            commands: Array.from(this._handlers.get(agent)?.keys() || [])
+          }))
+        };
+        
+        return {
+          content: '# 디버그 정보\n\n' +
+                  `**시간**: ${new Date().toLocaleString()}\n\n` +
+                  `**등록된 명령어**: ${debugInfo.commands}개\n\n` +
+                  '**핸들러**:\n```json\n' + JSON.stringify(debugInfo.handlers, null, 2) + '\n```\n\n' +
+                  '시스템이 정상적으로 작동 중입니다.'
+        };
+      } catch (error) {
+        console.error('디버그 정보 생성 중 오류 발생:', error);
+        return {
+          content: '디버그 정보를 생성하는 중 오류가 발생했습니다.',
+          error: true
+        };
       }
     });
   }

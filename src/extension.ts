@@ -182,6 +182,24 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         case 'changeModel':
           this._changeModel(message.model);
           return;
+          
+        case 'executeCommand':
+          // 웹뷰에서 직접 명령어 실행 요청
+          console.log('명령어 실행 요청:', message.commandId);
+          if (message.commandId) {
+            // axiomCore를 통해 명령어 실행
+            vscode.commands.executeCommand(message.commandId)
+              .then(result => {
+                console.log('명령어 실행 결과:', result);
+                // 결과를 웹뷰에 전송
+                this._sendResponse(`명령어 '${message.commandId}' 실행 결과: ${JSON.stringify(result)}`, 'system');
+              })
+              .catch(err => {
+                console.error('명령어 실행 오류:', err);
+                this._sendResponse(`명령어 실행 오류: ${err.message || '알 수 없는 오류'}`, 'system');
+              });
+          }
+          return;
       }
     });
     

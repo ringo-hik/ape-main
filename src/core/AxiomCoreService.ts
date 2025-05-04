@@ -210,19 +210,50 @@ export class AxiomCoreService extends EventEmitter {
    */
   public async processMessage(text: string): Promise<any> {
     try {
+      this._logger.info(`메시지 처리 시작: "${text}"`);
+      
       // 명령어 파싱
       const command = this._commandParser.parse(text);
       
       // 명령어인 경우 실행
       if (command) {
-        return await this.executeCommand(command);
+        this._logger.info(`명령어 감지됨: ${command.prefix}${command.agentId}:${command.command}`);
+        
+        try {
+          const result = await this.executeCommand(command);
+          this._logger.info('명령어 실행 성공');
+          return result;
+        } catch (cmdError) {
+          this._logger.error(`명령어 실행 실패: ${cmdError}`);
+          
+          // 오류 메시지 포맷팅
+          const errorMessage = cmdError instanceof Error ? cmdError.message : String(cmdError);
+          return {
+            content: `# 명령어 실행 오류\n\n\`${command.prefix}${command.agentId}:${command.command}\`\n\n오류: ${errorMessage}`,
+            error: true
+          };
+        }
+      }
+      
+      // 일반 텍스트인 경우 디버그 모드에서는 간단한 응답 반환
+      if (text.trim().toLowerCase() === 'debug') {
+        return {
+          content: '# 디버그 모드 활성화\n\n' +
+                   '현재 시간: ' + new Date().toLocaleString() + '\n\n' +
+                   `등록된 명령어: ${this._commandRegistry.getAllCommandUsages().length}개\n` +
+                   `등록된 플러그인: ${this._pluginRegistry.getEnabledPlugins().length}개`
+        };
       }
       
       // 일반 텍스트는 LLM 응답 생성
+      this._logger.info('일반 텍스트로 처리: LLM 응답 생성');
       return await this.generateResponse(text);
     } catch (error) {
       this._logger.error('메시지 처리 중 오류 발생:', error);
-      throw error;
+      return {
+        content: `메시지 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        error: true
+      };
     }
   }
   
