@@ -136,9 +136,13 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
       if (useStreaming) {
         // 스트리밍 응답 처리를 위한 변수
         let isFirstChunk = true;
+        let chunkCount = 0;
+        let startTime = Date.now();
         
         // 스트리밍 응답 ID
         const responseId = `resp-${Date.now()}`;
+        
+        console.log(`AxiomChatViewProvider: 스트리밍 시작 - 응답 ID: ${responseId}`);
         
         // 스트리밍 시작 메시지 전송
         this._view.webview.postMessage({
@@ -151,9 +155,17 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         const streamHandler = (chunk: string) => {
           if (!this._view || !this._view.visible) return;
           
+          chunkCount++;
+          
           // 첫 청크인 경우 초기화 메시지 전송
           if (isFirstChunk) {
+            console.log(`AxiomChatViewProvider: 첫 청크 수신 - 길이: ${chunk.length}자`);
             isFirstChunk = false;
+          }
+          
+          // 로그 간소화를 위해 일부 청크만 로깅
+          if (chunkCount <= 2 || chunkCount % 50 === 0) {
+            console.log(`AxiomChatViewProvider: 스트리밍 청크 #${chunkCount} 수신 - 길이: ${chunk.length}자`);
           }
           
           // 청크 전송
@@ -170,6 +182,11 @@ export class AxiomChatViewProvider implements vscode.WebviewViewProvider {
         
         // 스트리밍 완료 메시지 전송
         if (this._view && this._view.visible) {
+          const endTime = Date.now();
+          const duration = (endTime - startTime) / 1000;
+          
+          console.log(`AxiomChatViewProvider: 스트리밍 완료 - 총 청크: ${chunkCount}, 소요 시간: ${duration.toFixed(2)}초`);
+          
           this._view.webview.postMessage({
             command: 'endStreaming',
             responseId: responseId

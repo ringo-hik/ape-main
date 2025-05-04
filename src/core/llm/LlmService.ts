@@ -415,6 +415,13 @@ export class LlmService {
     const apiUrl = modelConfig.apiUrl || 'https://openrouter.ai/api/v1/chat/completions';
     
     try {
+      // 요청 모델 설정 (Gemini 모델 특별 처리)
+      const requestModel = modelConfig.name === 'Google Gemini 2.5 Flash Preview' ? 
+                          "google/gemini-2.5-flash-preview" : modelConfig.name;
+      
+      console.log(`OpenRouter API 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
+      console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}, 스트리밍: ${stream ? '켜짐' : '꺼짐'}`);
+      
       // 스트리밍 모드인 경우
       if (stream && onUpdate) {
         return await this.handleOpenRouterStream(
@@ -429,6 +436,8 @@ export class LlmService {
       }
       
       // 일반 모드 (비스트리밍)
+      console.log('일반 모드(비스트리밍)로 요청 전송');
+      
       // SSL 인증서 검증 오류 회피를 위해 fetch API 직접 사용
       const fetchResponse = await fetch(apiUrl, {
         method: 'POST',
@@ -439,7 +448,7 @@ export class LlmService {
           'X-Title': 'Axiom VSCode Extension'
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-preview",
+          model: requestModel,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0.7,
           max_tokens: maxTokens ?? modelConfig.maxTokens,
@@ -450,6 +459,8 @@ export class LlmService {
       if (!fetchResponse.ok) {
         throw new Error(`OpenRouter API 응답 오류: ${fetchResponse.status} ${fetchResponse.statusText}`);
       }
+      
+      console.log(`OpenRouter API 응답 성공 - 상태 코드: ${fetchResponse.status}`);
       
       const responseData = await fetchResponse.json();
       
@@ -496,6 +507,13 @@ export class LlmService {
     onUpdate: (chunk: string) => void
   ): Promise<LlmResponse> {
     try {
+      // 요청 모델 설정 (Gemini 모델 특별 처리)
+      const requestModel = modelConfig.name === 'Google Gemini 2.5 Flash Preview' ? 
+                           "google/gemini-2.5-flash-preview" : modelConfig.name;
+      
+      console.log(`OpenRouter 스트리밍 요청 - 모델: ${modelConfig.name} → API 요청 모델: ${requestModel}`);
+      console.log(`메시지 수: ${messages.length}, 온도: ${temperature ?? modelConfig.temperature ?? 0.7}`);
+      
       // 스트리밍 요청 전송
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -507,7 +525,7 @@ export class LlmService {
           'X-Title': 'Axiom VSCode Extension'
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-preview",
+          model: requestModel,
           messages,
           temperature: temperature ?? modelConfig.temperature ?? 0.7,
           max_tokens: maxTokens ?? modelConfig.maxTokens,
@@ -519,6 +537,8 @@ export class LlmService {
         throw new Error(`OpenRouter 스트리밍 API 응답 오류: ${response.status} ${response.statusText}`);
       }
       
+      console.log('OpenRouter 스트리밍 연결 성공 - 응답 처리 시작');
+      
       // 응답 ID 및 누적 콘텐츠
       let responseId = this.generateId();
       let accumulatedContent = '';
@@ -529,6 +549,9 @@ export class LlmService {
       
       // 스트림 처리
       let done = false;
+      let eventCount = 0;
+      let contentChunks = 0;
+      
       while (!done) {
         const { value, done: readerDone } = await reader.read();
         done = readerDone;
@@ -541,6 +564,8 @@ export class LlmService {
         const events = chunk
           .split('\n\n')
           .filter(line => line.trim() !== '' && line.trim() !== 'data: [DONE]');
+        
+        eventCount += events.length;
         
         for (const event of events) {
           // 'data: ' 접두사 제거 및 JSON 파싱
@@ -557,6 +582,12 @@ export class LlmService {
               if (content) {
                 accumulatedContent += content;
                 onUpdate(content);
+                contentChunks++;
+                
+                // 처음 몇 개의 청크만 로깅
+                if (contentChunks <= 3 || contentChunks % 50 === 0) {
+                  console.log(`스트리밍 청크 수신 #${contentChunks}: ${content.length > 20 ? content.substring(0, 20) + '...' : content}`);
+                }
               }
             } catch (error) {
               console.warn('스트리밍 데이터 파싱 오류:', error);
@@ -564,6 +595,8 @@ export class LlmService {
           }
         }
       }
+      
+      console.log(`스트리밍 완료 - 총 이벤트: ${eventCount}, 콘텐츠 청크: ${contentChunks}, 응답 길이: ${accumulatedContent.length}자`);
       
       // 완료된 응답 반환
       return {

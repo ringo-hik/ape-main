@@ -48,6 +48,9 @@ export class ChatService {
     // 대화 기록에 사용자 메시지 추가
     this.addMessage('user', text);
     
+    console.log(`ChatService: 메시지 처리 시작 - "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+    console.log(`ChatService: 스트리밍 모드 - ${onUpdate ? '켜짐' : '꺼짐'}`);
+    
     // /clear 명령어 특별 처리 (UI 관련이므로 여기서 처리)
     if (text.trim().toLowerCase() === '/clear') {
       this.clearConversation();
@@ -59,11 +62,19 @@ export class ChatService {
     try {
       // 스트리밍 처리를 위한 내부 콜백
       let accumulatedResponse = '';
+      let chunkCount = 0;
       
       const streamingCallback = onUpdate ? (chunk: string) => {
         accumulatedResponse += chunk;
         onUpdate(chunk);
+        
+        chunkCount++;
+        if (chunkCount <= 2 || chunkCount % 50 === 0) {
+          console.log(`ChatService: 스트리밍 청크 #${chunkCount} 수신 및 전달 - 길이: ${chunk.length}자`);
+        }
       } : undefined;
+      
+      console.log('ChatService: AxiomCoreService에 메시지 전달');
       
       // Axiom 코어 서비스를 통한 메시지 처리 (스트리밍 지원)
       const response = await this.axiomCore.processMessage(text, streamingCallback ? {
@@ -75,8 +86,10 @@ export class ChatService {
       
       // 스트리밍 모드에서는 누적된 응답 사용
       if (streamingCallback && accumulatedResponse) {
+        console.log(`ChatService: 스트리밍 응답 완료 - 총 청크: ${chunkCount}, 전체 길이: ${accumulatedResponse.length}자`);
         responseContent = accumulatedResponse;
       } else {
+        console.log('ChatService: 일반 응답 처리');
         // 비스트리밍 모드에서는 응답 객체에서 콘텐츠 추출
         if (typeof response === 'object') {
           if (response.content) {
@@ -87,6 +100,7 @@ export class ChatService {
         } else {
           responseContent = response.toString();
         }
+        console.log(`ChatService: 응답 길이: ${responseContent.length}자`);
       }
       
       // 응답 추가
