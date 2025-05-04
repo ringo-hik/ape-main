@@ -31,6 +31,11 @@
         "command": "axiom.clearChat",
         "title": "채팅 지우기",
         "category": "Axiom"
+      },
+      {
+        "command": "axiom.debug",
+        "title": "디버그 정보 표시",
+        "category": "Axiom"
       }
     ],
     "viewsContainers": {
