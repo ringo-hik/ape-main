@@ -22,5 +22,10 @@
     "search.exclude": {
         "**/node_modules": true,
         "**/dist": true
+    },
+    "workbench.colorCustomizations": {
+        "statusBar.background": "#0ecf65", // 파란색 (JavaScript/Node 프로젝트)
+        "titleBar.activeBackground": "#0ecf65",
+        "activityBar.background": "#0ecf65"
     }
 }

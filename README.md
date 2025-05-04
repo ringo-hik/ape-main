@@ -19,14 +19,32 @@ git clone https://github.com/your-repo/axiom-extension.git
 cd axiom-extension
 ```
 
-2. 의존성 설치:
+2. 의존성 설치 및 빌드:
+
+#### Windows에서 WSL을 사용하는 경우:
+
 ```bash
-npm install
+# WSL 터미널에서 직접 실행
+./build-install.sh
 ```
 
-3. 확장 프로그램 빌드:
+또는 Windows 명령 프롬프트에서:
+
+```cmd
+# WSL 경로 문제를 해결하는 특수 스크립트 사용
+wsl-build.bat
+```
+
+#### Windows에서 직접 실행 (WSL 없이):
+
+```cmd
+build-install.bat
+```
+
+#### Linux에서 실행:
+
 ```bash
-npm run build
+./build-install.sh
 ```
 
 ### 디버깅 및 테스트

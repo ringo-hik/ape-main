@@ -360,7 +360,7 @@ class AxiomChatViewProvider implements vscode.WebviewViewProvider {
    */
   private _getHtmlContent(webview: vscode.Webview) {
     // 리소스 경로 가져오기
-    const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'resources', 'html', 'chat.html');
+    const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'resources', 'html', 'chat-test.html');
     
     // CSS 및 JS 경로 설정
     const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'resources', 'css', 'chat.css'));

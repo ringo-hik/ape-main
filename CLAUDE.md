@@ -17,12 +17,21 @@
   - `HISTORY.md`: 업데이트 내역 관리
   - `CLAUDE.md`: 핵심 개발 철학 및 가이드라인
   - `REQUEST_HISTORY.md`: 사용자 요청 기록 (시간순)
+  - `WSL_README.md`: WSL에서 개발하고 Windows에서 테스트하는 방법 가이드
 - **버저닝 정책**:
   - 마이너 업데이트: 0.0.1 (버그 수정, 작은 기능 개선)
   - 중간 업데이트: 0.1.0 (새 기능 추가, API 변경)
   - 메이저 업데이트: 1.0.0 (구조적 변혁, 호환성 변경)
 - **변경 관리**: 모든 변경점마다 git commit 작성 및 HISTORY.md 업데이트
 - **문서 자동 업데이트**: 모든 주요 코드 변경 후 체크리스트 확인 및 문서 업데이트
+
+## 개발 및 테스트 환경 차이 인지
+
+- **개발 환경**: WSL(Windows Subsystem for Linux)에서 코드 개발 진행
+- **테스트 환경**: Windows VS Code에서 실제 확장 프로그램 설치 후 테스트
+- **경로 차이**: WSL과 Windows 간의 경로 차이(`/home/username` vs `\\wsl$\Ubuntu\home\username`) 고려
+- **빌드 프로세스**: WSL에서 빌드한 후 Windows 환경에서 VSIX 설치하여 테스트
+- **테스트 가이드**: WSL_README.md 문서에 WSL/Windows 간 개발 및 테스트 워크플로우 상세히 명시
 
 ## SWDP 통합 철학
 
