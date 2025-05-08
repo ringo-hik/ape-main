@@ -55,7 +55,15 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env.APE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
       'process.env.APE_VERSION': JSON.stringify(require('./package.json').version)
-    })
+    }),
+    // 동적 require 경고 무시
+    new webpack.ContextReplacementPlugin(
+      /plugins\/core/,
+      (data) => {
+        delete data.dependencies[0].critical;
+        return data;
+      }
+    )
   ],
   optimization: {
     minimizer: [],
