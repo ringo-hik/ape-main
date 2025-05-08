@@ -308,60 +308,17 @@ body {
   );
 }
 
-#input-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--ape-spacing-md);
-  padding: 0 var(--ape-spacing-md);
-  position: relative;
-  z-index: 20;
-  gap: var(--ape-spacing-md);
-}
+/* #input-actions 삭제됨 */
 
-/* 스마트 프롬프팅 토글 버튼 - 상징적 디테일 */
-#smart-prompting-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(212, 175, 55, 0.15);
-  border: 2px solid var(--ape-accent-gold);
-  border-radius: var(--ape-border-radius-md);
-  padding: 8px 18px;
-  font-size: 15px;
-  font-weight: bold;
-  color: var(--ape-accent-gold);
-  cursor: pointer;
-  transition: all var(--ape-transition-fast);
-  height: 40px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
+/* 스마트 프롬프팅 토글 버튼 삭제됨 */
 
-/* APE MODE 버튼 스타일은 #smart-prompting-toggle에 통합됨 */
+/* APE MODE 버튼 삭제됨 */
 
-#smart-prompting-toggle.active {
-  border-color: var(--ape-accent-gold);
-  color: white;
-  background-color: var(--ape-accent-gold);
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
+/* 스마트 프롬프팅 토글 상태 스타일 삭제됨 */
 
-#smart-prompting-toggle:hover {
-  background-color: rgba(212, 175, 55, 0.25);
-  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
-  transform: translateY(-2px);
-}
+/* APE MODE 버튼 스타일 삭제됨 */
 
-/* APE MODE 액티브/호버 스타일은 #smart-prompting-toggle에 통합됨 */
-
-#smart-prompting-toggle .emoji-icon {
-  margin-right: 6px;
-  font-size: 20px; /* 아이콘 크기 2배 증가 */
-  transform: scale(1.5); /* 추가적인 크기 확대 */
-  display: inline-block; /* transform을 위한 설정 */
-}
+/* 스마트 프롬프팅 아이콘 스타일 삭제됨 */
 
 /* 입력 필드 - 시대를 초월한 클래식함 */
 #input-wrapper {
@@ -433,6 +390,24 @@ body {
   border-radius: var(--ape-border-radius-lg);
   border: 1px solid rgba(80, 80, 80, 0.2);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* APE MODE 마스코트 버튼 스타일 */
+#ape-mascot-button {
+  background-color: var(--ape-bg-tertiary);
+  color: var(--ape-text-primary);
+  border: 1px solid var(--ape-border-subtle);
+  overflow: hidden;
+}
+
+#ape-mascot-button img {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+#ape-mascot-button:hover img {
+  transform: scale(1.2);
 }
 
 /* 버튼 공통 스타일 - 통일된 디자인 */

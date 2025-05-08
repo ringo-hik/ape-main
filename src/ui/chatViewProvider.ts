@@ -1314,6 +1314,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       clearButton.addEventListener('click', handleClearClick);
       attachButton.addEventListener('click', handleAttachClick);
       modelSelector.addEventListener('click', handleModelSelectorClick);
+      
+      const apeMascotButton = document.getElementById('ape-mascot-button');
+      if (apeMascotButton) {
+        apeMascotButton.addEventListener('click', handleSmartPromptingToggle);
+      }
+      
       smartPromptingToggle.addEventListener('click', handleSmartPromptingToggle);
       document.getElementById('search-button').addEventListener('click', handleAdvancedSearch);
       
@@ -2061,14 +2067,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       <div id="chat-container">
         <div id="chat-messages"></div>
         <div id="chat-input-container">
-          <div id="input-actions">
-            <button id="smart-prompting-toggle" title="APE MODE - 스마트 프롬프팅 활성화">
-              APE MODE
-            </button>
-          </div>
           <div id="input-wrapper">
             <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
             <div id="input-buttons">
+              <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
+                <img src="${webview.asWebviewUri(vscode.Uri.joinPath(this._context.extensionUri, 'media', 'icons', 'mascot.svg'))}" width="18" height="18" />
+              </button>
               <button id="attach-button" title="Attach File" class="input-action-button">
                 <span class="emoji-icon">◈</span>
               </button>
