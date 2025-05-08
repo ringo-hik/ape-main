@@ -1,0 +1,1028 @@
+/* 
+ * Atelier APE - 미니멀 인터페이스 디자인
+ * 프리미엄 개발 경험을 위한 고급스러운 VSCode 웹뷰 
+ * 
+ * 절제된 디자인, 뛰어난 품질, 현대적 감성이 융합된 
+ * 디지털 인터페이스 컬렉션
+ */
+
+:root {
+  /* 레이아웃 핵심 변수 - 모든 컨테이너의 일관된 너비 관리 */
+  --ape-container-max-width: 960px; /* 800px에서 20% 증가 */
+  --ape-container-width: 100%;
+  --ape-content-padding: 1.5rem;
+  --ape-mobile-padding: 1rem;
+  
+  /* 색상 변수 - 다크 모드 대응 */
+  --ape-bg-primary: var(--vscode-editor-background, #1e1e1e);
+  --ape-bg-secondary: var(--vscode-sideBar-background, #252526);
+  --ape-bg-tertiary: var(--vscode-dropdown-background, #3c3c3c);
+  --ape-bg-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+  --ape-bg-active: var(--vscode-list-activeSelectionBackground, #094771);
+  
+  /* 경계선 강조 색상 */
+  --ape-border-highlight: #0e639c;
+  --ape-highlight-light: #1177bb;
+  --ape-highlight-dark: #094771;
+  --ape-highlight-accent: #3794ff;
+  
+  /* 텍스트 색상 */
+  --ape-text-primary: var(--vscode-foreground, #cccccc);
+  --ape-text-secondary: var(--vscode-descriptionForeground, #8a8a8a);
+  --ape-text-accent: var(--vscode-textLink-foreground, #3794ff);
+  --ape-text-error: var(--vscode-errorForeground, #f48771);
+  
+  /* 강조 색상 - 디자인 영감 */
+  --ape-accent-primary: var(--vscode-button-background, #0e639c);
+  --ape-accent-secondary: var(--vscode-button-hoverBackground, #1177bb);
+  --ape-accent-tertiary: rgba(55, 148, 255, 0.1);
+  --ape-accent-gold: #d4af37;
+  --ape-accent-silver: #aaa9ad;
+  
+  /* 테두리 및 구분선 */
+  --ape-border-subtle: var(--vscode-widget-border, #454545);
+  --ape-border-strong: var(--vscode-input-border, #6b6b6b);
+  
+  /* 그림자 효과 */
+  --ape-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --ape-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+  --ape-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
+  
+  /* 타이포그래피 */
+  --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Menlo, Consolas, 'Ubuntu Mono', monospace);
+  --ape-font-display: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  
+  /* 레이아웃 값 */
+  --ape-spacing-xs: 0.25rem;
+  --ape-spacing-sm: 0.5rem;
+  --ape-spacing-md: 1rem;
+  --ape-spacing-lg: 1.5rem;
+  --ape-spacing-xl: 2rem;
+  
+  /* 애니메이션 */
+  --ape-transition-fast: 150ms ease;
+  --ape-transition-normal: 250ms ease;
+  --ape-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 컴포넌트 크기 */
+  --ape-border-radius-sm: 4px;
+  --ape-border-radius-md: 8px;
+  --ape-border-radius-lg: 12px;
+  --ape-border-radius-full: 9999px;
+}
+
+/* 기본 레이아웃 - 기하학적 정밀함 */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--ape-font-sans);
+  background-color: var(--ape-bg-primary);
+  color: var(--ape-text-primary);
+  overflow: hidden;
+  height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+/* 채팅 컨테이너 - 모든 요소의 기준이 되는 캔버스 */
+#chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  /* 뷰 영역 구분을 위한 좌측 경계 */
+  border-left: 4px solid var(--ape-border-highlight);
+  /* 채팅 영역 배경 약간 강조 */
+  background-color: rgba(14, 99, 156, 0.05);
+  /* 그라데이션 효과를 추가하여 미묘한 깊이감 제공 */
+  background-image: linear-gradient(
+    to right,
+    rgba(14, 99, 156, 0.05),
+    rgba(14, 99, 156, 0.02) 30%,
+    rgba(14, 99, 156, 0.01)
+  );
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 메시지 영역 - 여백 미학 */
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  padding: 0;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding-bottom: 60px; /* 하단 요소와의 간격 */
+}
+
+/* 메시지 스크롤바 - 숨겨진 디테일 */
+#chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+  background-color: var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-full);
+}
+
+/* 메시지 스타일 - 현대적 실루엣 */
+.message {
+  width: 100%;
+  max-width: var(--ape-container-max-width);
+  box-sizing: border-box;
+  padding: var(--ape-spacing-md);
+  margin-bottom: var(--ape-spacing-lg);
+  border-radius: var(--ape-border-radius-lg);
+  position: relative;
+  animation: message-fade-in 0.3s ease forwards;
+  box-shadow: var(--ape-shadow-sm);
+  transition: transform var(--ape-transition-normal);
+}
+
+/* 메시지 호버 효과 - 미묘한 텍스처 변화 */
+.message:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ape-shadow-md);
+}
+
+@keyframes message-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 역할별 메시지 스타일 - 각자의 개성을 존중하는 철학 */
+.user {
+  background-color: var(--ape-accent-tertiary);
+  border-left: 2px solid var(--ape-accent-primary);
+  margin-left: auto;
+  margin-right: var(--ape-spacing-md);
+  color: var(--ape-text-primary);
+  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+}
+
+.assistant {
+  background-color: var(--ape-bg-secondary);
+  border-left: 2px solid var(--ape-accent-silver);
+  margin-right: auto;
+  margin-left: var(--ape-spacing-md);
+  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+}
+
+.system {
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  margin: var(--ape-spacing-lg) auto;
+  max-width: var(--ape-container-max-width);
+  padding: var(--ape-spacing-md);
+  width: calc(100% - 2 * var(--ape-spacing-md));
+}
+
+/* 스트리밍 효과 - 역동적 생명력 */
+.streaming {
+  position: relative;
+}
+
+.streaming::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--ape-accent-gold);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+}
+
+.message-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 코드 인라인 스타일 - 정교한 스티칭 */
+.message-content code.inline-code {
+  background-color: var(--ape-bg-tertiary);
+  font-family: var(--ape-font-mono);
+  padding: 0.15em 0.4em;
+  border-radius: var(--ape-border-radius-sm);
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+/* 첨부 파일 표시 - 센스 있는 인터페이스 요소 */
+.attached-file {
+  display: flex;
+  align-items: center;
+  background-color: var(--ape-bg-tertiary);
+  border-radius: var(--ape-border-radius-md);
+  padding: var(--ape-spacing-sm) var(--ape-spacing-md);
+  margin: var(--ape-spacing-sm) 0;
+  max-width: 100%;
+}
+
+.attachment-icon {
+  margin-right: var(--ape-spacing-sm);
+}
+
+.attachment-name {
+  flex: 1;
+  font-size: 0.9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-actions {
+  display: flex;
+}
+
+.attachment-action {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--ape-spacing-xs);
+  color: var(--ape-text-secondary);
+  border-radius: var(--ape-border-radius-sm);
+  transition: background-color var(--ape-transition-fast);
+}
+
+.attachment-action:hover {
+  background-color: var(--ape-bg-hover);
+  color: var(--ape-text-primary);
+}
+
+/* 입력 영역 - 균형 잡힌 구조미 */
+#chat-input-container {
+  border-top: 2px solid var(--ape-border-highlight);
+  padding: var(--ape-spacing-md);
+  background-color: var(--ape-bg-secondary);
+  position: relative;
+  z-index: 10;
+  box-shadow: var(--ape-shadow-md);
+  width: 100%;
+  max-width: var(--ape-container-max-width);
+  margin: 0 auto;
+  box-sizing: border-box;
+  /* 입력 영역 강조를 위한 그라데이션 */
+  background-image: linear-gradient(
+    to bottom, 
+    rgba(14, 99, 156, 0.1), 
+    rgba(14, 99, 156, 0.05) 40%, 
+    rgba(14, 99, 156, 0.02)
+  );
+}
+
+#input-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--ape-spacing-sm);
+  gap: var(--ape-spacing-sm);
+}
+
+/* 스마트 프롬프팅 토글 버튼 - 상징적 디테일 */
+#smart-prompting-toggle {
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: var(--ape-border-radius-md);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+}
+
+#smart-prompting-toggle.active {
+  border-color: var(--ape-accent-gold);
+  color: var(--ape-accent-gold);
+  background-color: rgba(212, 175, 55, 0.1);
+}
+
+#smart-prompting-toggle:hover {
+  background-color: var(--ape-bg-hover);
+}
+
+#smart-prompting-toggle .emoji-icon {
+  margin-right: 6px;
+}
+
+/* 입력 필드 - 시대를 초월한 클래식함 */
+#chat-input {
+  width: 100%;
+  min-height: 48px; /* 약간 더 높게 조정 */
+  max-height: 200px;
+  padding: var(--ape-spacing-md);
+  background-color: var(--ape-bg-tertiary);
+  color: var(--ape-text-primary);
+  border: 2px solid var(--ape-border-subtle); /* 더 두꺼운 테두리 */
+  border-radius: var(--ape-border-radius-md);
+  resize: none;
+  outline: none;
+  font-family: var(--ape-font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  transition: border-color var(--ape-transition-fast), box-shadow var(--ape-transition-fast);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+#chat-input:focus {
+  border-color: var(--ape-border-highlight);
+  box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.2);
+  /* 포커스 시 그린 애니메이션 효과 */
+  animation: input-focus-pulse 3s infinite;
+}
+
+@keyframes input-focus-pulse {
+  0% {
+    box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25);
+    border-color: var(--ape-border-highlight);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(74, 153, 119, 0.15);
+    border-color: var(--ape-green-light);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25);
+    border-color: var(--ape-border-highlight);
+  }
+}
+
+#chat-input::placeholder {
+  color: var(--ape-text-secondary);
+  opacity: 0.7;
+}
+
+/* 버튼 영역 - 대담한 비대칭 미학 */
+#input-buttons {
+  display: flex;
+  align-items: center;
+  margin-top: var(--ape-spacing-sm);
+  gap: var(--ape-spacing-sm);
+  justify-content: flex-end;
+}
+
+/* 버튼 공통 스타일 - 절제된 개성 */
+#input-buttons button {
+  padding: 8px;
+  border: none;
+  border-radius: var(--ape-border-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--ape-transition-fast);
+  background-color: var(--ape-bg-tertiary);
+  color: var(--ape-text-primary);
+}
+
+#input-buttons button:hover {
+  background-color: var(--ape-bg-hover);
+}
+
+/* 전송 버튼 스타일 - 대담한 디자인 */
+#send-button {
+  background-color: var(--ape-border-highlight);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ape-border-radius-full);
+  /* 그린 스타일 그라데이션 */
+  background-image: linear-gradient(
+    135deg, 
+    var(--ape-green-dark) 0%, 
+    var(--ape-border-highlight) 55%, 
+    var(--ape-green-light) 120%
+  );
+  /* 약간의 그림자로 입체감 */
+  box-shadow: 0 2px 4px rgba(14, 67, 48, 0.2);
+  /* 부드러운 전환 효과 */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#send-button:hover {
+  background-color: var(--ape-green-light);
+  transform: translateY(-1px);
+  /* 호버 시 그라데이션 변화 */
+  background-image: linear-gradient(
+    135deg, 
+    var(--ape-border-highlight) 0%, 
+    var(--ape-green-light) 70% 
+  );
+  /* 호버 시 그림자 강화 */
+  box-shadow: 0 3px 6px rgba(14, 67, 48, 0.3);
+}
+
+/* 첨부 및 클리어 버튼 - 플레이풀한 디자인 */
+.input-action-button {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ape-border-radius-full);
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+}
+
+/* 모델 인디케이터 - 현대적 엣지 */
+#model-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ape-spacing-sm) var(--ape-spacing-md);
+  font-size: 12px;
+  color: var(--ape-text-secondary);
+  border-top: 1px solid var(--ape-border-subtle);
+  background-color: var(--ape-bg-primary);
+  width: 100%;
+  max-width: var(--ape-container-max-width);
+  margin: 0 auto;
+  box-sizing: border-box;
+  /* 상태 바 강조를 위한 그린 그라데이션 효과 */
+  background-image: linear-gradient(to right, 
+    rgba(14, 67, 48, 0.15), 
+    rgba(29, 109, 79, 0.05) 30%, 
+    rgba(29, 109, 79, 0.05) 70%, 
+    rgba(14, 67, 48, 0.15)
+  );
+  /* 상태 바 미묘한 패턴 */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 그린 스타일 미묘한 패턴 오버레이 */
+#model-indicator::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(45deg, 
+    transparent 65%, 
+    rgba(121, 175, 137, 0.03) 80%, 
+    transparent 90%);
+  background-size: 10px 10px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+#model-selector {
+  background: none;
+  border: none;
+  color: var(--ape-text-accent);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--ape-border-radius-sm);
+  transition: all var(--ape-transition-fast);
+}
+
+#model-selector:hover {
+  background-color: var(--ape-bg-hover);
+}
+
+#model-name {
+  font-weight: 600;
+  background-color: var(--ape-border-highlight);
+  color: white;
+  padding: 4px 12px;
+  border-radius: var(--ape-border-radius-md);
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(14, 67, 48, 0.3);
+  /* 모델 이름 살짝 빛나는 효과 - 프리미엄 느낌 */
+  text-shadow: 0 0 5px rgba(121, 175, 137, 0.4);
+  /* 그린 그라데이션으로 깊이감 추가 */
+  background-image: linear-gradient(
+    135deg, 
+    var(--ape-green-dark) 0%, 
+    var(--ape-border-highlight) 60%, 
+    var(--ape-green-light) 110%
+  );
+  /* 미묘한 테두리 하이라이트 */
+  border: 1px solid rgba(121, 175, 137, 0.3);
+  /* 모델 이름 위치 강조 */
+  position: relative;
+  transform: translateY(-1px);
+}
+
+/* 슬래시 명령어 자동완성 - 현대적 디자인 */
+#command-suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  width: 300px;
+  max-width: 80%;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--ape-bg-secondary);
+  border: 1px solid var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-md);
+  box-shadow: var(--ape-shadow-lg);
+  z-index: 100;
+  display: none;
+  padding: 0;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ape-border-strong) transparent;
+}
+
+#command-suggestions::-webkit-scrollbar {
+  width: 4px;
+}
+
+#command-suggestions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#command-suggestions::-webkit-scrollbar-thumb {
+  background-color: var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-full);
+}
+
+.suggestion-category {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 12px 4px;
+  color: var(--ape-text-secondary);
+  background-color: var(--ape-bg-primary);
+  border-bottom: 1px solid var(--ape-border-subtle);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.command-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: background-color var(--ape-transition-fast);
+}
+
+.command-suggestion:hover, 
+.command-suggestion.active {
+  background-color: var(--ape-bg-hover);
+}
+
+.command-suggestion.active {
+  border-left: 2px solid var(--ape-accent-primary);
+}
+
+.command-suggestion .suggestion-icon {
+  margin-right: 8px;
+  color: var(--ape-text-secondary);
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.command-suggestion .suggestion-label {
+  font-weight: 500;
+  margin-right: 8px;
+  color: var(--ape-text-primary);
+}
+
+.command-suggestion .suggestion-description {
+  color: var(--ape-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.command-suggestion:after {
+  content: attr(data-shortcut);
+  position: absolute;
+  right: 12px;
+  color: var(--ape-text-secondary);
+  font-size: 10px;
+  background-color: var(--ape-bg-tertiary);
+  padding: 1px 6px;
+  border-radius: var(--ape-border-radius-sm);
+  opacity: 0;
+  transition: opacity var(--ape-transition-fast);
+}
+
+.command-suggestion:hover:after,
+.command-suggestion.active:after {
+  opacity: 1;
+}
+
+/* 웰컴 화면 - 미니멀리즘 디자인 */
+.welcome-container {
+  width: 100%;
+  max-width: var(--ape-container-max-width);
+  margin: 0 auto;
+  padding: var(--ape-spacing-lg);
+  animation: fade-in 0.5s ease-in-out;
+  box-sizing: border-box;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.welcome-header {
+  text-align: center;
+  margin-bottom: var(--ape-spacing-xl);
+}
+
+.welcome-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  background-color: var(--ape-accent-primary);
+  border-radius: var(--ape-border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--ape-spacing-md);
+  box-shadow: var(--ape-shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-logo:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+
+.welcome-logo-symbol {
+  font-size: 42px;
+  font-weight: 600;
+  color: white;
+  font-family: var(--ape-font-display);
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: var(--ape-spacing-md) 0 var(--ape-spacing-xs);
+  color: var(--ape-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  color: var(--ape-text-secondary);
+  margin: 0;
+}
+
+.welcome-actions {
+  margin-bottom: var(--ape-spacing-xl);
+}
+
+.action-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ape-spacing-md);
+  margin-bottom: var(--ape-spacing-md);
+}
+
+.action-button {
+  padding: var(--ape-spacing-md) var(--ape-spacing-lg);
+  background-color: var(--ape-bg-secondary);
+  border-radius: var(--ape-border-radius-md);
+  border: 1px solid var(--ape-border-subtle);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all var(--ape-transition-normal);
+  box-shadow: var(--ape-shadow-sm);
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--ape-border-strong);
+  box-shadow: var(--ape-shadow-md);
+}
+
+.action-icon {
+  font-size: 24px;
+  margin-right: var(--ape-spacing-md);
+  color: var(--ape-accent-primary);
+}
+
+.action-content {
+  flex: 1;
+}
+
+.action-title {
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: var(--ape-text-primary);
+}
+
+.action-description {
+  font-size: 13px;
+  color: var(--ape-text-secondary);
+}
+
+.welcome-examples {
+  margin-bottom: var(--ape-spacing-lg);
+}
+
+.examples-header {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: var(--ape-spacing-md);
+  color: var(--ape-text-primary);
+}
+
+.example-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--ape-spacing-md);
+}
+
+.example-card {
+  background-color: var(--ape-bg-secondary);
+  border-radius: var(--ape-border-radius-md);
+  padding: var(--ape-spacing-md);
+  cursor: pointer;
+  transition: all var(--ape-transition-normal);
+  border: 1px solid var(--ape-border-subtle);
+}
+
+.example-card:hover {
+  background-color: var(--ape-bg-hover);
+  border-color: var(--ape-border-strong);
+  transform: translateY(-2px);
+}
+
+.example-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ape-accent-primary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.example-text {
+  font-size: 14px;
+  color: var(--ape-text-primary);
+}
+
+.welcome-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ape-spacing-sm);
+  justify-content: center;
+}
+
+.quick-action {
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  color: var(--ape-text-secondary);
+  border-radius: var(--ape-border-radius-full);
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+}
+
+.quick-action:hover {
+  background-color: var(--ape-bg-hover);
+  color: var(--ape-text-primary);
+  border-color: var(--ape-border-strong);
+}
+
+.welcome-standalone {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 반응형 디자인 - 구조적 유연성 */
+@media (max-width: 1024px) {
+  :root {
+    --ape-container-max-width: 90%;
+  }
+}
+
+@media (max-width: 860px) {
+  :root {
+    --ape-container-max-width: 100%;
+  }
+  
+  .welcome-container,
+  #chat-input-container,
+  #model-indicator {
+    width: 100%;
+    max-width: 100%;
+    padding-left: var(--ape-mobile-padding);
+    padding-right: var(--ape-mobile-padding);
+  }
+  
+  .action-group {
+    grid-template-columns: 1fr;
+  }
+
+  .example-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  #chat-messages {
+    padding-left: var(--ape-mobile-padding);
+    padding-right: var(--ape-mobile-padding);
+  }
+  
+  .message {
+    max-width: 100%;
+    width: calc(100% - var(--ape-spacing-md));
+  }
+  
+  .user, .assistant {
+    max-width: 90%; /* 85%에서 90%로 증가 */
+  }
+}
+
+/* 모바일 최적화 - 실용적 미니멀리즘 */
+@media (max-width: 480px) {
+  #chat-input-container {
+    padding: var(--ape-spacing-sm);
+  }
+  
+  #input-buttons {
+    margin-top: var(--ape-spacing-xs);
+  }
+  
+  .message {
+    padding: var(--ape-spacing-sm);
+    margin-bottom: var(--ape-spacing-md);
+  }
+  
+  .user, .assistant {
+    max-width: 90%;
+  }
+  
+  .welcome-container {
+    padding: var(--ape-spacing-md);
+  }
+}
+
+/* 에어비앤비 스타일 모놀로그 - 프리미엄 에디션 */
+.welcome-monologue {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.welcome-title {
+  font-size: 5.5rem;
+  font-weight: 700;
+  color: var(--ape-text-primary);
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.title-separator {
+  width: 40px;
+  height: 1px;
+  background-color: var(--ape-accent-gold, #d4af37);
+  margin: 1.8rem auto;
+  opacity: 0.8;
+}
+
+.welcome-tagline {
+  font-size: 1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ape-accent-primary);
+  margin: 0 0 1.5rem;
+}
+
+.welcome-subtitle {
+  font-size: 1.2rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--ape-text-secondary);
+  margin: 0.5rem auto 0;
+  max-width: 560px;
+  font-family: var(--ape-font-display);
+}
+
+/* 애니메이션 효과 */
+.welcome-monologue {
+  animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 브랜드 아이덴티티 - 프리미엄 모놀로그 */
+.signature-monologue {
+  font-family: 'Montserrat', 'Didot', serif;
+  text-align: center;
+}
+
+.primary-statement {
+  font-size: 1.2rem;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+  margin-bottom: 1.8rem;
+  color: var(--ape-text-primary);
+}
+
+.attribute-collection {
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--ape-text-secondary);
+}
+
+.subtle-emphasis {
+  font-style: italic;
+  font-weight: 300;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 미디어 쿼리 */
+@media (max-width: 1024px) {
+  .welcome-title {
+    font-size: 4rem;
+  }
+  
+  .welcome-subtitle {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 3.5rem;
+  }
+  
+  .welcome-subtitle {
+    font-size: 1rem;
+  }
+}
+
+/* 비주얼 요소 (이모지 및 아이콘) - 미니멀한 표현 */
+.emoji-icon {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  font-style: normal;
+}

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="800px" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+  <title>APE Integration Silhouette Icon</title>
+  <defs>
+    <linearGradient id="pipeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4B6BFB" />
+      <stop offset="100%" stop-color="#654BFB" />
+    </linearGradient>
+    <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B6B" />
+      <stop offset="100%" stop-color="#FFD86B" />
+    </linearGradient>
+  </defs>
+  
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <!-- Pipeline Network Silhouette -->
+    <g transform="translate(80, 110)">
+      <!-- Main Center Hub -->
+      <circle cx="320" cy="290" r="120" fill="url(#pipeGradient)" />
+      
+      <!-- Connection Points/Nodes -->
+      <circle cx="100" cy="200" r="35" fill="url(#nodeGradient)" />
+      <circle cx="540" cy="200" r="35" fill="url(#nodeGradient)" />
+      <circle cx="100" cy="450" r="35" fill="url(#nodeGradient)" />
+      <circle cx="540" cy="450" r="35" fill="url(#nodeGradient)" />
+      <circle cx="320" cy="80" r="35" fill="url(#nodeGradient)" />
+      <circle cx="320" cy="500" r="35" fill="url(#nodeGradient)" />
+      
+      <!-- Flow Lines -->
+      <!-- Main Horizontal Line -->
+      <path d="M100,200 L220,200" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      <path d="M420,200 L540,200" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      
+      <!-- Main Vertical Line -->
+      <path d="M320,80 L320,190" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      <path d="M320,390 L320,500" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      
+      <!-- Connection to Bottom Nodes -->
+      <path d="M100,450 L200,450 C240,450 260,430 260,390 L260,350" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      <path d="M540,450 L440,450 C400,450 380,430 380,390 L380,350" stroke="#4B6BFB" stroke-width="18" fill="none" stroke-linecap="round" />
+      
+      <!-- Data Flow Dots -->
+      <circle cx="140" cy="200" r="6" fill="#FFD86B">
+        <animate attributeName="cx" from="100" to="220" dur="3s" repeatCount="indefinite" />
+      </circle>
+      
+      <circle cx="460" cy="200" r="6" fill="#FFD86B">
+        <animate attributeName="cx" from="420" to="540" dur="3s" repeatCount="indefinite" />
+      </circle>
+      
+      <circle cx="320" cy="120" r="6" fill="#FFD86B">
+        <animate attributeName="cy" from="80" to="190" dur="2s" repeatCount="indefinite" />
+      </circle>
+      
+      <circle cx="320" cy="430" r="6" fill="#FFD86B">
+        <animate attributeName="cy" from="390" to="500" dur="2s" repeatCount="indefinite" />
+      </circle>
+      
+      <circle cx="160" cy="450" r="6" fill="#FFD86B">
+        <animate attributeName="cx" from="100" to="260" dur="3s" repeatCount="indefinite" />
+        <animate attributeName="cy" from="450" to="350" begin="2s" dur="1s" repeatCount="indefinite" />
+      </circle>
+      
+      <circle cx="480" cy="450" r="6" fill="#FFD86B">
+        <animate attributeName="cx" from="540" to="380" dur="3s" repeatCount="indefinite" />
+        <animate attributeName="cy" from="450" to="350" begin="2s" dur="1s" repeatCount="indefinite" />
+      </circle>
+      
+      <!-- Decorative Elements -->
+      <path d="M100,200 C50,210 30,280 50,350 C70,420 150,440 200,390" stroke="#4B6BFB" stroke-width="8" fill="none" stroke-dasharray="15,10" />
+      <path d="M540,200 C590,210 610,280 590,350 C570,420 490,440 440,390" stroke="#4B6BFB" stroke-width="8" fill="none" stroke-dasharray="15,10" />
+      
+      <!-- Pulse Effect Around Hub -->
+      <circle cx="320" cy="290" r="140" stroke="#4B6BFB" stroke-width="2" fill="none" opacity="0.5">
+        <animate attributeName="r" from="120" to="160" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="0.5" to="0" dur="2s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  </g>
+</svg>

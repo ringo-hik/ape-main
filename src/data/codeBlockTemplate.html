@@ -1,0 +1,43 @@
+<div class="code-block-container code-block-popup">
+  <div class="code-block-header">
+    <span class="code-block-language language-${language}">${language}</span>
+    <div class="code-block-actions">
+      <button class="code-action-button copy-button" data-code-id="${codeId}" title="복사">
+        <i class="codicon codicon-copy"></i>
+        <span class="tooltip">클립보드에 복사</span>
+      </button>
+      <button class="code-action-button insert-code-button" data-code-id="${codeId}" title="에디터에 삽입">
+        <i class="codicon codicon-arrow-small-right"></i>
+        <span class="tooltip">현재 파일에 복사</span>
+      </button>
+      <button class="code-action-button new-file-button" data-code-id="${codeId}" title="새 파일로 생성">
+        <i class="codicon codicon-new-file"></i>
+        <span class="tooltip">새 파일로 생성</span>
+      </button>
+    </div>
+  </div>
+  <div class="code-content ${showLineNumbers ? 'with-line-numbers' : ''}">
+    ${showLineNumbers ? `<div class="line-numbers">${lineNumbers}</div>` : ''}
+    <div class="code-area">
+      <code class="language-${language}" id="code-${codeId}">${codeContent}</code>
+    </div>
+  </div>
+  <div class="editor-insertion-options" id="insertion-options-${codeId}" style="display: none;">
+    <div class="insertion-option">
+      <input type="radio" id="insert-cursor-${codeId}" name="insert-mode-${codeId}" value="cursor" checked>
+      <label for="insert-cursor-${codeId}">커서 위치에 삽입</label>
+    </div>
+    <div class="insertion-option">
+      <input type="radio" id="replace-selection-${codeId}" name="insert-mode-${codeId}" value="replace">
+      <label for="replace-selection-${codeId}">선택 영역 대체</label>
+    </div>
+    <div class="insertion-option">
+      <input type="radio" id="new-file-${codeId}" name="insert-mode-${codeId}" value="new">
+      <label for="new-file-${codeId}">새 파일 생성</label>
+    </div>
+    <div class="insertion-actions">
+      <button class="insertion-button cancel-button" data-code-id="${codeId}">취소</button>
+      <button class="insertion-button insert-button" data-code-id="${codeId}">삽입</button>
+    </div>
+  </div>
+</div>

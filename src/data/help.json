@@ -1,0 +1,230 @@
+{
+  "version": "1.1.0",
+  "lastUpdated": "2023-08-05",
+  "categories": [
+    {
+      "id": "advanced",
+      "name": "고급 명령어",
+      "description": "Rules, Vault 등 고급 기능을 위한 명령어입니다.",
+      "commands": [
+        {
+          "name": "rules",
+          "aliases": ["rule", "ape-rules", "룰", "규칙", "규칙관리"],
+          "description": "APE Rules를 관리합니다 (목록, 활성화, 비활성화, 생성, 삭제)",
+          "longDescription": "APE Rules는 LLM에 적용되는 규칙을 관리하는 시스템입니다. 각 Rule은 마크다운 형식의 파일로 저장되며, 활성화된 Rules는 LLM 시스템 프롬프트에 자동으로 추가됩니다. 이 명령어로 Rules 목록 조회, 활성화/비활성화, 생성, 삭제 등의 작업을 수행할 수 있습니다.",
+          "examples": ["/rules list", "/rules active", "/rules activate 규칙이름", "/rules create 규칙이름", "/규칙 목록"],
+          "usage": "/rules [list|active|inactive|activate|deactivate|create|delete|open|info] [규칙이름]",
+          "related": ["r"]
+        },
+        {
+          "name": "r",
+          "aliases": [],
+          "description": "rules 명령어의 축약형입니다.",
+          "longDescription": "'/rules' 명령어의 축약형으로, 동일한 기능을 제공합니다. APE Rules 관리 기능을 더 짧은 명령어로 사용할 수 있습니다.",
+          "examples": ["/r list", "/r active", "/r activate 규칙이름"],
+          "usage": "/r [list|active|inactive|activate|deactivate|create|delete|open|info] [규칙이름]",
+          "related": ["rules"]
+        }
+      ]
+    },
+    {
+      "id": "general",
+      "name": "일반 명령어",
+      "description": "기본적인 채팅 및 도움말 관련 명령어입니다.",
+      "commands": [
+        {
+          "name": "help",
+          "aliases": ["?", "commands", "도움말", "도움", "명령어", "알려줘"],
+          "description": "사용 가능한 명령어 목록을 표시합니다.",
+          "longDescription": "모든 슬래시 명령어의 목록과 상세 설명을 표시합니다. 카테고리별로 정리되어 있으며, 각 명령어의 사용법과 예시도 함께 제공됩니다. 특정 카테고리의 명령어만 보려면 '/help [카테고리명]'과 같이 입력하세요.",
+          "examples": ["/help", "/help git", "/도움말"],
+          "usage": "/help [카테고리명]",
+          "related": ["settings"]
+        },
+        {
+          "name": "clear",
+          "aliases": ["cls", "clean", "지우기", "초기화", "클리어"],
+          "description": "채팅 내역을 지웁니다.",
+          "longDescription": "현재 채팅 내역을 모두 지웁니다. 이 명령어는 현재 세션의 채팅 내역만 지우며, 이전에 저장된 세션은 영향을 받지 않습니다. 실행 취소할 수 없으니 주의하세요.",
+          "examples": ["/clear", "/cls", "/지우기"],
+          "usage": "/clear",
+          "related": []
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "name": "Git 명령어",
+      "description": "Git 관련 작업을 수행하는 명령어입니다. 커밋, 상태 확인, 자동 커밋 기능 등을 제공합니다.",
+      "commands": [
+        {
+          "name": "git status",
+          "aliases": ["g status", "깃 상태"],
+          "description": "Git 저장소 상태를 확인합니다.",
+          "longDescription": "현재 Git 저장소의 상태를 표시합니다. 브랜치 정보, 변경된 파일 목록, 스테이징된 파일, 추적되지 않는 파일 등의 정보가 포함됩니다. 이 정보는 웹뷰 패널에 표시되어 쉽게 확인할 수 있습니다.",
+          "examples": ["/git status", "/g status", "/깃 상태"],
+          "usage": "/git status",
+          "related": ["git commit"]
+        },
+        {
+          "name": "git commit",
+          "aliases": ["g commit", "깃 커밋", "깃 저장"],
+          "description": "변경 사항을 커밋합니다.",
+          "longDescription": "변경된 모든 파일을 스테이징하고 커밋합니다. 설정에 따라 LLM을 사용하여 자동으로 적절한 커밋 메시지를 생성할 수 있습니다. 이 기능은 수동으로 커밋 메시지를 작성할 필요 없이 빠르게 변경 사항을 저장하고 싶을 때 유용합니다.",
+          "examples": ["/git commit", "/g commit", "/깃 커밋"],
+          "usage": "/git commit",
+          "related": ["git status", "git auto"]
+        },
+        {
+          "name": "git auto",
+          "aliases": ["g auto", "깃 자동", "깃 자동커밋"],
+          "description": "자동 커밋 기능을 켜거나 끕니다.",
+          "longDescription": "자동 커밋 기능을 토글합니다. 이 기능이 켜져 있으면 파일을 저장할 때마다 자동으로 변경 사항이 커밋됩니다. 이때 커밋 메시지에는 '[APE][Temporary]' 접두사가 붙어 나중에 쉽게 식별할 수 있습니다. 이 명령어는 해당 기능의 현재 상태를 반대로 바꿉니다.",
+          "examples": ["/git auto", "/g auto", "/깃 자동"],
+          "usage": "/git auto",
+          "related": ["git auto-on", "git auto-off", "git consolidate"]
+        },
+        {
+          "name": "git auto-on",
+          "aliases": ["g auto-on", "깃 자동켜기", "깃 자동커밋켜기"],
+          "description": "자동 커밋 기능을 켭니다.",
+          "longDescription": "자동 커밋 기능을 명시적으로 켭니다. 이 기능이 켜져 있으면 파일을 저장할 때마다 자동으로 변경 사항이 커밋됩니다. 커밋 메시지에는 '[APE][Temporary]' 접두사가 붙어 임시 커밋임을 표시합니다.",
+          "examples": ["/git auto-on", "/g auto-on", "/깃 자동켜기"],
+          "usage": "/git auto-on",
+          "related": ["git auto", "git auto-off", "git consolidate"]
+        },
+        {
+          "name": "git auto-off",
+          "aliases": ["g auto-off", "깃 자동끄기", "깃 자동커밋끄기"],
+          "description": "자동 커밋 기능을 끕니다.",
+          "longDescription": "자동 커밋 기능을 명시적으로 끕니다. 이 기능이 꺼지면 파일 저장 시 자동 커밋이 더 이상 발생하지 않습니다.",
+          "examples": ["/git auto-off", "/g auto-off", "/깃 자동끄기"],
+          "usage": "/git auto-off",
+          "related": ["git auto", "git auto-on", "git consolidate"]
+        },
+        {
+          "name": "git consolidate",
+          "aliases": ["g consolidate", "g squash", "깃 통합", "깃 임시통합", "깃 통합커밋"],
+          "description": "임시 커밋들을 하나의 정식 커밋으로 통합합니다.",
+          "longDescription": "자동 커밋 기능으로 생성된 '[APE][Temporary]' 접두사가 붙은 임시 커밋들을 하나의 정식 커밋으로 통합합니다. 이 기능은 다음과 같이 작동합니다:\n\n1. 최근 30개 커밋 중 '[APE][Temporary]' 접두사가 있는 임시 커밋을 식별합니다.\n2. 연속된 임시 커밋들만 그룹으로 묶습니다(중간에 일반 커밋이 있으면 별도 그룹으로 구분).\n3. 가장 최근의 연속된 임시 커밋 그룹만 통합합니다.\n4. 이 커밋들을 soft reset하고 변경 사항을 유지한 채 하나의 정식 커밋으로 만듭니다.\n5. LLM이 활성화된 경우, 모든 변경 내용을 분석하여 의미 있는 커밋 메시지를 생성합니다.\n\n이 기능은 개발 중에 자동 커밋으로 여러 작은 커밋이 생성되었을 때, 이를 하나의 의미 있는 커밋으로 정리하는 데 유용합니다.",
+          "examples": ["/git consolidate", "/g squash", "/깃 통합"],
+          "usage": "/git consolidate",
+          "related": ["git auto", "git auto-on", "git auto-off"]
+        }
+      ]
+    },
+    {
+      "id": "code",
+      "name": "코드 명령어",
+      "description": "코드 분석 및 작업에 관련된 명령어입니다.",
+      "commands": [
+        {
+          "name": "analyze",
+          "aliases": ["code", "분석", "코드", "코드분석"],
+          "description": "선택한 코드를 분석합니다.",
+          "longDescription": "현재 선택된 코드를 APE가 분석합니다. 코드의 기능, 잠재적인 개선점, 모범 사례 등을 분석하여 제공합니다. 코드 리뷰나 이해가 필요할 때 유용합니다. 에디터에서 코드를 선택한 후 이 명령어를 실행하세요.",
+          "examples": ["/analyze", "/code", "/분석"],
+          "usage": "/analyze",
+          "related": ["open"]
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "name": "모델 관련 명령어",
+      "description": "LLM 모델 관리 및 변경에 관련된 명령어입니다.",
+      "commands": [
+        {
+          "name": "model",
+          "aliases": ["모델", "모델변경", "모델선택"],
+          "description": "사용할 LLM 모델을 변경합니다.",
+          "longDescription": "다양한 LLM 모델 중에서 원하는 모델을 선택하거나 사용 가능한 모델 목록을 볼 수 있습니다. 모델마다 성능, 응답 스타일, 특화된 기능이 다를 수 있습니다.",
+          "examples": ["/model list", "/model use LLAMA4-MAVERICK", "/모델 목록"],
+          "usage": "/model [list|use] [모델이름]",
+          "related": []
+        },
+        {
+          "name": "model list",
+          "aliases": ["모델 목록", "모델 리스트"],
+          "description": "사용 가능한 모델 목록을 표시합니다.",
+          "longDescription": "현재 사용 가능한 모든 LLM 모델의 목록을 표시합니다. 각 모델의 이름과 간단한 설명이 포함됩니다.",
+          "examples": ["/model list", "/모델 목록"],
+          "usage": "/model list",
+          "related": ["model use"]
+        },
+        {
+          "name": "model use",
+          "aliases": ["model switch", "모델 사용", "모델 변경"],
+          "description": "특정 모델로 변경합니다.",
+          "longDescription": "대화에 사용할 LLM 모델을 변경합니다. 모델 이름을 지정해야 합니다. 사용 가능한 모델 목록은 '/model list' 명령어로 확인할 수 있습니다.",
+          "examples": ["/model use LLAMA4-MAVERICK", "/모델 사용 NARRNAS"],
+          "usage": "/model use [모델이름]",
+          "related": ["model list"]
+        }
+      ]
+    },
+    {
+      "id": "utility",
+      "name": "유틸리티 명령어",
+      "description": "기타 유용한 기능을 제공하는 명령어입니다.",
+      "commands": [
+        {
+          "name": "settings",
+          "aliases": ["config", "preferences", "설정", "환경설정", "프리퍼런스"],
+          "description": "APE 설정을 변경합니다.",
+          "longDescription": "VS Code 설정에서 APE 관련 설정을 볼 수 있는 페이지를 엽니다. LLM 모델, 자동 커밋, UI 테마 등 다양한 설정을 변경할 수 있습니다.",
+          "examples": ["/settings", "/config", "/설정"],
+          "usage": "/settings",
+          "related": []
+        },
+        {
+          "name": "open",
+          "aliases": ["file", "열기", "파일", "파일열기"],
+          "description": "지정한 파일을 엽니다.",
+          "longDescription": "지정한 파일을 VS Code 에디터에서 엽니다. 파일 경로는 프로젝트 루트를 기준으로 합니다. 파일이 존재하지 않으면 오류 메시지가 표시됩니다.",
+          "examples": ["/open package.json", "/open src/index.ts", "/파일열기 package.json"],
+          "usage": "/open [파일경로]",
+          "related": ["analyze"]
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "APE Rules는 무엇이고 어떻게 사용하나요?",
+      "answer": "APE Rules는 LLM 시스템 프롬프트에 자동으로 적용되는 규칙을 관리하는 시스템입니다. 트리뷰에서 우클릭으로 관리하거나, `/rules` 슬래시 명령어를 사용할 수 있습니다. `/rules list`로 규칙 목록을 확인하고, `/rules create 이름`으로 새 규칙을 생성하며, `/rules activate 이름`과 `/rules deactivate 이름`으로 규칙을 활성화/비활성화할 수 있습니다. 활성화된 규칙은 LLM과의 모든 대화에 자동으로 적용됩니다."
+    },
+    {
+      "question": "자동 커밋은 어떻게 사용하나요?",
+      "answer": "`/git auto` 명령어를 사용하여 자동 커밋 기능을 켜거나 끌 수 있습니다. 켜진 상태에서는 파일을 저장할 때마다 자동으로 커밋이 생성됩니다. 자동 커밋으로 생성된 여러 임시 커밋을 하나로 통합하려면 `/git consolidate` 명령어를 사용하세요."
+    },
+    {
+      "question": "코드 분석은 어떻게 하나요?",
+      "answer": "에디터에서 코드를 선택한 다음 `/analyze` 명령어를 실행하면 APE가 선택된 코드를 분석합니다. 코드 기능, 개선점, 모범 사례 등에 대한 분석 결과를 받을 수 있습니다."
+    },
+    {
+      "question": "사용 가능한 모델은 어떻게 확인하나요?",
+      "answer": "`/model list` 명령어를 사용하면 현재 사용 가능한 모든 LLM 모델 목록을 볼 수 있습니다. 특정 모델로 변경하려면 `/model use [모델이름]`을 사용하세요."
+    },
+    {
+      "question": "임시 커밋을 통합하는 방법은 무엇인가요?",
+      "answer": "`/git consolidate` 명령어를 사용하면 [APE][Temporary] 접두사가 붙은 임시 커밋들을 하나의 정식 커밋으로 통합할 수 있습니다. 이 명령어는 가장 최근의 연속된 임시 커밋 그룹만 통합합니다. 중간에 일반 커밋이 있으면 그 전후의 임시 커밋은 별도 그룹으로 간주됩니다."
+    },
+    {
+      "question": "채팅 내역을 어떻게 지우나요?",
+      "answer": "`/clear` 명령어를 사용하면 현재 채팅 내역을 모두 지울 수 있습니다. 이 명령어는 현재 세션의 채팅 내역만 지우며, 이전에 저장된 세션은 영향을 받지 않습니다."
+    }
+  ],
+  "guides": [
+    {
+      "id": "auto-commit",
+      "title": "자동 커밋 사용 가이드",
+      "content": "## 자동 커밋 사용 가이드\n\n자동 커밋 기능은 파일을 저장할 때마다 변경 사항을 자동으로 감지하고 커밋하는 기능입니다. 이 기능을 사용하면 작은 단위의 변경 사항도 놓치지 않고 버전 관리할 수 있습니다.\n\n### 기능 활성화/비활성화\n\n- `/git auto`: 자동 커밋 기능을 켜거나 끕니다.\n- `/git auto-on`: 자동 커밋 기능을 켭니다.\n- `/git auto-off`: 자동 커밋 기능을 끕니다.\n\n### 작동 원리\n\n1. 자동 커밋이 활성화된 상태에서 파일 저장 시 변경 사항이 감지됩니다.\n2. 변경된 파일 목록과 diff 내용이 분석됩니다.\n3. 변경 내용을 바탕으로 커밋 메시지가 자동 생성됩니다. 이때 '[APE][Temporary]' 접두사가 붙습니다.\n4. 변경 사항이 커밋됩니다.\n\n### 임시 커밋 통합\n\n자동 커밋으로 생성된 여러 작은 커밋을 하나의 의미 있는 커밋으로 통합할 수 있습니다.\n\n- `/git consolidate`: 임시 커밋 통합 (별칭: `/git squash`, `/git 통합`, `/git 임시통합`)\n\n#### 통합 작동 원리\n\n1. 최근 30개 커밋 중 '[APE][Temporary]' 접두사가 붙은 임시 커밋을 식별합니다.\n2. 연속된 임시 커밋만 그룹으로 묶습니다(중간에 일반 커밋이 있으면 별도 그룹으로 구분).\n3. 가장 최근의 연속된 임시 커밋 그룹만 통합합니다.\n4. 이 커밋들을 soft reset하고 변경 사항을 유지한 채 하나의 정식 커밋으로 만듭니다.\n5. LLM이 활성화된 경우, 모든 변경 내용을 분석하여 의미 있는 커밋 메시지를 생성합니다."
+    },
+    {
+      "id": "code-analysis",
+      "title": "코드 분석 가이드",
+      "content": "## 코드 분석 가이드\n\nAPE의 코드 분석 기능을 사용하면 코드의 기능, 개선점, 모범 사례 등을 쉽게 파악할 수 있습니다.\n\n### 코드 분석 방법\n\n1. VS Code 에디터에서 분석하려는 코드를 선택합니다.\n2. 채팅 인터페이스에 `/analyze` 명령어를 입력합니다. 별칭으로는 `/code`, `/분석`, `/코드분석` 등이 있습니다.\n3. APE가 선택한 코드를 분석하여 결과를 채팅 창에 표시합니다.\n\n### 분석 결과 이해하기\n\n코드 분석 결과는 다음과 같은 항목을 포함합니다:\n\n1. **코드 기능 설명**: 해당 코드가 수행하는 기능에 대한 설명\n2. **잠재적 문제점**: 코드에서 발견된 문제점이나 개선이 필요한 부분\n3. **모범 사례 제안**: 더 나은 코드 품질을 위한 제안\n4. **성능 고려사항**: 성능에 영향을 미칠 수 있는 요소와 개선 방법\n\n### 활용 방법\n\n- 새로운 코드베이스를 빠르게 이해할 때\n- 코드 리뷰 시 참고 자료로 활용\n- 레거시 코드를 현대화할 때 개선점 파악\n- 코드 품질을 향상시키기 위한 가이드라인으로 활용"
+    }
+  ]
+}

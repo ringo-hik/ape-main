@@ -1,0 +1,389 @@
+/**
+ * APE 통합 코드 블록 스타일
+ * code-actions.css와 code-block.css를 통합한 버전
+ */
+
+:root {
+  /* Base variables for code styles */
+  --ape-code-bg: var(--vscode-textBlockQuote-background);
+  --ape-accent-color: #FF4405; /* Claude orange */
+  --ape-accent-light: rgba(255, 68, 5, 0.1);
+  --ape-text-color: var(--vscode-editor-foreground);
+  --ape-border-color: var(--vscode-panel-border);
+  --ape-tooltip-bg: var(--vscode-editorHoverWidget-background);
+  --ape-tooltip-text: var(--vscode-editorHoverWidget-foreground);
+}
+
+/* 모던 코드 블록 스타일 */
+.code-block-container {
+  position: relative;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-editor-lineHighlightBorder, rgba(0, 0, 0, 0.1));
+  background-color: var(--vscode-editor-background);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.code-block-container:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--vscode-activityBar-background, #333);
+  border-bottom: 1px solid var(--vscode-editor-lineHighlightBorder, rgba(0, 0, 0, 0.1));
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+}
+
+.code-block-language {
+  color: var(--vscode-activityBar-foreground, #fff);
+  font-weight: 500;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-block-language::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--language-color, #7cb7ff);
+}
+
+.code-block-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.code-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--vscode-activityBar-foreground, rgba(255, 255, 255, 0.8));
+  opacity: 0.7;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.code-action-button:hover {
+  opacity: 1;
+  background-color: var(--vscode-button-hoverBackground, rgba(255, 255, 255, 0.1));
+}
+
+.code-action-button:active {
+  transform: translateY(1px);
+}
+
+.code-action-button .tooltip {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  border: 1px solid var(--vscode-editor-lineHighlightBorder);
+  z-index: 100;
+}
+
+.code-action-button:hover .tooltip {
+  opacity: 1;
+  bottom: -26px;
+}
+
+.code-content {
+  margin: 0;
+  padding: 12px 16px;
+  overflow-x: auto;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  line-height: 1.5;
+  position: relative;
+}
+
+/* 성공 애니메이션 */
+@keyframes success-flash {
+  0% {
+    background-color: transparent;
+  }
+  20% {
+    background-color: rgba(35, 209, 96, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.success-animation {
+  animation: success-flash 1s ease-out;
+}
+
+/* 코드 내용 스타일 */
+.code-content code {
+  display: block;
+  font-family: var(--vscode-editor-font-family), 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  white-space: pre;
+  tab-size: 2;
+  line-height: 1.5;
+}
+
+/* 라인 번호 */
+.code-content.with-line-numbers {
+  padding-left: 0;
+  display: flex;
+}
+
+.line-numbers {
+  user-select: none;
+  padding: 12px 8px;
+  color: var(--vscode-editorLineNumber-foreground, #858585);
+  text-align: right;
+  min-width: 40px;
+  border-right: 1px solid var(--vscode-editor-lineHighlightBorder, rgba(0, 0, 0, 0.1));
+  background-color: var(--vscode-editorGutter-background, rgba(0, 0, 0, 0.03));
+}
+
+.code-area {
+  padding: 12px 16px;
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* 스트리밍 중인 코드 블록 스타일 */
+.streaming-code-block {
+  border-left: 3px solid var(--vscode-activityBarBadge-background, #007acc);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    border-left-color: var(--vscode-activityBarBadge-background, #007acc);
+  }
+  50% {
+    border-left-color: var(--vscode-button-background, #0e639c);
+  }
+  100% {
+    border-left-color: var(--vscode-activityBarBadge-background, #007acc);
+  }
+}
+
+/* 저장 확인 버튼 스타일 */
+.editor-insertion-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: var(--vscode-editorWidget-background, rgba(0, 0, 0, 0.05));
+  border-top: 1px solid var(--vscode-editor-lineHighlightBorder, rgba(0, 0, 0, 0.1));
+  border-radius: 0 0 8px 8px;
+  font-size: 12px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.insertion-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.insertion-option label {
+  cursor: pointer;
+}
+
+.insertion-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.insertion-button {
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.insert-button {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.insert-button:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.cancel-button {
+  background-color: transparent;
+  border-color: var(--vscode-button-secondaryBorder, rgba(0, 0, 0, 0.2));
+  color: var(--vscode-button-secondaryForeground, #333333);
+}
+
+.cancel-button:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground, rgba(0, 0, 0, 0.05));
+}
+
+/* 언어별 색상 */
+.language-typescript::before, .language-ts::before {
+  --language-color: #007acc;
+}
+
+.language-javascript::before, .language-js::before {
+  --language-color: #f7df1e;
+}
+
+.language-python::before, .language-py::before {
+  --language-color: #3776ab;
+}
+
+.language-java::before {
+  --language-color: #b07219;
+}
+
+.language-csharp::before, .language-cs::before {
+  --language-color: #178600;
+}
+
+.language-c::before {
+  --language-color: #555555;
+}
+
+.language-cpp::before {
+  --language-color: #f34b7d;
+}
+
+.language-go::before {
+  --language-color: #00add8;
+}
+
+.language-rust::before, .language-rs::before {
+  --language-color: #dea584;
+}
+
+.language-html::before {
+  --language-color: #e34c26;
+}
+
+.language-css::before {
+  --language-color: #563d7c;
+}
+
+.language-json::before {
+  --language-color: #292929;
+}
+
+.language-markdown::before, .language-md::before {
+  --language-color: #083fa1;
+}
+
+.language-shell::before, .language-sh::before, .language-bash::before {
+  --language-color: #4eaa25;
+}
+
+/* 코드 블록 팝업 효과 */
+@keyframes popup {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.code-block-popup {
+  animation: popup 0.3s ease-out forwards;
+}
+
+/* 다크/라이트 테마 대응 */
+.vscode-dark .code-block-container {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.vscode-light .code-block-container {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 600px) {
+  .code-block-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .code-block-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* 미니멀 액션 버튼 아이콘 - code-actions.css에서 통합 */
+.code-action-button.copy-button i.codicon-copy:before {
+  content: "⊕";
+  font-family: sans-serif;
+  font-style: normal;
+}
+
+.code-action-button.insert-code-button i.codicon-arrow-small-right:before {
+  content: "→";
+  font-family: sans-serif;
+  font-style: normal;
+}
+
+.code-action-button.new-file-button i.codicon-new-file:before {
+  content: "□";
+  font-family: sans-serif;
+  font-style: normal;
+}
+
+/* 스트리밍 코드 블록 스타일 - 미니멀 디자인 */
+.streaming-code-block {
+  border-left: 3px solid var(--ape-accent-color);
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% { border-left-color: var(--ape-accent-color); }
+  50% { border-left-color: rgba(255, 68, 5, 0.4); }
+  100% { border-left-color: var(--ape-accent-color); }
+}
+
+/* 다크 테마 추가 조정 - code-actions.css에서 통합 */
+.vscode-dark .code-block-header {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.vscode-dark .code-action-button:hover {
+  background-color: rgba(255, 68, 5, 0.2);
+}
+
+.vscode-dark .line-numbers {
+  background-color: rgba(0, 0, 0, 0.2);
+}

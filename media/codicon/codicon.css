@@ -1,0 +1,105 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+@font-face {
+	font-family: "codicon";
+	font-display: block;
+	src: url("./codicon.ttf") format("truetype");
+}
+
+.codicon[class*='codicon-'] {
+	font: normal normal normal 16px/1 codicon;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+
+/* Following icon definitions use code point values to make them load faster */
+
+.codicon-add:before { content: '\ea60' }
+.codicon-alert:before { content: '\ea6c' }
+.codicon-archive:before { content: '\ea78' }
+.codicon-beaker:before { content: '\eb79' }
+.codicon-bell:before { content: '\ea97' }
+.codicon-bold:before { content: '\ea62' }
+.codicon-check:before { content: '\ea7c' }
+.codicon-checklist:before { content: '\ea7d' }
+.codicon-chevron-down:before { content: '\ea7e' }
+.codicon-chevron-left:before { content: '\ea7f' }
+.codicon-chevron-right:before { content: '\ea80' }
+.codicon-chevron-up:before { content: '\ea81' }
+.codicon-clear-all:before { content: '\ea82' }
+.codicon-close:before { content: '\ea76' }
+.codicon-code:before { content: '\ea86' }
+.codicon-comment:before { content: '\ea88' }
+.codicon-comment-discussion:before { content: '\ea89' }
+.codicon-debug-alt:before { content: '\eb91' }
+.codicon-debug-breakpoint:before { content: '\ea92' }
+.codicon-debug-continue:before { content: '\ea93' }
+.codicon-debug-disconnect:before { content: '\ea94' }
+.codicon-debug-pause:before { content: '\ea95' }
+.codicon-debug-restart:before { content: '\ea96' }
+.codicon-debug-start:before { content: '\ea97' }
+.codicon-debug-step-into:before { content: '\ea98' }
+.codicon-debug-step-out:before { content: '\ea99' }
+.codicon-debug-step-over:before { content: '\ea9a' }
+.codicon-debug-stop:before { content: '\ea9b' }
+.codicon-desktop-download:before { content: '\ea8e' }
+.codicon-device-camera:before { content: '\ea95' }
+.codicon-file:before { content: '\eaa3' }
+.codicon-file-code:before { content: '\eaa4' }
+.codicon-filter:before { content: '\eaa7' }
+.codicon-find-selection:before { content: '\ebc0' }
+.codicon-folder:before { content: '\eaaf' }
+.codicon-gear:before { content: '\eab3' }
+.codicon-gift:before { content: '\eab4' }
+.codicon-git-commit:before { content: '\eaaf' }
+.codicon-git-branch:before { content: '\eab0' }
+.codicon-git-pull-request:before { content: '\eab1' }
+.codicon-github:before { content: '\eab6' }
+.codicon-globe:before { content: '\eab7' }
+.codicon-graph:before { content: '\eab8' }
+.codicon-heart:before { content: '\eabb' }
+.codicon-home:before { content: '\eabc' }
+.codicon-info:before { content: '\eabe' }
+.codicon-issue-closed:before { content: '\eabf' }
+.codicon-issue-opened:before { content: '\eac0' }
+.codicon-issues:before { content: '\eac1' }
+.codicon-italic:before { content: '\eac2' }
+.codicon-list-ordered:before { content: '\eacb' }
+.codicon-list-unordered:before { content: '\eacc' }
+.codicon-loading:before { content: '\eadf' }
+.codicon-mail:before { content: '\eada' }
+.codicon-menu:before { content: '\eadf' }
+.codicon-microscope:before { content: '\eb58' }
+.codicon-pencil:before { content: '\ea7b' }
+.codicon-play:before { content: '\eb2c' }
+.codicon-preserve-case:before { content: '\ebc1' }
+.codicon-pulse:before { content: '\ea57' }
+.codicon-question:before { content: '\ea59' }
+.codicon-rocket:before { content: '\ea5c' }
+.codicon-send:before { content: '\ea63' }
+.codicon-settings:before { content: '\eb52' }
+.codicon-settings-gear:before { content: '\eb64' }
+.codicon-star:before { content: '\ea6f' }
+.codicon-symbol-class:before { content: '\eb5b' }
+.codicon-symbol-event:before { content: '\eb5d' }
+.codicon-symbol-function:before { content: '\eb5e' }
+.codicon-symbol-method:before { content: '\eb62' }
+.codicon-tools:before { content: '\eb74' }
+.codicon-trash:before { content: '\ea77' }
+.codicon-warning:before { content: '\ea6c' }
+.codicon-whitespace:before { content: '\eb75' }
+.codicon-whole-word:before { content: '\ebe2' }
+.codicon-window:before { content: '\ebe3' }
+.codicon-word-wrap:before { content: '\ebe4' }
+.codicon-zoom-in:before { content: '\ebe5' }
+.codicon-zoom-out:before { content: '\ebe6' }

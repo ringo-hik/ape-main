@@ -1,0 +1,17 @@
+{
+  "message": {
+    "id": "msg_mock_default",
+    "role": "assistant",
+    "content": "이것은 기본 mock 응답입니다. 실제 LLM API를 호출하지 않고 테스트에 사용됩니다.",
+    "timestamp": "2025-05-08T12:00:00Z",
+    "metadata": {
+      "model": "mock-model"
+    }
+  },
+  "usage": {
+    "promptTokens": 100,
+    "completionTokens": 50,
+    "totalTokens": 150
+  },
+  "content": "이것은 기본 mock 응답입니다. 실제 LLM API를 호출하지 않고 테스트에 사용됩니다."
+}

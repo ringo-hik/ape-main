@@ -1,0 +1,17 @@
+{
+  "message": {
+    "id": "msg_mock_error",
+    "role": "assistant",
+    "content": "죄송합니다, 요청을 처리하는 동안 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
+    "timestamp": "2025-05-08T12:45:00Z",
+    "metadata": {
+      "model": "mock-error-model"
+    }
+  },
+  "usage": {
+    "promptTokens": 80,
+    "completionTokens": 30,
+    "totalTokens": 110
+  },
+  "content": "죄송합니다, 요청을 처리하는 동안 오류가 발생했습니다. 나중에 다시 시도해 주세요."
+}

@@ -1,0 +1,43 @@
+{
+  "name": "채팅 기본 기능 테스트",
+  "description": "APE 확장 프로그램의 채팅 기능 검증",
+  "commands": [
+    {
+      "type": "execute",
+      "command": "ape.openChat",
+      "description": "APE 채팅 뷰 열기"
+    },
+    {
+      "type": "waitForElement",
+      "selector": "#chat-container",
+      "webview": true,
+      "timeout": 5000,
+      "description": "채팅 컨테이너가 로드될 때까지 대기"
+    },
+    {
+      "type": "input",
+      "selector": "#chat-input",
+      "text": "테스트 메시지입니다",
+      "webview": true,
+      "description": "채팅 입력 필드에 메시지 입력"
+    },
+    {
+      "type": "click",
+      "selector": "#send-button",
+      "webview": true,
+      "description": "전송 버튼 클릭"
+    },
+    {
+      "type": "waitForElement",
+      "selector": ".message-content:last-child",
+      "webview": true,
+      "timeout": 10000,
+      "description": "메시지 응답이 표시될 때까지 대기"
+    },
+    {
+      "type": "wait",
+      "milliseconds": 2000,
+      "description": "추가 대기 시간"
+    }
+  ]
+}

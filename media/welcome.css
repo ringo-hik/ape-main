@@ -1,0 +1,662 @@
+/**
+ * APE Extension - 웰컴 뷰 스타일
+ * 인기 있는 VSCode 확장 및 GitHub Copilot 스타일 참고
+ */
+
+:root {
+  /* 기본 색상 (라이트 모드) */
+  --ape-welcome-bg: var(--vscode-editor-background);
+  --ape-welcome-text: var(--vscode-editor-foreground);
+  --ape-welcome-accent: #4B6BFB;
+  --ape-welcome-border: rgba(75, 107, 251, 0.2);
+  --ape-welcome-hover: rgba(75, 107, 251, 0.1);
+  --ape-welcome-active: rgba(75, 107, 251, 0.15);
+  --ape-welcome-shadow: rgba(0, 0, 0, 0.05);
+  
+  /* 카드 및 버튼 색상 */
+  --ape-card-bg: rgba(75, 107, 251, 0.03);
+  --ape-card-border: rgba(75, 107, 251, 0.1);
+  --ape-card-hover-bg: rgba(75, 107, 251, 0.06);
+  --ape-card-hover-border: rgba(75, 107, 251, 0.2);
+  
+  /* 버튼 색상 */
+  --ape-button-bg: rgba(75, 107, 251, 0.1);
+  --ape-button-border: rgba(75, 107, 251, 0.2);
+  --ape-button-text: var(--ape-welcome-accent);
+  --ape-button-hover-bg: rgba(75, 107, 251, 0.15);
+  --ape-button-hover-border: rgba(75, 107, 251, 0.3);
+  
+  /* 디자인 시스템 */
+  --ape-welcome-radius: 8px;
+  --ape-welcome-radius-lg: 12px;
+  --ape-welcome-radius-sm: 4px;
+  --ape-welcome-spacing: 16px;
+}
+
+/* 다크 모드 대응 */
+.vscode-dark {
+  --ape-welcome-accent: #738CFF;
+  --ape-welcome-border: rgba(115, 140, 255, 0.2);
+  --ape-welcome-hover: rgba(115, 140, 255, 0.1);
+  --ape-welcome-active: rgba(115, 140, 255, 0.15);
+  
+  --ape-card-bg: rgba(115, 140, 255, 0.03);
+  --ape-card-border: rgba(115, 140, 255, 0.1);
+  --ape-card-hover-bg: rgba(115, 140, 255, 0.06);
+  --ape-card-hover-border: rgba(115, 140, 255, 0.2);
+  
+  --ape-button-bg: rgba(115, 140, 255, 0.1);
+  --ape-button-border: rgba(115, 140, 255, 0.2);
+  --ape-button-text: var(--ape-welcome-accent);
+  --ape-button-hover-bg: rgba(115, 140, 255, 0.15);
+  --ape-button-hover-border: rgba(115, 140, 255, 0.3);
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+  color: var(--ape-welcome-text);
+  background-color: var(--ape-welcome-bg);
+}
+
+/* 웰컴 컨테이너 */
+.welcome-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: calc(var(--ape-welcome-spacing) * 2);
+}
+
+/* 웰컴 헤더 */
+.welcome-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: calc(var(--ape-welcome-spacing) * 2);
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--ape-welcome-spacing);
+}
+
+.welcome-header h1 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.tagline {
+  font-size: 16px;
+  margin: 0;
+  color: var(--ape-welcome-text);
+  opacity: 0.8;
+}
+
+/* 기능 섹션 */
+.features {
+  margin-bottom: calc(var(--ape-welcome-spacing) * 2);
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.feature-card {
+  background-color: var(--ape-card-bg);
+  border: 1px solid var(--ape-card-border);
+  border-radius: var(--ape-welcome-radius);
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.feature-card:hover {
+  background-color: var(--ape-card-hover-bg);
+  border-color: var(--ape-card-hover-border);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--ape-welcome-shadow);
+}
+
+.feature-icon {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.feature-card h3 {
+  font-size: 16px;
+  margin: 0 0 8px 0;
+  color: var(--ape-welcome-accent);
+  font-weight: 600;
+}
+
+.feature-card p {
+  font-size: 14px;
+  margin: 0;
+  color: var(--ape-welcome-text);
+  opacity: 0.8;
+}
+
+/* 예제 섹션 */
+.examples {
+  margin-bottom: calc(var(--ape-welcome-spacing) * 2);
+}
+
+.examples h2 {
+  font-size: 18px;
+  margin: 0 0 16px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.example-item {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ape-button-text);
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.example-item:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 푸터 섹션 */
+.welcome-footer {
+  padding-top: calc(var(--ape-welcome-spacing));
+  border-top: 1px solid var(--ape-card-border);
+}
+
+.command-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.command-button {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ape-button-text);
+  font-size: 13px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+}
+
+.command-button:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 앵커 태그 스타일 */
+a {
+  color: var(--ape-welcome-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 반응형 대응 */
+@media (max-width: 600px) {
+  .welcome-container {
+    padding: 16px;
+  }
+  
+  .feature-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 
+ * 웰컴 패널 (채팅 뷰에 표시되는 웰컴 메시지)
+ */
+
+/* 웰컴 패널 */
+.welcome-panel {
+  background-color: var(--ape-welcome-bg);
+  border-radius: var(--ape-welcome-radius);
+  padding: 20px;
+  margin: 16px 0;
+  border: 1px solid var(--ape-card-border);
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 100 !important;
+}
+
+/* 웰컴 헤더 */
+.welcome-panel .welcome-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  text-align: left;
+  flex-direction: row;
+}
+
+.welcome-panel .welcome-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--ape-welcome-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.welcome-panel .welcome-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.welcome-panel h1 {
+  font-size: 20px;
+  margin: 0 0 4px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.welcome-panel p {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* 카드 그리드 */
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.welcome-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background-color: var(--ape-card-bg);
+  border: 1px solid var(--ape-card-border);
+  border-radius: var(--ape-welcome-radius);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.welcome-card:hover {
+  background-color: var(--ape-card-hover-bg);
+  border-color: var(--ape-card-hover-border);
+  transform: translateY(-2px);
+}
+
+.card-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 예제 섹션 */
+.welcome-examples {
+  margin-bottom: 24px;
+}
+
+.welcome-examples h3 {
+  font-size: 15px;
+  margin: 0 0 12px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.example-button {
+  text-align: left;
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  padding: 8px 12px;
+  border-radius: var(--ape-welcome-radius-sm);
+  color: var(--ape-button-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.example-button:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 명령어 팔레트 */
+.command-palette {
+  margin-bottom: 24px;
+  background-color: var(--ape-card-bg);
+  border: 1px solid var(--ape-card-border);
+  border-radius: var(--ape-welcome-radius);
+  padding: 16px;
+}
+
+.command-palette h3 {
+  font-size: 15px;
+  margin: 0 0 12px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.command-categories {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.category-tab {
+  padding: 6px 12px;
+  background-color: transparent;
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  color: var(--ape-welcome-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+}
+
+.category-tab:hover {
+  background-color: var(--ape-button-hover-bg);
+}
+
+.category-tab.active {
+  background-color: var(--ape-welcome-accent);
+  color: white;
+  border-color: var(--ape-welcome-accent);
+}
+
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.command-list.hidden {
+  display: none;
+}
+
+.command-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: var(--ape-welcome-radius-sm);
+  background-color: var(--ape-welcome-bg);
+  border: 1px solid var(--ape-button-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.command-item:hover {
+  background-color: var(--ape-welcome-hover);
+  border-color: var(--ape-button-hover-border);
+}
+
+.command-name {
+  font-weight: 600;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+  color: var(--ape-welcome-accent);
+}
+
+.command-desc {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.command-tip {
+  font-size: 12px;
+  margin-top: 12px;
+  opacity: 0.8;
+  background-color: var(--ape-welcome-bg);
+  padding: 8px 12px;
+  border-radius: var(--ape-welcome-radius-sm);
+  border: 1px dashed var(--ape-card-border);
+  cursor: pointer;
+}
+
+.command-tip:hover {
+  border-color: var(--ape-card-hover-border);
+}
+
+.command-tip code {
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+  background-color: var(--ape-button-bg);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* 한글 명령어 지원 */
+.korean-command-help {
+  margin-bottom: 24px;
+}
+
+.korean-command-help h3 {
+  font-size: 15px;
+  margin: 0 0 12px 0;
+  color: var(--ape-welcome-text);
+  font-weight: 600;
+}
+
+.korean-command-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.korean-command {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 6px 10px;
+  color: var(--ape-button-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+}
+
+.korean-command:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 명령어 버튼 */
+.welcome-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.welcome-commands button {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 8px 12px;
+  color: var(--ape-button-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+}
+
+.welcome-commands button:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 명령어 팔레트 데모 */
+.command-palette-demo {
+  background-color: var(--ape-card-bg);
+  border: 1px solid var(--ape-card-border);
+  border-radius: var(--ape-welcome-radius);
+  padding: 16px;
+}
+
+.command-palette-header {
+  margin-bottom: 8px;
+}
+
+.demo-text {
+  font-size: 12px;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.command-palette-input {
+  display: flex;
+  background-color: var(--ape-welcome-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 6px 10px;
+  align-items: center;
+}
+
+.slash-prompt {
+  color: var(--ape-welcome-accent);
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+#command-palette-demo-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ape-welcome-text);
+  font-size: 13px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+}
+
+.command-palette-suggestions {
+  margin-top: 8px;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--ape-welcome-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-item:hover {
+  background-color: var(--ape-welcome-hover);
+}
+
+.suggestion-command {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ape-welcome-accent);
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+}
+
+.suggestion-description {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.suggestion-empty {
+  padding: 8px;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+/* 애니메이션 효과 */
+.command-executing {
+  animation: commandPulse 1s ease-in-out;
+}
+
+@keyframes commandPulse {
+  0% { background-color: var(--ape-button-bg); }
+  50% { background-color: var(--ape-welcome-accent); color: white; }
+  100% { background-color: var(--ape-button-bg); }
+}
+
+/* Important overrides to ensure elements are visible and clickable */
+#send-button, #clear-button {
+  z-index: 1000 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  display: flex !important;
+}
+
+#chat-input {
+  z-index: 1000 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  display: block !important;
+}
+
+button, .feature-card, .example-item, .command-button, 
+.welcome-card, .example-button, .command-item, .korean-command,
+.welcome-panel button, .welcome-panel .command-item, .welcome-panel .korean-command,
+.welcome-panel .welcome-card, .welcome-panel .example-button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 200 !important;
+}
+
+/* Fix for welcome view elements */
+.welcome-panel *, .welcome-panel *:before, .welcome-panel *:after {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  display: block !important;
+  opacity: 1 !important;
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>LLM Icon</title>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <circle fill="#10A37F" cx="60" cy="60" r="60"></circle>
+    <g transform="translate(25, 30)">
+      <!-- Text Blocks -->
+      <rect fill="#FFFFFF" x="0" y="0" width="70" height="10" rx="2"></rect>
+      <rect fill="#FFFFFF" x="0" y="15" width="60" height="10" rx="2"></rect>
+      <rect fill="#FFFFFF" x="0" y="30" width="50" height="10" rx="2"></rect>
+      <rect fill="#FFFFFF" x="0" y="45" width="70" height="10" rx="2"></rect>
+      
+      <!-- Connection Lines -->
+      <path d="M10,10 L10,15 M30,10 L30,15 M50,10 L50,15 M10,25 L10,30 M30,25 L30,30 M10,40 L10,45 M40,40 L40,45" 
+        stroke="#FFFFFF" stroke-width="1.5"></path>
+    </g>
+    <!-- Text -->
+    <text x="60" y="100" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold" fill="#FFFFFF">LLM</text>
+  </g>
+</svg>

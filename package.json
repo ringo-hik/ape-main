@@ -1,0 +1,419 @@
+{
+  "name": "ape-extension",
+  "displayName": "APE: Agentic Pipeline Extension",
+  "description": "VSCode extension for integrating AI capabilities into developer workflow with a focus on C++ development",
+  "version": "0.9.1",
+  "publisher": "ape-team",
+  "private": true,
+  "license": "UNLICENSED",
+  "icon": "media/icons/mascot.svg",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "Machine Learning",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onCommand:ape.openChat",
+    "onCommand:ape.startSelfDebugging",
+    "onView:apeChat",
+    "onView:apeNavigator",
+    "onCommand:ape.refreshNavigator",
+    "onCommand:ape.executePrifixCommand",
+    "onCommand:ape.executeCommand"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ape.openChat",
+        "title": "APE: Open Chat",
+        "category": "APE"
+      },
+      {
+        "command": "ape.clearChat",
+        "title": "APE: Clear Chat",
+        "category": "APE"
+      },
+      {
+        "command": "ape.insertCodeToEditor",
+        "title": "APE: Insert Code To Editor",
+        "category": "APE"
+      },
+      {
+        "command": "ape.createNewFileWithCode",
+        "title": "APE: Create New File With Code",
+        "category": "APE"
+      },
+      {
+        "command": "ape.git.commit",
+        "title": "APE: Git Commit",
+        "category": "APE"
+      },
+      {
+        "command": "ape.git.toggleAutoCommit",
+        "title": "APE: Toggle Auto Commit",
+        "category": "APE"
+      },
+      {
+        "command": "ape.git.resolveConflict",
+        "title": "APE: Resolve Git Conflicts",
+        "category": "APE"
+      },
+      {
+        "command": "ape.context.analyze",
+        "title": "APE: Analyze Context",
+        "category": "APE"
+      },
+      {
+        "command": "ape.plugins.list",
+        "title": "APE: List Plugins",
+        "category": "APE"
+      },
+      {
+        "command": "ape.plugins.activate",
+        "title": "APE: Activate Plugin",
+        "category": "APE"
+      },
+      {
+        "command": "ape.plugins.deactivate",
+        "title": "APE: Deactivate Plugin",
+        "category": "APE"
+      },
+      {
+        "command": "ape.plugins.openSettings",
+        "title": "APE: Open Plugin Settings",
+        "category": "APE"
+      },
+      {
+        "command": "ape.plugins.showCommandPalette",
+        "title": "APE: Show Plugin Commands",
+        "category": "APE"
+      },
+      {
+        "command": "ape.analyzeCode",
+        "title": "APE: Analyze Code to APE",
+        "category": "APE"
+      },
+      {
+        "command": "ape.refreshNavigator",
+        "title": "APE: Refresh Navigator",
+        "category": "APE",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ape.executeCommand",
+        "title": "APE: Execute Command",
+        "category": "APE"
+      },
+      {
+        "command": "ape.openSettings",
+        "title": "APE: Open Settings",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.activate",
+        "title": "APE: Activate Rule",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.deactivate",
+        "title": "APE: Deactivate Rule",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.openFile",
+        "title": "APE: Open Rule File",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.refresh",
+        "title": "APE: Refresh Rules",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.create",
+        "title": "APE: Create New Rule",
+        "category": "APE"
+      },
+      {
+        "command": "ape.rules.delete",
+        "title": "APE: Delete Rule",
+        "category": "APE"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ape-sidebar",
+          "title": "APE",
+          "icon": "./media/icons/mascot.svg"
+        }
+      ]
+    },
+    "views": {
+      "ape-sidebar": [
+        {
+          "type": "webview",
+          "id": "apeChat",
+          "name": "APE Chat 💬",
+          "contextualTitle": "APE Chat"
+        },
+        {
+          "id": "apeNavigator",
+          "name": "APE Navigator ⚡",
+          "contextualTitle": "APE Navigator"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ape.analyzeCode",
+          "title": "Analyze Code to APE",
+          "group": "APE",
+          "when": "editorHasSelection"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ape.refreshNavigator",
+          "when": "view == apeNavigator",
+          "group": "navigation"
+        },
+        {
+          "command": "ape.rules.refresh",
+          "when": "view == apeNavigator && viewItem == rulesRoot",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ape.executeCommand",
+          "when": "viewItem == command",
+          "group": "inline"
+        },
+        {
+          "command": "ape.openSettings",
+          "when": "viewItem == settingsItem",
+          "group": "inline"
+        },
+        {
+          "command": "ape.rules.activate",
+          "when": "viewItem == ruleInactive",
+          "group": "1_operation"
+        },
+        {
+          "command": "ape.rules.deactivate",
+          "when": "viewItem == ruleActive",
+          "group": "1_operation"
+        },
+        {
+          "command": "ape.rules.openFile",
+          "when": "viewItem == ruleActive || viewItem == ruleInactive",
+          "group": "2_edit"
+        },
+        {
+          "command": "ape.rules.delete",
+          "when": "viewItem == ruleActive || viewItem == ruleInactive",
+          "group": "3_actions"
+        },
+        {
+          "command": "ape.rules.create",
+          "when": "viewItem == rulesRoot || viewItem == rulesActive || viewItem == rulesInactive || viewItem == rulesEmpty",
+          "group": "1_operation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ape.analyzeCode",
+        "key": "ctrl+`",
+        "mac": "cmd+`",
+        "when": "editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "APE",
+      "properties": {
+        "ape.testing.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "테스트 모드 활성화 여부 (자동 권한 허용 등)"
+        },
+        "ape.testing.autoAcceptPermissions": {
+          "type": "boolean",
+          "default": true,
+          "description": "테스트 모드에서 모든 권한 요청 자동 수락"
+        },
+        "ape.testing.skipDialogs": {
+          "type": "boolean",
+          "default": true,
+          "description": "테스트 모드에서 대화 상자 자동 처리"
+        },
+        "ape.llm.endpoint": {
+          "type": "string",
+          "default": "https://openrouter.ai/api/v1/chat/completions",
+          "description": "Endpoint for LLM API"
+        },
+        "ape.llm.apiKey": {
+          "type": "string",
+          "default": "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",
+          "description": "API key for LLM service"
+        },
+        "ape.llm.defaultModel": {
+          "type": "string",
+          "default": "openai/gpt-4.1-mini",
+          "enum": [
+            "openai/gpt-4.1-mini",
+            "openai/gpt-4.1-preview",
+            "openai/gpt-4o",
+            "openai/gpt-3.5-turbo",
+            "anthropic/claude-3-opus-20240229",
+            "anthropic/claude-3-sonnet-20240229",
+            "anthropic/claude-3-haiku-20240307",
+            "google/gemini-pro",
+            "google/gemma-7b-it",
+            "qwen/qwen-72b-chat",
+            "deepseek/deepseek-coder",
+            "mistralai/mistral-7b-instruct",
+            "meta-llama/llama-3-8b-instruct"
+          ],
+          "description": "Default LLM model to use"
+        },
+        "ape.memory.sessionDuration": {
+          "type": "number",
+          "default": 240,
+          "description": "Maximum session duration in minutes before archiving"
+        },
+        "ape.memory.maxMessages": {
+          "type": "number",
+          "default": 30,
+          "description": "Maximum number of messages to keep in active memory"
+        },
+        "ape.ui.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "description": "UI theme for APE views"
+        },
+        "ape.git.autoCommit": {
+          "type": "boolean",
+          "default": false,
+          "description": "자동으로 변경사항을 커밋합니다"
+        },
+        "ape.git.autoResolveConflicts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Git 충돌을 자동으로 해결합니다"
+        },
+        "ape.git.commitMessageTemplate": {
+          "type": "string",
+          "default": "[${type}] ${message}",
+          "description": "커밋 메시지 템플릿 (${type}, ${message}, ${files} 변수 지원)"
+        },
+        "ape.completion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "탭 자동 완성 기능 활성화"
+        },
+        "ape.completion.useLLM": {
+          "type": "boolean",
+          "default": true,
+          "description": "LLM 기반 코드 완성 사용 (비활성화 시 기본 완성만 제공)"
+        },
+        "ape.plugins.path": {
+          "type": "string",
+          "default": "",
+          "description": "외부 플러그인 디렉토리 경로 (비워두면 기본 경로 사용)"
+        },
+        "ape.plugins.autoActivate": {
+          "type": "boolean",
+          "default": true,
+          "description": "플러그인 자동 활성화 여부"
+        },
+        "ape.rules.activeRules": {
+          "type": "array",
+          "default": [],
+          "description": "활성화된 Rules 목록",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run webpack:prod",
+    "compile": "tsc -p ./",
+    "watch": "webpack --mode development --watch",
+    "webpack": "webpack --mode development",
+    "webpack:prod": "webpack --mode production",
+    "lint": "eslint src --max-warnings=0",
+    "lint:fix": "eslint src --fix",
+    "package": "vsce package",
+    "syntax-check": "node ./scripts/syntax-check.js",
+    "prebuild": "npm run syntax-check",
+    "build:strict": "npm run syntax-check && npm run webpack:prod",
+    "build": "npm run syntax-check && npm run webpack",
+    "test": "npm run test:basic && npm run test:llm-self",
+    "test:basic": "vscode-test-cli",
+    "test:llm-self": "node src/test/simple/llm-test-runner.js",
+    "test:llm-full": "node src/test/mock-test.js",
+    "test:webview": "wdio run wdio.conf.ts",
+    "test:runtime": "npm run test:webview -- --spec test-scenarios/runtime-validation.test.ts",
+    "test:auto": "APE_TEST_MODE=true ./test.sh",
+    "start": "./run-with-permissions.sh code .",
+    "noprompt": "./noprompt.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.26.0",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20.17.42",
+    "@types/vscode": "^1.80.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "@wdio/cli": "^8.16.12",
+    "@wdio/globals": "^9.0.0",
+    "@wdio/local-runner": "^8.16.12",
+    "@wdio/mocha-framework": "^8.16.12",
+    "@wdio/spec-reporter": "^8.16.12",
+    "eslint": "^8.57.1",
+    "expect-webdriverio": "^5.1.0",
+    "glob": "^8.1.0",
+    "globals": "^16.0.0",
+    "mocha": "^10.2.0",
+    "sinon": "^15.2.0",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3",
+    "typescript-eslint": "^8.32.0",
+    "vsce": "^2.15.0",
+    "wdio-vscode-service": "^5.1.0",
+    "webdriverio": "^8.16.12",
+    "webpack": "^5.99.8",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "axios": "^1.9.0",
+    "buffer": "^6.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sqlite3": "^5.1.6",
+    "uuid": "^11.1.0",
+    "ws": "^8.13.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.9",
+    "utf-8-validate": "^6.0.5"
+  }
+}

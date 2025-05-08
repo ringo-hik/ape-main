@@ -1,0 +1,22 @@
+{
+  "message": {
+    "id": "msg_mock_code_completion",
+    "role": "assistant",
+    "content": "```typescript\nfunction calculateSum(a: number, b: number): number {\n  return a + b;\n}\n```\n\n이 함수는 두 개의 숫자를 받아 합계를 반환합니다.",
+    "timestamp": "2025-05-08T12:30:00Z",
+    "metadata": {
+      "model": "mock-code-completion-model",
+      "usage": {
+        "promptTokens": 120,
+        "completionTokens": 60,
+        "totalTokens": 180
+      }
+    }
+  },
+  "usage": {
+    "promptTokens": 120,
+    "completionTokens": 60,
+    "totalTokens": 180
+  },
+  "content": "```typescript\nfunction calculateSum(a: number, b: number): number {\n  return a + b;\n}\n```\n\n이 함수는 두 개의 숫자를 받아 합계를 반환합니다."
+}

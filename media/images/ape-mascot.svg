@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>APE Mascot</title>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <circle fill="#4B6BFB" cx="60" cy="60" r="60"></circle>
+    <g transform="translate(20, 20)">
+      <!-- Face -->
+      <circle fill="#FFECD1" cx="40" cy="40" r="35"></circle>
+      
+      <!-- Eyes -->
+      <g transform="translate(20, 30)">
+        <!-- Left Eye -->
+        <circle fill="#333333" cx="10" cy="10" r="6"></circle>
+        <circle fill="#FFFFFF" cx="12" cy="8" r="2"></circle>
+        
+        <!-- Right Eye -->
+        <circle fill="#333333" cx="40" cy="10" r="6"></circle>
+        <circle fill="#FFFFFF" cx="42" cy="8" r="2"></circle>
+      </g>
+      
+      <!-- Smile -->
+      <path d="M30,50 Q40,60 50,50" stroke="#333333" stroke-width="2" fill="none"></path>
+      
+      <!-- Ears -->
+      <circle fill="#FFECD1" stroke="#4B6BFB" stroke-width="2" cx="10" cy="20" r="10"></circle>
+      <circle fill="#FFECD1" stroke="#4B6BFB" stroke-width="2" cx="70" cy="20" r="10"></circle>
+      
+      <!-- Coding Symbols -->
+      <text x="25" y="15" font-family="monospace" font-size="10" fill="#4B6BFB">&lt;/&gt;</text>
+      <text x="50" y="15" font-family="monospace" font-size="10" fill="#4B6BFB">{}</text>
+    </g>
+  </g>
+</svg>

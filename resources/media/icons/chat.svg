@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>Chat Icon</title>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <circle fill="#1E88E5" cx="60" cy="60" r="60"></circle>
+    <g transform="translate(30, 30)">
+      <!-- Chat Bubbles -->
+      <rect fill="#FFFFFF" x="0" y="0" width="40" height="25" rx="10"></rect>
+      <polygon fill="#FFFFFF" points="10,25 15,35 20,25"></polygon>
+      
+      <rect fill="#FFFFFF" x="20" y="45" width="40" height="25" rx="10"></rect>
+      <polygon fill="#FFFFFF" points="50,45 45,35 40,45"></polygon>
+    </g>
+    <!-- Text -->
+    <text x="60" y="100" font-family="Arial" font-size="14" text-anchor="middle" fill="#FFFFFF">CHAT</text>
+  </g>
+</svg>

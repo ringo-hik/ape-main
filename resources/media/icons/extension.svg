@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>Extension Icon</title>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <circle fill="#FF9800" cx="60" cy="60" r="60"></circle>
+    <g transform="translate(30, 30)">
+      <!-- Extension Box -->
+      <rect fill="#FFFFFF" x="0" y="0" width="60" height="60" rx="5"></rect>
+      
+      <!-- Extension Puzzle Pieces -->
+      <path d="M0,20 L-5,20 L-5,40 L0,40" stroke="#FF9800" stroke-width="4" fill="#FF9800"></path>
+      <path d="M60,20 L65,20 L65,40 L60,40" stroke="#FF9800" stroke-width="4" fill="#FF9800"></path>
+      <path d="M20,0 L20,-5 L40,-5 L40,0" stroke="#FF9800" stroke-width="4" fill="#FF9800"></path>
+      <path d="M20,60 L20,65 L40,65 L40,60" stroke="#FF9800" stroke-width="4" fill="#FF9800"></path>
+      
+      <!-- Icon Grid -->
+      <line x1="20" y1="0" x2="20" y2="60" stroke="#E0E0E0" stroke-width="1"></line>
+      <line x1="40" y1="0" x2="40" y2="60" stroke="#E0E0E0" stroke-width="1"></line>
+      <line x1="0" y1="20" x2="60" y2="20" stroke="#E0E0E0" stroke-width="1"></line>
+      <line x1="0" y1="40" x2="60" y2="40" stroke="#E0E0E0" stroke-width="1"></line>
+      
+      <!-- Icon Symbol -->
+      <circle fill="#FF9800" cx="30" cy="30" r="15"></circle>
+      <text x="30" y="35" font-family="Arial" font-size="14" text-anchor="middle" fill="#FFFFFF">EX</text>
+    </g>
+  </g>
+</svg>

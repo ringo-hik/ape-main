@@ -1,0 +1,63 @@
+{
+  "name": "런타임 검증 테스트",
+  "description": "APE 확장 프로그램의 런타임 동작 검증",
+  "commands": [
+    {
+      "type": "execute",
+      "command": "ape.openChat",
+      "description": "APE 채팅 뷰 열기"
+    },
+    {
+      "type": "waitForElement",
+      "selector": "#chat-container",
+      "webview": true,
+      "timeout": 5000,
+      "description": "채팅 컨테이너가 로드될 때까지 대기"
+    },
+    {
+      "type": "input",
+      "selector": "#chat-input",
+      "text": "/help",
+      "webview": true,
+      "description": "도움말 명령어 입력"
+    },
+    {
+      "type": "click",
+      "selector": "#send-button",
+      "webview": true,
+      "description": "전송 버튼 클릭"
+    },
+    {
+      "type": "waitForElement",
+      "selector": ".help-content",
+      "webview": true,
+      "timeout": 10000,
+      "description": "도움말 콘텐츠가 표시될 때까지 대기"
+    },
+    {
+      "type": "input",
+      "selector": "#chat-input",
+      "text": "테스트 코드를 작성해줘",
+      "webview": true,
+      "description": "LLM 요청 입력"
+    },
+    {
+      "type": "click",
+      "selector": "#send-button",
+      "webview": true,
+      "description": "전송 버튼 클릭"
+    },
+    {
+      "type": "waitForElement",
+      "selector": ".code-block",
+      "webview": true,
+      "timeout": 15000,
+      "description": "코드 블록이 표시될 때까지 대기"
+    },
+    {
+      "type": "wait",
+      "milliseconds": 2000,
+      "description": "추가 대기 시간"
+    }
+  ]
+}

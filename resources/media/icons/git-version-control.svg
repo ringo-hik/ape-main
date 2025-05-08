@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <title>Git Version Control</title>
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <circle fill="#F05032" cx="60" cy="60" r="60"></circle>
+    <g transform="translate(30, 30)">
+      <!-- Git Graph -->
+      <circle fill="#FFFFFF" stroke="#333333" stroke-width="2" cx="15" cy="15" r="10"></circle>
+      <circle fill="#FFFFFF" stroke="#333333" stroke-width="2" cx="45" cy="15" r="10"></circle>
+      <circle fill="#FFFFFF" stroke="#333333" stroke-width="2" cx="45" cy="45" r="10"></circle>
+      <circle fill="#FFFFFF" stroke="#333333" stroke-width="2" cx="15" cy="45" r="10"></circle>
+      
+      <!-- Lines -->
+      <line x1="25" y1="15" x2="35" y2="15" stroke="#FFFFFF" stroke-width="2"></line>
+      <line x1="45" y1="25" x2="45" y2="35" stroke="#FFFFFF" stroke-width="2"></line>
+      <line x1="35" y1="45" x2="25" y2="45" stroke="#FFFFFF" stroke-width="2"></line>
+      <line x1="15" y1="25" x2="15" y2="35" stroke="#FFFFFF" stroke-width="2"></line>
+      
+      <!-- Diagonal -->
+      <line x1="22" y1="22" x2="38" y2="38" stroke="#FFFFFF" stroke-width="2"></line>
+    </g>
+    <!-- Text -->
+    <text x="60" y="100" font-family="Arial" font-size="12" text-anchor="middle" fill="#FFFFFF">GIT</text>
+  </g>
+</svg>

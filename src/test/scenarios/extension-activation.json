@@ -1,0 +1,27 @@
+{
+  "name": "확장 프로그램 활성화 테스트",
+  "description": "APE 확장 프로그램이 정상적으로 활성화되는지 검증",
+  "commands": [
+    {
+      "type": "execute",
+      "command": "workbench.view.extension.ape-sidebar",
+      "description": "APE 사이드바 열기"
+    },
+    {
+      "type": "wait",
+      "milliseconds": 2000,
+      "description": "확장 로딩 대기"
+    },
+    {
+      "type": "execute",
+      "command": "ape.openChat",
+      "description": "APE 채팅 뷰 열기"
+    },
+    {
+      "type": "waitForElement",
+      "selector": "webview",
+      "timeout": 5000,
+      "description": "웹뷰가 로드될 때까지 대기"
+    }
+  ]
+}

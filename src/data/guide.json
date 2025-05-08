@@ -1,0 +1,246 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2023-05-08",
+  "workflows": [
+    {
+      "id": "git",
+      "name": "Git 개발 워크플로우",
+      "description": "Git 기반 개발 작업 시 사용할 수 있는 명령어와 워크플로우 가이드입니다.",
+      "setupQuestions": [
+        "Git 형상이 세팅됐나요?", 
+        "브랜치를 생성해야 하나요?",
+        "변경 사항을 커밋해야 하나요?",
+        "자동 커밋을 설정하고 싶으신가요?"
+      ],
+      "recommendedCommands": [
+        {
+          "name": "git status",
+          "description": "현재 Git 저장소 상태 확인",
+          "command": "/git status",
+          "context": "작업 시작 전 현재 Git 상태 확인"
+        },
+        {
+          "name": "git commit",
+          "description": "변경사항 자동 커밋 (메시지 자동 생성)",
+          "command": "/git commit",
+          "context": "작업 완료 후 변경사항 저장"
+        },
+        {
+          "name": "git auto",
+          "description": "자동 커밋 기능 켜거나 끄기",
+          "command": "/git auto",
+          "context": "반복적인 변경사항 자동 저장 필요 시"
+        },
+        {
+          "name": "git consolidate",
+          "description": "임시 커밋 통합하기",
+          "command": "/git consolidate",
+          "context": "자동 커밋으로 생성된 임시 커밋들 통합 필요 시"
+        }
+      ]
+    },
+    {
+      "id": "jira",
+      "name": "Jira 이슈 관리",
+      "description": "Jira 이슈 관리와 관련된 작업 흐름 가이드입니다.",
+      "setupQuestions": [
+        "Jira 작업이 필요한가요?",
+        "어떤 이슈를 처리해야 하나요?",
+        "이슈 상태를 변경해야 하나요?",
+        "작업 로그를 기록해야 하나요?"
+      ],
+      "recommendedCommands": [
+        {
+          "name": "jira list",
+          "description": "Jira 이슈 목록 확인",
+          "command": "/jira list",
+          "context": "담당한 이슈 목록 확인 필요 시"
+        },
+        {
+          "name": "jira status",
+          "description": "이슈 상태 변경",
+          "command": "/jira status [이슈ID] [상태]",
+          "context": "이슈 진행 상태 업데이트 필요 시"
+        },
+        {
+          "name": "jira comment",
+          "description": "이슈에 코멘트 추가",
+          "command": "/jira comment [이슈ID] [내용]",
+          "context": "이슈에 작업 내용이나 피드백 추가 필요 시"
+        },
+        {
+          "name": "jira log",
+          "description": "작업 시간 로그 기록",
+          "command": "/jira log [이슈ID] [시간]",
+          "context": "작업 시간 기록 필요 시"
+        }
+      ]
+    },
+    {
+      "id": "swdp",
+      "name": "SWDP 작업",
+      "description": "SW 개발 프로세스(SWDP) 관련 작업 흐름 가이드입니다.",
+      "setupQuestions": [
+        "SWDP 작업이 필요한가요?",
+        "어떤 단계의 작업인가요?",
+        "리뷰어를 지정해야 하나요?",
+        "문서를 업데이트해야 하나요?"
+      ],
+      "recommendedCommands": [
+        {
+          "name": "swdp status",
+          "description": "SWDP 상태 확인",
+          "command": "/swdp status",
+          "context": "현재 프로젝트의 SWDP 상태 확인 필요 시"
+        },
+        {
+          "name": "swdp review",
+          "description": "코드 리뷰 요청",
+          "command": "/swdp review [리뷰어]",
+          "context": "코드 리뷰 요청 필요 시"
+        },
+        {
+          "name": "swdp doc",
+          "description": "SWDP 문서 업데이트",
+          "command": "/swdp doc [문서타입]",
+          "context": "프로젝트 문서 업데이트 필요 시"
+        },
+      ]
+    },
+    {
+      "id": "code",
+      "name": "코드 작업",
+      "description": "코드 개발, 분석, 최적화 관련 작업 흐름 가이드입니다.",
+      "setupQuestions": [
+        "코드를 분석해야 하나요?",
+        "코드 리팩토링이 필요한가요?",
+        "새 파일을 생성해야 하나요?",
+        "특정 파일을 찾아야 하나요?"
+      ],
+      "recommendedCommands": [
+        {
+          "name": "analyze",
+          "description": "선택한 코드 분석",
+          "command": "/analyze",
+          "context": "현재 코드의 의미나 개선점 파악 필요 시"
+        },
+        {
+          "name": "open",
+          "description": "파일 열기",
+          "command": "/open [파일경로]",
+          "context": "특정 파일 열람 필요 시"
+        },
+        {
+          "name": "model",
+          "description": "LLM 모델 변경",
+          "command": "/model [모델명]",
+          "context": "다른 AI 모델 사용이 필요한 경우"
+        },
+        {
+          "name": "help",
+          "description": "도움말 표시",
+          "command": "/help",
+          "context": "사용 가능한 명령어 확인 필요 시"
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "name": "프로젝트 검색",
+      "description": "프로젝트 내 파일 및 코드 검색 관련 작업 흐름입니다.",
+      "setupQuestions": [
+        "프로젝트에서 파일을 검색해야 하나요?",
+        "특정 코드 패턴을 찾아야 하나요?",
+        "어떤 종류의 파일을 찾고 있나요?",
+        "검색 범위를 좁혀야 하나요?"
+      ],
+      "recommendedCommands": [
+        {
+          "name": "search file",
+          "description": "파일명으로 검색",
+          "command": "/search file [파일명]",
+          "context": "특정 이름의 파일 찾기 필요 시"
+        },
+        {
+          "name": "search code",
+          "description": "코드 내용 검색",
+          "command": "/search code [패턴]",
+          "context": "특정 코드 패턴 찾기 필요 시"
+        },
+        {
+          "name": "search recent",
+          "description": "최근 수정 파일 검색",
+          "command": "/search recent",
+          "context": "최근 작업한 파일 찾기 필요 시"
+        },
+        {
+          "name": "search symbol",
+          "description": "심볼(함수/클래스 등) 검색",
+          "command": "/search symbol [심볼명]",
+          "context": "특정 함수/클래스 정의 찾기 필요 시"
+        }
+      ]
+    },
+  ],
+  "contextQuestions": [
+    {
+      "question": "Git 형상이 세팅됐나요?",
+      "intent": "git_setup",
+      "followups": [
+        "Git 저장소를 초기화하고 싶으신가요?",
+        "원격 저장소와 연결이 필요하신가요?",
+        "브랜치 관리가 필요하신가요?"
+      ]
+    },
+    {
+      "question": "Jira 작업이 필요한가요?",
+      "intent": "jira_work",
+      "followups": [
+        "어떤 이슈를 처리 중이신가요?",
+        "이슈 상태를 업데이트하고 싶으신가요?",
+        "작업 로그를 기록하고 싶으신가요?"
+      ]
+    },
+    {
+      "question": "SWDP 작업이 필요한가요?",
+      "intent": "swdp_work",
+      "followups": [
+        "개발 단계 중 어디에 있으신가요?",
+        "리뷰가 필요하신가요?",
+        "문서화가 필요하신가요?"
+      ]
+    },
+    {
+      "question": "코드 분석이 필요한가요?",
+      "intent": "code_analysis",
+      "followups": [
+        "어떤 코드를 분석하고 싶으신가요?",
+        "코드 리팩토링이 필요하신가요?",
+        "성능 최적화가 필요하신가요?"
+      ]
+    },
+    {
+      "question": "파일 검색이 필요한가요?",
+      "intent": "file_search",
+      "followups": [
+        "어떤 파일을 찾고 계신가요?",
+        "특정 코드 패턴을 검색하고 싶으신가요?",
+        "최근 수정된 파일을 찾고 계신가요?"
+      ]
+    },
+  ],
+  "assistantResponses": {
+    "unknown_command": [
+      "입력하신 명령어를 찾을 수 없습니다. 현재 진행 중인 작업 컨텍스트에 기반하여 다음 명령어를 추천해 드립니다:",
+      "알 수 없는 명령어입니다. 다음 명령어를 시도해 보시겠어요?",
+      "해당 명령어는 존재하지 않습니다. 혹시 다음 중 하나를 찾으시나요?",
+      "명령어를 인식할 수 없습니다. 현재 상황에 적합한 다음 명령어를 제안합니다:"
+    ],
+    "agentic_suggestions": [
+      "현재 작업 컨텍스트를 분석해 보니, 다음과 같은 질문이나 작업을 원하시는 것 같습니다:",
+      "다음 중 원하시는 작업이 있으신가요?",
+      "현재 상황에서 다음과 같은 도움이 필요하실 수 있을 것 같습니다:",
+      "다음 작업 중 진행하고 싶으신 것이 있으신가요?"
+    ]
+  }
+}
