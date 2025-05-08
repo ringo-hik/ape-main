@@ -464,6 +464,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         }
         break;
         
+      case 'advancedSearch':
+        // 고급 검색 기능
+        vscode.window.showInformationMessage('Advanced search feature activated');
+        // 여기에 고급 검색 기능 구현
+        break;
+        
       case 'setSmartPromptingMode':
         // 스마트 프롬프팅 모드 설정
         if (this._smartPromptingService && message.mode) {
@@ -699,47 +705,43 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         // 키보드 이벤트 - 탐색 및 선택
         chatInput.addEventListener('keydown', (e) => {
           if (!isPopoverVisible) return;
-          
-          switch (e.key) {
-            case 'ArrowUp':
-              e.preventDefault();
-              navigateSuggestion('up');
-              break;
+
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateSuggestion('up');
+          } 
+          else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigateSuggestion('down');
+          }
+          else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            // 현재 선택된 항목이 하위 명령어를 가진 경우 펼치기
+            if (activeSuggestionIndex >= 0) {
+              const activeEl = suggestionContainer.querySelector(
+                '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
+              );
               
-            case 'ArrowDown':
-              e.preventDefault();
-              navigateSuggestion('down');
-              break;
-            
-            case 'ArrowRight':
-              e.preventDefault();
-              // 현재 선택된 항목이 하위 명령어를 가진 경우 펼치기
-              if (activeSuggestionIndex >= 0) {
-                const activeEl = suggestionContainer.querySelector(
-                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
-                );
-                
-                if (activeEl && activeEl.classList.contains('has-children')) {
-                  // 펼치기
-                  activeEl.classList.add('expanded');
-                }
+              if (activeEl && activeEl.classList.contains('has-children')) {
+                // 펼치기
+                activeEl.classList.add('expanded');
               }
-              break;
+            }
+          }
+          else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            // 현재 선택된 항목이 펼쳐져 있는 경우 접기
+            if (activeSuggestionIndex >= 0) {
+              const activeEl = suggestionContainer.querySelector(
+                '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
+              );
               
-            case 'ArrowLeft':
-              e.preventDefault();
-              // 현재 선택된 항목이 펼쳐져 있는 경우 접기
-              if (activeSuggestionIndex >= 0) {
-                const activeEl = suggestionContainer.querySelector(
-                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
-                );
-                
-                if (activeEl && activeEl.classList.contains('expanded')) {
-                  // 접기
-                  activeEl.classList.remove('expanded');
-                }
+              if (activeEl && activeEl.classList.contains('expanded')) {
+                // 접기
+                activeEl.classList.remove('expanded');
               }
-              break;
+            }
+          }
               
             case 'Tab':
               // 탭 키 입력 추적
@@ -1313,6 +1315,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       attachButton.addEventListener('click', handleAttachClick);
       modelSelector.addEventListener('click', handleModelSelectorClick);
       smartPromptingToggle.addEventListener('click', handleSmartPromptingToggle);
+      document.getElementById('search-button').addEventListener('click', handleAdvancedSearch);
       
       // File attachment handling in message area
       chatMessages.addEventListener('click', handleMessageClick);
@@ -2059,23 +2062,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         <div id="chat-messages"></div>
         <div id="chat-input-container">
           <div id="input-actions">
-            <button id="smart-prompting-toggle" title="APE Mode" class="input-top-button">
-              <span class="emoji-icon">⊛</span> <span id="smart-prompting-label">APE Mode</span>
+            <button id="smart-prompting-toggle" title="APE MODE - 스마트 프롬프팅 활성화">
+              APE MODE
             </button>
           </div>
           <div id="input-wrapper">
             <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
-            <button id="send-button" title="Send Message">
-              <span class="emoji-icon">↑</span>
-            </button>
-          </div>
-          <div id="input-buttons">
-            <button id="attach-button" title="Attach File" class="input-action-button">
-              <span class="emoji-icon">◈</span>
-            </button>
-            <button id="clear-button" title="Clear Chat" class="input-action-button">
-              <span class="emoji-icon">⌫</span>
-            </button>
+            <div id="input-buttons">
+              <button id="attach-button" title="Attach File" class="input-action-button">
+                <span class="emoji-icon">◈</span>
+              </button>
+              <button id="clear-button" title="Clear Chat" class="input-action-button">
+                <span class="emoji-icon">⌫</span>
+              </button>
+              <button id="send-button" title="Send Message">
+                <span class="emoji-icon">↑</span>
+              </button>
+            </div>
           </div>
         </div>
         <div id="model-indicator">

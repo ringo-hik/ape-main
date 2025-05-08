@@ -311,36 +311,56 @@ body {
 #input-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--ape-spacing-sm);
-  gap: var(--ape-spacing-sm);
+  margin-bottom: var(--ape-spacing-md);
+  padding: 0 var(--ape-spacing-md);
+  position: relative;
+  z-index: 20;
+  gap: var(--ape-spacing-md);
 }
 
 /* 스마트 프롬프팅 토글 버튼 - 상징적 디테일 */
 #smart-prompting-toggle {
   display: flex;
   align-items: center;
-  background-color: transparent;
-  border: 1px solid var(--ape-border-subtle);
+  justify-content: center;
+  background-color: rgba(212, 175, 55, 0.15);
+  border: 2px solid var(--ape-accent-gold);
   border-radius: var(--ape-border-radius-md);
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--ape-text-secondary);
+  padding: 8px 18px;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--ape-accent-gold);
   cursor: pointer;
   transition: all var(--ape-transition-fast);
+  height: 40px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
+
+/* APE MODE 버튼 스타일은 #smart-prompting-toggle에 통합됨 */
 
 #smart-prompting-toggle.active {
   border-color: var(--ape-accent-gold);
-  color: var(--ape-accent-gold);
-  background-color: rgba(212, 175, 55, 0.1);
+  color: white;
+  background-color: var(--ape-accent-gold);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 #smart-prompting-toggle:hover {
-  background-color: var(--ape-bg-hover);
+  background-color: rgba(212, 175, 55, 0.25);
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
+  transform: translateY(-2px);
 }
+
+/* APE MODE 액티브/호버 스타일은 #smart-prompting-toggle에 통합됨 */
 
 #smart-prompting-toggle .emoji-icon {
   margin-right: 6px;
+  font-size: 20px; /* 아이콘 크기 2배 증가 */
+  transform: scale(1.5); /* 추가적인 크기 확대 */
+  display: inline-block; /* transform을 위한 설정 */
 }
 
 /* 입력 필드 - 시대를 초월한 클래식함 */
@@ -356,7 +376,7 @@ body {
   min-height: 48px; /* 약간 더 높게 조정 */
   max-height: 200px;
   padding: var(--ape-spacing-md);
-  padding-right: 48px; /* 전송 버튼 공간 확보 */
+  padding-right: 150px; /* 버튼 영역 공간 확보 증가 */
   background-color: var(--ape-bg-tertiary);
   color: var(--ape-text-primary);
   border: 2px solid var(--ape-border-subtle); /* 더 두꺼운 테두리 */
@@ -402,59 +422,73 @@ body {
 #input-buttons {
   display: flex;
   align-items: center;
-  margin-top: var(--ape-spacing-sm);
   gap: var(--ape-spacing-sm);
-  justify-content: flex-end;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  padding: 4px 6px; /* 버튼 영역 패딩 증가 */
+  background-color: rgba(35, 35, 35, 0.4); /* 버튼 영역 배경 살짝 더 강조 */
+  border-radius: var(--ape-border-radius-lg);
+  border: 1px solid rgba(80, 80, 80, 0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* 버튼 공통 스타일 - 절제된 개성 */
-#input-buttons button {
-  padding: 8px;
+/* 버튼 공통 스타일 - 통일된 디자인 */
+#input-buttons button, #send-button {
+  width: 34px; /* 약간 크기 축소 */
+  height: 34px; /* 약간 크기 축소 */
+  padding: 0;
   border: none;
-  border-radius: var(--ape-border-radius-md);
+  border-radius: var(--ape-border-radius-full);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--ape-transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1px; /* 작은 여백 추가 */
+}
+
+#input-buttons button:hover, #send-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* 일반 버튼 스타일 */
+.input-action-button {
   background-color: var(--ape-bg-tertiary);
   color: var(--ape-text-primary);
+  border: 1px solid var(--ape-border-subtle);
 }
 
-#input-buttons button:hover {
+.input-action-button:hover {
   background-color: var(--ape-bg-hover);
-  transform: translateY(-1px);
 }
 
-/* 전송 버튼 스타일 - 대담한 디자인 */
+/* 전송 버튼 스타일 - 강조된 디자인 */
 #send-button {
   background-color: var(--ape-border-highlight);
   color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--ape-border-radius-full);
-  /* 그린 스타일 그라데이션 */
+  /* 그라데이션 효과 */
   background-image: linear-gradient(
     135deg, 
     var(--ape-border-highlight) 0%, 
     var(--ape-border-highlight) 55%, 
     var(--ape-accent-primary) 120%
   );
-  /* 약간의 그림자로 입체감 */
+  /* 그림자로 입체감 */
   box-shadow: 0 2px 4px rgba(14, 67, 48, 0.2);
-  /* 부드러운 전환 효과 */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  /* 위치 조정 - 입력창 안쪽에 배치 */
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 5;
+  /* 약간의 좌측 마진으로 다른 버튼들과 구분 */
+  margin-left: 6px;
+  /* 살짝 더 큰 크기로 강조 */
+  width: 38px;
+  height: 38px;
 }
 
 #send-button:hover {
   background-color: var(--ape-accent-primary);
-  transform: translateY(-50%) scale(1.05);
   /* 호버 시 그라데이션 변화 */
   background-image: linear-gradient(
     135deg, 
@@ -463,15 +497,6 @@ body {
   );
   /* 호버 시 그림자 강화 */
   box-shadow: 0 3px 6px rgba(14, 67, 48, 0.3);
-}
-
-/* 첨부 및 클리어 버튼 - 플레이풀한 디자인 */
-.input-action-button {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ape-border-radius-full);
-  background-color: transparent;
-  border: 1px solid var(--ape-border-subtle);
 }
 
 /* 모델 인디케이터 - 현대적 엣지 */
@@ -566,7 +591,7 @@ body {
   left: 16px;
   width: 300px;
   max-width: 80%;
-  max-height: 300px;
+  max-height: 210px; /* Limit height to show ~5 items */
   overflow-y: auto;
   background-color: var(--ape-bg-secondary);
   border: 1px solid var(--ape-border-strong);
@@ -594,6 +619,7 @@ body {
 }
 
 .suggestion-category {
+  display: none; /* Hide category headers to save space */
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -682,8 +708,9 @@ body {
   max-width: 100%;
   display: block;
   margin-left: 28px;
-  margin-top: 2px;
+  margin-top: 4px;
   font-style: italic;
+  padding-bottom: 2px;
 }
 
 .command-suggestion:after {
@@ -1080,4 +1107,24 @@ body {
 .emoji-icon {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   font-style: normal;
+}
+
+/* 검색 버튼 아이콘 크기 조정 */
+#search-button .emoji-icon {
+  font-size: 20px;
+  transform: scale(1.2);
+  display: inline-block;
+}
+
+/* 상단 버튼 공통 스타일 */
+.input-top-button {
+  height: 38px;
+  padding: 6px 14px;
+  border-radius: var(--ape-border-radius-md);
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
 }
