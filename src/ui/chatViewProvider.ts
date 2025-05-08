@@ -716,7 +716,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               // 현재 선택된 항목이 하위 명령어를 가진 경우 펼치기
               if (activeSuggestionIndex >= 0) {
                 const activeEl = suggestionContainer.querySelector(
-                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
                 );
                 
                 if (activeEl && activeEl.classList.contains('has-children')) {
@@ -731,7 +731,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               // 현재 선택된 항목이 펼쳐져 있는 경우 접기
               if (activeSuggestionIndex >= 0) {
                 const activeEl = suggestionContainer.querySelector(
-                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
                 );
                 
                 if (activeEl && activeEl.classList.contains('expanded')) {
@@ -764,7 +764,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               if (activeSuggestionIndex >= 0) {
                 e.preventDefault();
                 const activeEl = suggestionContainer.querySelector(
-                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
                 );
                 
                 if (activeEl && activeEl.classList.contains('has-children') && !activeEl.classList.contains('expanded')) {
@@ -878,7 +878,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       
       // 명령어 계층 구조화 (예: /git과 /git commit 등의 관계 설정)
       function structureCommands(allSuggestions) {
-        // 모든 명령어를 딕셔너리로 변환 (라벨 기준)
+        // 명령어를 딕셔너리로 변환 (라벨 기준)
         const commandsDict = {};
         
         // 부모-자식 관계 설정을 위한 처리
@@ -915,11 +915,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         return allSuggestions.filter(suggestion => {
           const cmd = commandsDict[suggestion.label];
           return !cmd.parentCommand;
-        }).map(suggestion => ({
-          ...suggestion,
-          children: commandsDict[suggestion.label].children,
-          isParent: commandsDict[suggestion.label].isParent
-        }));
+        }).map(suggestion => {
+          return {
+            ...suggestion,
+            children: commandsDict[suggestion.label].children,
+            isParent: commandsDict[suggestion.label].isParent
+          };
+        });
       }
       
       // 명령어 제안 렌더링 (재귀적으로 처리)
@@ -944,8 +946,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         
         // 항목 내용 구성
         suggestionEl.innerHTML = \`
-          <span class="suggestion-icon">\${getIconForCategory(suggestion.category)}</span>
-          <span class="suggestion-label">\${suggestion.label}</span>
+          <div class="suggestion-content">
+            <span class="suggestion-icon">\${getIconForCategory(suggestion.category)}</span>
+            <span class="suggestion-label">\${suggestion.label}</span>
+          </div>
           <span class="suggestion-description">\${suggestion.description || ''}</span>
         \`;
         
@@ -975,8 +979,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             
             // 내용 구성
             childElement.innerHTML = \`
-              <span class="suggestion-icon">\${getIconForCategory(child.category)}</span>
-              <span class="suggestion-label">\${child.label.split(' ').slice(1).join(' ')}</span>
+              <div class="suggestion-content">
+                <span class="suggestion-icon">\${getIconForCategory(child.category)}</span>
+                <span class="suggestion-label">\${child.label.split(' ').slice(1).join(' ')}</span>
+              </div>
               <span class="suggestion-description">\${child.description || ''}</span>
             \`;
             
@@ -985,25 +991,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           
           container.appendChild(childrenContainer);
         }
-      }
-        
-        // 팝오버 위치 설정
-        positionSuggestionContainer();
-        
-        // 표시 및 상태 업데이트
-        suggestionContainer.style.display = 'block';
-        isPopoverVisible = true;
-        
-        // 시각적 효과 - 등장 애니메이션
-        suggestionContainer.style.opacity = '0';
-        suggestionContainer.style.transform = 'translateY(8px)';
-        
-        // 약간의 지연 후 애니메이션 적용
-        setTimeout(() => {
-          suggestionContainer.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-          suggestionContainer.style.opacity = '1';
-          suggestionContainer.style.transform = 'translateY(0)';
-        }, 10);
       }
       
       // 명령어 제안 숨기기
@@ -1032,14 +1019,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         const inputRect = chatInput.getBoundingClientRect();
         const containerRect = chatInput.closest('#chat-input-container').getBoundingClientRect();
         
-        // 커서 위치 계산
-        const cursorPosition = getCursorPosition();
+        // 슬래시 위치 계산 (첫 번째 '/' 위치)
+        const slashPosition = chatInput.value.indexOf('/');
+        const cursorPosition = slashPosition >= 0 ? getCursorPositionAt(slashPosition) : 0;
         
-        // 왼쪽 위치 계산 (커서 위치 기준)
+        // 왼쪽 위치 계산 (슬래시 위치 기준)
         let leftPos = 16; // 기본 패딩
         
         if (cursorPosition > 0) {
-          // 커서 위치 기준으로 배치
+          // 슬래시 위치 기준으로 배치
           leftPos = Math.min(
             cursorPosition,
             containerRect.width - 320 // 컨테이너 너비 - 팝오버 최대 너비
@@ -1063,6 +1051,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         
         if (selectionStart <= 0) return 16; // 기본 패딩
         
+        return getCursorPositionAt(selectionStart);
+      }
+      
+      // 특정 위치의 커서 위치 계산
+      function getCursorPositionAt(position) {
+        if (!chatInput || position < 0) return 16; // 기본 패딩
+        
+        const value = chatInput.value;
+        
         // 임시 요소 생성하여 텍스트 너비 측정
         const span = document.createElement('span');
         span.style.position = 'absolute';
@@ -1070,8 +1067,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         span.style.whiteSpace = 'pre';
         span.style.font = window.getComputedStyle(chatInput).font;
         
-        // 커서 위치까지의 텍스트
-        span.textContent = value.substring(0, selectionStart);
+        // 해당 위치까지의 텍스트
+        span.textContent = value.substring(0, position);
         
         // 요소 추가, 측정, 제거
         document.body.appendChild(span);
@@ -1091,7 +1088,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         // 현재 활성화된 요소 찾기
         let currentIndex = -1;
         if (activeSuggestionIndex >= 0) {
-          const activeEl = suggestionContainer.querySelector(`.command-suggestion.active`);
+          const activeEl = suggestionContainer.querySelector('.command-suggestion.active');
           if (activeEl) {
             currentIndex = visibleSuggestions.indexOf(activeEl);
           }
@@ -1125,7 +1122,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         // 활성 항목에 클래스 추가
         if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
           const activeEl = suggestionContainer.querySelector(
-            \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+            '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
           );
           
           if (activeEl) {
@@ -1719,8 +1716,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           
           // Add icon and content
           suggestionEl.innerHTML = \`
-            <span class="suggestion-icon">\${getIconForCategory(category)}</span>
-            <span class="suggestion-label">\${suggestion.label}</span>
+            <div class="suggestion-content">
+              <span class="suggestion-icon">\${getIconForCategory(category)}</span>
+              <span class="suggestion-label">\${suggestion.label}</span>
+            </div>
             <span class="suggestion-description">\${suggestion.description}</span>
           \`;
           
@@ -1789,7 +1788,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       // Add highlighting to active suggestion
       if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
         const activeEl = commandSuggestionsContainer.querySelector(
-          \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+          '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
         );
         
         if (activeEl) {

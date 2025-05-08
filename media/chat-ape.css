@@ -609,9 +609,14 @@ body {
   padding: 8px 12px;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   position: relative;
   transition: background-color var(--ape-transition-fast);
+}
+
+.suggestion-content {
+  display: flex;
+  align-items: center;
 }
 
 .command-suggestion:hover, 
@@ -670,25 +675,15 @@ body {
 
 .command-suggestion .suggestion-description {
   color: var(--ape-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
-  display: none; /* 설명은 기본적으로 숨김 처리 */
-}
-
-/* 설명이 필요한 경우만 표시 (호버 시) */
-.command-suggestion:hover .suggestion-description {
-  display: inline-block;
-  position: absolute;
-  bottom: -20px;
-  left: 40px;
-  background-color: var(--ape-bg-tertiary);
-  padding: 2px 8px;
-  border-radius: var(--ape-border-radius-sm);
-  z-index: 5;
-  box-shadow: var(--ape-shadow-sm);
+  max-width: 100%;
+  display: block;
+  margin-left: 28px;
+  margin-top: 2px;
+  font-style: italic;
 }
 
 .command-suggestion:after {
