@@ -623,7 +623,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
    * 고급스러운 슬래시 명령어 자동완성 UI를 위한 스크립트
    */
   private _getCommandSuggestionScript(): string {
-    return `
+    return String.raw`
     // 명령어 제안 시스템 - 럭셔리 미니멀 디자인
     (function() {
       // 상태 관리
@@ -710,6 +710,36 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               e.preventDefault();
               navigateSuggestion('down');
               break;
+            
+            case 'ArrowRight':
+              e.preventDefault();
+              // 현재 선택된 항목이 하위 명령어를 가진 경우 펼치기
+              if (activeSuggestionIndex >= 0) {
+                const activeEl = suggestionContainer.querySelector(
+                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                );
+                
+                if (activeEl && activeEl.classList.contains('has-children')) {
+                  // 펼치기
+                  activeEl.classList.add('expanded');
+                }
+              }
+              break;
+              
+            case 'ArrowLeft':
+              e.preventDefault();
+              // 현재 선택된 항목이 펼쳐져 있는 경우 접기
+              if (activeSuggestionIndex >= 0) {
+                const activeEl = suggestionContainer.querySelector(
+                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                );
+                
+                if (activeEl && activeEl.classList.contains('expanded')) {
+                  // 접기
+                  activeEl.classList.remove('expanded');
+                }
+              }
+              break;
               
             case 'Tab':
               // 탭 키 입력 추적
@@ -733,7 +763,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             case 'Enter':
               if (activeSuggestionIndex >= 0) {
                 e.preventDefault();
-                selectSuggestion(activeSuggestionIndex);
+                const activeEl = suggestionContainer.querySelector(
+                  \`.command-suggestion[data-index="\${activeSuggestionIndex}"]\`
+                );
+                
+                if (activeEl && activeEl.classList.contains('has-children') && !activeEl.classList.contains('expanded')) {
+                  // 하위 명령어가 있고 접혀있는 경우 펼치기
+                  activeEl.classList.add('expanded');
+                } else {
+                  // 그 외의 경우 명령어 선택
+                  selectSuggestion(activeSuggestionIndex);
+                }
               }
               break;
               
@@ -791,9 +831,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         // 컨테이너 초기화
         suggestionContainer.innerHTML = '';
         
+        // 명령어 구조화 (계층적 구조)
+        const structuredCommands = structureCommands(suggestions);
+        
         // 카테고리별 그룹화
         const categories = {};
-        suggestions.forEach(suggestion => {
+        structuredCommands.forEach(suggestion => {
           if (!categories[suggestion.category]) {
             categories[suggestion.category] = [];
           }
@@ -810,30 +853,139 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           
           // 해당 카테고리의 제안 항목 추가
           categories[category].forEach((suggestion) => {
-            const suggestionEl = document.createElement('div');
-            suggestionEl.className = 'command-suggestion';
-            suggestionEl.dataset.index = suggestions.indexOf(suggestion).toString();
-            
-            // 단축키 힌트 추가
-            const index = suggestions.indexOf(suggestion);
-            let shortcutHint = '';
-            if (index < 9) {
-              shortcutHint = \`Tab+\${index + 1}\`;
-            } else if (index === 9) {
-              shortcutHint = 'Tab+0';
-            }
-            suggestionEl.dataset.shortcut = shortcutHint;
-            
-            // 항목 내용 구성
-            suggestionEl.innerHTML = \`
-              <span class="suggestion-icon">\${getIconForCategory(category)}</span>
-              <span class="suggestion-label">\${suggestion.label}</span>
-              <span class="suggestion-description">\${suggestion.description}</span>
-            \`;
-            
-            suggestionContainer.appendChild(suggestionEl);
+            renderSuggestion(suggestion, suggestionContainer);
           });
         });
+        
+        // 팝오버 위치 설정
+        positionSuggestionContainer();
+        
+        // 표시 및 상태 업데이트
+        suggestionContainer.style.display = 'block';
+        isPopoverVisible = true;
+        
+        // 시각적 효과 - 등장 애니메이션
+        suggestionContainer.style.opacity = '0';
+        suggestionContainer.style.transform = 'translateY(8px)';
+        
+        // 약간의 지연 후 애니메이션 적용
+        setTimeout(() => {
+          suggestionContainer.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+          suggestionContainer.style.opacity = '1';
+          suggestionContainer.style.transform = 'translateY(0)';
+        }, 10);
+      }
+      
+      // 명령어 계층 구조화 (예: /git과 /git commit 등의 관계 설정)
+      function structureCommands(allSuggestions) {
+        // 모든 명령어를 딕셔너리로 변환 (라벨 기준)
+        const commandsDict = {};
+        
+        // 부모-자식 관계 설정을 위한 처리
+        allSuggestions.forEach(suggestion => {
+          const label = suggestion.label;
+          commandsDict[label] = {
+            ...suggestion,
+            children: [],
+            isParent: false,
+            parentCommand: null
+          };
+        });
+        
+        // 부모-자식 관계 설정
+        allSuggestions.forEach(suggestion => {
+          const label = suggestion.label;
+          const parts = label.split(' ');
+          
+          // 두 단어 이상으로 구성된 명령어 (/git commit 등)는 자식 명령어
+          if (parts.length > 1) {
+            const parentLabel = parts[0]; // 첫 번째 부분이 부모 명령어
+            const parentCommand = commandsDict[parentLabel];
+            
+            if (parentCommand) {
+              // 부모 명령어가 존재하면 자식으로 추가
+              parentCommand.children.push(suggestion);
+              parentCommand.isParent = true;
+              commandsDict[label].parentCommand = parentLabel;
+            }
+          }
+        });
+        
+        // 최상위 명령어만 필터링 (부모가 없는 명령어들)
+        return allSuggestions.filter(suggestion => {
+          const cmd = commandsDict[suggestion.label];
+          return !cmd.parentCommand;
+        }).map(suggestion => ({
+          ...suggestion,
+          children: commandsDict[suggestion.label].children,
+          isParent: commandsDict[suggestion.label].isParent
+        }));
+      }
+      
+      // 명령어 제안 렌더링 (재귀적으로 처리)
+      function renderSuggestion(suggestion, container, level = 0) {
+        const suggestionEl = document.createElement('div');
+        suggestionEl.className = 'command-suggestion';
+        if (suggestion.isParent) {
+          suggestionEl.classList.add('has-children');
+        }
+        suggestionEl.dataset.index = suggestions.indexOf(suggestion).toString();
+        suggestionEl.dataset.command = suggestion.label;
+        
+        // 단축키 힌트 추가
+        const index = suggestions.indexOf(suggestion);
+        let shortcutHint = '';
+        if (index < 9) {
+          shortcutHint = \`Tab+\${index + 1}\`;
+        } else if (index === 9) {
+          shortcutHint = 'Tab+0';
+        }
+        suggestionEl.dataset.shortcut = shortcutHint;
+        
+        // 항목 내용 구성
+        suggestionEl.innerHTML = \`
+          <span class="suggestion-icon">\${getIconForCategory(suggestion.category)}</span>
+          <span class="suggestion-label">\${suggestion.label}</span>
+          <span class="suggestion-description">\${suggestion.description || ''}</span>
+        \`;
+        
+        // 이벤트 처리 추가
+        if (suggestion.isParent) {
+          suggestionEl.addEventListener('click', (e) => {
+            // 이벤트 전파 방지
+            e.stopPropagation();
+            // 확장/축소 토글
+            suggestionEl.classList.toggle('expanded');
+          });
+        }
+        
+        container.appendChild(suggestionEl);
+        
+        // 자식 명령어가 있는 경우 하위 컨테이너 생성
+        if (suggestion.children && suggestion.children.length > 0) {
+          const childrenContainer = document.createElement('div');
+          childrenContainer.className = 'command-children';
+          
+          // 자식 명령어 렌더링
+          suggestion.children.forEach(child => {
+            const childElement = document.createElement('div');
+            childElement.className = 'command-suggestion';
+            childElement.dataset.index = suggestions.indexOf(child).toString();
+            childElement.dataset.command = child.label;
+            
+            // 내용 구성
+            childElement.innerHTML = \`
+              <span class="suggestion-icon">\${getIconForCategory(child.category)}</span>
+              <span class="suggestion-label">\${child.label.split(' ').slice(1).join(' ')}</span>
+              <span class="suggestion-description">\${child.description || ''}</span>
+            \`;
+            
+            childrenContainer.appendChild(childElement);
+          });
+          
+          container.appendChild(childrenContainer);
+        }
+      }
         
         // 팝오버 위치 설정
         positionSuggestionContainer();
@@ -933,12 +1085,29 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       function navigateSuggestion(direction) {
         if (suggestions.length === 0) return;
         
+        // 모든 표시되는 명령어 (펼쳐진 하위 명령어 포함)
+        const visibleSuggestions = Array.from(suggestionContainer.querySelectorAll('.command-suggestion:not(.command-children .command-suggestion), .command-suggestion.expanded + .command-children .command-suggestion'));
+        
+        // 현재 활성화된 요소 찾기
+        let currentIndex = -1;
+        if (activeSuggestionIndex >= 0) {
+          const activeEl = suggestionContainer.querySelector(`.command-suggestion.active`);
+          if (activeEl) {
+            currentIndex = visibleSuggestions.indexOf(activeEl);
+          }
+        }
+        
+        // 다음/이전 요소로 이동
         if (direction === 'up') {
-          activeSuggestionIndex = (activeSuggestionIndex <= 0) ?
-            suggestions.length - 1 : activeSuggestionIndex - 1;
+          currentIndex = (currentIndex <= 0) ? visibleSuggestions.length - 1 : currentIndex - 1;
         } else {
-          activeSuggestionIndex = (activeSuggestionIndex >= suggestions.length - 1) ?
-            0 : activeSuggestionIndex + 1;
+          currentIndex = (currentIndex >= visibleSuggestions.length - 1) ? 0 : currentIndex + 1;
+        }
+        
+        // 새 활성 요소의 데이터 인덱스 가져오기
+        if (currentIndex >= 0 && currentIndex < visibleSuggestions.length) {
+          const newActiveElement = visibleSuggestions[currentIndex];
+          activeSuggestionIndex = parseInt(newActiveElement.dataset.index, 10);
         }
         
         highlightActiveSuggestion();
@@ -1053,7 +1222,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
    * 세련된 메시지 처리 및 포맷팅 스크립트
    */
   private _getChatScript(): string {
-    return `
+    return String.raw`
     // APE Chat - Luxury Minimal UI Implementation
     const vscode = acquireVsCodeApi();
     
@@ -1891,20 +2060,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         <div id="chat-messages"></div>
         <div id="chat-input-container">
           <div id="input-actions">
-            <button id="smart-prompting-toggle" title="Toggle Smart Prompting" class="input-top-button">
-              <span class="emoji-icon">✦</span> <span id="smart-prompting-label">Smart Prompting</span>
+            <button id="smart-prompting-toggle" title="APE Mode" class="input-top-button">
+              <span class="emoji-icon">⊛</span> <span id="smart-prompting-label">APE Mode</span>
             </button>
           </div>
-          <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
+          <div id="input-wrapper">
+            <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
+            <button id="send-button" title="Send Message">
+              <span class="emoji-icon">↑</span>
+            </button>
+          </div>
           <div id="input-buttons">
             <button id="attach-button" title="Attach File" class="input-action-button">
               <span class="emoji-icon">◈</span>
             </button>
-            <button id="send-button" title="Send Message">
-              <span class="emoji-icon">↑</span>
-            </button>
-            <button id="clear-button" title="Clear Chat">
-              <span class="emoji-icon">○</span>
+            <button id="clear-button" title="Clear Chat" class="input-action-button">
+              <span class="emoji-icon">⌫</span>
             </button>
           </div>
         </div>

@@ -1,0 +1,141 @@
+/**
+ * APE Extension - 웰컴 뷰 사용자 정의 스타일
+ * 기존 welcome.css를 확장하는 추가 스타일
+ */
+
+/* 액션 버튼 영역 */
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.action-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.action-button {
+  background-color: var(--ape-card-bg);
+  border: 1px solid var(--ape-card-border);
+  border-radius: var(--ape-welcome-radius);
+  padding: 24px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: var(--ape-card-hover-bg);
+  border-color: var(--ape-card-hover-border);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px var(--ape-welcome-shadow);
+}
+
+/* 슬래시 명령어 태그 */
+.action-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.command-tag {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family, 'Menlo', 'Monaco', 'Courier New', monospace);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ape-button-text);
+}
+
+.command-tag:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 액션 내용 레이아웃 조정 */
+.action-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.action-icon {
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: var(--ape-welcome-accent);
+}
+
+.action-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ape-welcome-text);
+}
+
+.action-description {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* 퀵 액션 버튼 영역 */
+.welcome-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.quick-action {
+  background-color: var(--ape-button-bg);
+  border: 1px solid var(--ape-button-border);
+  border-radius: var(--ape-welcome-radius-sm);
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ape-button-text);
+}
+
+.quick-action:hover {
+  background-color: var(--ape-button-hover-bg);
+  border-color: var(--ape-button-hover-border);
+}
+
+/* 반응형 레이아웃 조정 */
+@media (max-width: 768px) {
+  .action-group {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-button {
+    min-height: 150px;
+  }
+  
+  .welcome-container {
+    padding: calc(var(--ape-welcome-spacing) * 1.5);
+  }
+}
+
+/* 다크 테마 강화 */
+.vscode-dark .action-button {
+  background-color: rgba(115, 140, 255, 0.05);
+}
+
+.vscode-dark .command-tag {
+  background-color: rgba(115, 140, 255, 0.12);
+}
+
+.vscode-dark .quick-action {
+  background-color: rgba(115, 140, 255, 0.15);
+}

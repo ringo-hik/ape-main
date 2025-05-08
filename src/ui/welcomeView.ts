@@ -26,73 +26,67 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
         
         <div class="welcome-actions">
           <div class="action-group">
-            <div class="action-button">
+            <div class="action-button" onclick="vscode.postMessage({type: 'command', command: 'Hello, how can you help me?'})">
               <div class="action-icon">✧</div>
               <div class="action-content">
                 <div class="action-title">New Conversation</div>
                 <div class="action-description">Begin a dialogue with your AI assistant</div>
+                <div class="action-commands">
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/new'});">/new</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/reset'});">/reset</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/clear'});">/clear</span>
+                </div>
               </div>
             </div>
             
-            <div class="action-button">
+            <div class="action-button" onclick="vscode.postMessage({type: 'command', command: 'Analyze this code and suggest improvements'})">
               <div class="action-icon">✦</div>
               <div class="action-content">
                 <div class="action-title">Code Analysis</div>
                 <div class="action-description">Understand and improve your existing code</div>
+                <div class="action-commands">
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/analyze'});">/analyze</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/review'});">/review</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/refactor'});">/refactor</span>
+                </div>
               </div>
             </div>
           </div>
           
           <div class="action-group">
-            <div class="action-button">
+            <div class="action-button" onclick="vscode.postMessage({type: 'command', command: 'Implement a new feature for me'})">
               <div class="action-icon">⟐</div>
               <div class="action-content">
                 <div class="action-title">Rapid Development</div>
                 <div class="action-description">Implement new features with efficiency</div>
+                <div class="action-commands">
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/create'});">/create</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/implement'});">/implement</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/test'});">/test</span>
+                </div>
               </div>
             </div>
             
-            <div class="action-button">
+            <div class="action-button" onclick="vscode.postMessage({type: 'command', command: 'Find code that handles user authentication'})">
               <div class="action-icon">⟡</div>
               <div class="action-content">
                 <div class="action-title">Code Discovery</div>
                 <div class="action-description">Find the code you need, when you need it</div>
+                <div class="action-commands">
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/find'});">/find</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/search'});">/search</span>
+                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/docs'});">/docs</span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="welcome-examples">
-          <h3 class="examples-header">Begin with these queries</h3>
-          
-          <div class="example-cards">
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Optimize this code for performance'})">
-              <div class="example-label">Optimization</div>
-              <div class="example-text">Optimize this code for performance</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Create unit tests for this functionality'})">
-              <div class="example-label">Testing</div>
-              <div class="example-text">Create unit tests for this functionality</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Find issues in this code'})">
-              <div class="example-label">Debugging</div>
-              <div class="example-text">Find issues in this code</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Implement user authentication'})">
-              <div class="example-label">Implementation</div>
-              <div class="example-text">Implement user authentication</div>
             </div>
           </div>
         </div>
         
         <div class="welcome-quick-actions">
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">Help</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">Change Model</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/settings'})">Settings</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">Reset Conversation</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/help'})">Help</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/model'})">Change Model</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/settings'})">Settings</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/clear'})">Reset Conversation</button>
         </div>
       </div>
     `;
@@ -119,6 +113,9 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
     const styleUri = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(context.extensionUri, 'media', 'chat-ape.css')
     );
+    const customStyleUri = panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(context.extensionUri, 'media', 'welcome-custom.css')
+    );
     
     // Set webview HTML with maximized welcome view
     panel.webview.html = `<!DOCTYPE html>
@@ -128,6 +125,7 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${panel.webview.cspSource} 'unsafe-inline'; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource} https:; script-src 'unsafe-inline';">
         <link href="${styleUri}" rel="stylesheet">
+        <link href="${customStyleUri}" rel="stylesheet">
         <title>Welcome to APE</title>
         <style>
           body, html {
