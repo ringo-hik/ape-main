@@ -32,7 +32,7 @@ class MockTestRunner {
   async runTests() {
     try {
       // 환경 로그
-      console.log('테스트 환경: LLM_TEST_MODE=mock, 모의 브라우저 사용');
+      console.log('테스트 환경: LLM_TEST_MODE=live, 모의 브라우저 사용');
       
       // 모의 서비스 응답 로드
       this.loadMockResponses();

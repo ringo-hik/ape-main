@@ -28,7 +28,7 @@ console.log('LLM 서비스 자체 테스트 시작');
 console.log('=======================================\n');
 
 // 테스트 환경 모드 설정
-process.env.LLM_TEST_MODE = 'mock';
+process.env.LLM_TEST_MODE = 'live';
 
 // 모의 응답 로드
 const fs = require('fs');
@@ -128,8 +128,8 @@ function runTests() {
   
   // LLM_TEST_MODE 환경 변수 확인
   test('LLM_TEST_MODE 환경 변수 설정 확인', () => {
-    if (process.env.LLM_TEST_MODE !== 'mock') {
-      throw new Error('LLM_TEST_MODE가 mock으로 설정되지 않았습니다');
+    if (process.env.LLM_TEST_MODE !== 'live') {
+      throw new Error('LLM_TEST_MODE가 live로 설정되지 않았습니다');
     }
   });
   

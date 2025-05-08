@@ -31,7 +31,7 @@ if (typeof global.$ === 'undefined') {
 
 // LLM_TEST_MODE 환경 변수 설정
 if (!process.env.LLM_TEST_MODE) {
-  process.env.LLM_TEST_MODE = 'mock';
+  process.env.LLM_TEST_MODE = 'live';
 }
 
 // 로깅
