@@ -55,10 +55,10 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
         </div>
         
         <div class="welcome-quick-actions">
-          <button class="quick-action" data-command="/help">Help</button>
-          <button class="quick-action" data-command="/model">Change Model</button>
-          <button class="quick-action" data-command="/settings">Settings</button>
-          <button class="quick-action" data-command="/clear">Reset Conversation</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">Help</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">Change Model</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/settings'})">Settings</button>
+          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">Reset Conversation</button>
         </div>
       </div>
     `;
@@ -154,14 +154,8 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
             });
           });
           
-          document.querySelectorAll('.quick-action').forEach(button => {
-            button.addEventListener('click', event => {
-              const command = button.getAttribute('data-command');
-              if (command) {
-                vscode.postMessage({ type: 'insertCommand', command });
-              }
-            });
-          });
+          // Quick actions are now handled via onclick attributes directly in HTML
+          // This is more reliable than event delegation in this environment
           
           // Add subtle hover animations
           document.querySelectorAll('.example-card').forEach(element => {
