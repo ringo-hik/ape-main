@@ -11,7 +11,26 @@
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
             ],
-            "preLaunchTask": "npm: watch"
+            "preLaunchTask": "npm: watch",
+            "env": {
+                "VSCODE_DEBUG_MODE": "true",
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Extension (No Watch)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ],
+            "env": {
+                "VSCODE_DEBUG_MODE": "true",
+                "NODE_ENV": "development"
+            }
         },
         {
             "name": "Extension Tests",
@@ -39,6 +58,14 @@
                 "${workspaceFolder}/out/**/*.js"
             ],
             "preLaunchTask": "npm: watch"
+        },
+        {
+            "name": "LLM Self Tests",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/test/simple/llm-test-runner.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ]
 }
