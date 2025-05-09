@@ -705,22 +705,7 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
                 if (smartPromptingToggle && smartPromptingLabel) {
                   if (message.enabled) {
                     smartPromptingToggle.classList.add('active');
-
-                    // Update label based on mode
-                    let modeText = '스마트 프롬프팅';
-                    switch (message.mode) {
-                      case 'basic':
-                        modeText = '기본 모드';
-                        break;
-                      case 'advanced':
-                        modeText = '고급 모드';
-                        break;
-                      case 'expert':
-                        modeText = '전문가 모드';
-                        break;
-                    }
-
-                    smartPromptingLabel.textContent = modeText;
+                    smartPromptingLabel.textContent = '스마트 프롬프팅 켜짐';
                   } else {
                     smartPromptingToggle.classList.remove('active');
                     smartPromptingLabel.textContent = '스마트 프롬프팅';

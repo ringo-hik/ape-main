@@ -54,37 +54,11 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
           </div>
         </div>
         
-        <div class="welcome-examples">
-          <h3 class="examples-header">Begin with these queries</h3>
-          
-          <div class="example-cards">
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Optimize this code for performance'})">
-              <div class="example-label">Optimization</div>
-              <div class="example-text">Optimize this code for performance</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Create unit tests for this functionality'})">
-              <div class="example-label">Testing</div>
-              <div class="example-text">Create unit tests for this functionality</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Find issues in this code'})">
-              <div class="example-label">Debugging</div>
-              <div class="example-text">Find issues in this code</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Implement user authentication'})">
-              <div class="example-label">Implementation</div>
-              <div class="example-text">Implement user authentication</div>
-            </div>
-          </div>
-        </div>
-        
         <div class="welcome-quick-actions">
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">Help</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">Change Model</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/settings'})">Settings</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">Reset Conversation</button>
+          <button class="quick-action" data-command="/help">Help</button>
+          <button class="quick-action" data-command="/model">Change Model</button>
+          <button class="quick-action" data-command="/settings">Settings</button>
+          <button class="quick-action" data-command="/clear">Reset Conversation</button>
         </div>
       </div>
     `;
@@ -182,8 +156,10 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
           
           document.querySelectorAll('.quick-action').forEach(button => {
             button.addEventListener('click', event => {
-              const command = button.textContent.toLowerCase();
-              vscode.postMessage({ type: 'insertCommand', command: '/' + command });
+              const command = button.getAttribute('data-command');
+              if (command) {
+                vscode.postMessage({ type: 'insertCommand', command });
+              }
             });
           });
           
