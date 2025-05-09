@@ -16,11 +16,11 @@ export class WelcomeViewProvider {
       <div class="welcome-container">
         <div class="welcome-header">
           <div class="welcome-monologue">
-  <h1 class="welcome-title">APE</h1>
+  <h1 class="welcome-title">A.P.E</h1>
   <div class="title-separator"></div>
   <p class="welcome-tagline">AGENTIC PIPELINE ENGINE</p>
-  <p class="welcome-subtitle">Agentic Vision. Development Illuminated.
-Seamless • Plugin-driven • Lightweight For Our Developer.</p>
+  <p class="welcome-subtitle">Agentic Vision. Development Illuminated. <br>
+Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
 </div>
         </div>
         
@@ -30,7 +30,7 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
               <div class="action-icon">✧</div>
               <div class="action-content">
                 <div class="action-title">New Conversation</div>
-                <div class="action-description">Begin a dialogue with your AI assistant</div>
+                <div class="action-description">Optimize this code for performance</div>
               </div>
             </div>
             
