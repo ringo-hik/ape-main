@@ -36,8 +36,50 @@ export function createRulesCommands(rulesService: RulesService): SlashCommand[] 
     priority: 15,
     execute: async (context) => {
       const subCommand = context.args[0]?.toLowerCase();
-      
-      if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+
+      if (!subCommand) {
+        // Rules 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+        const rulesSubcommands = [
+          { command: 'list', description: '모든 Rules 목록을 표시합니다' },
+          { command: 'active', description: '활성화된 Rules 목록을 표시합니다' },
+          { command: 'inactive', description: '비활성화된 Rules 목록을 표시합니다' },
+          { command: 'activate', description: '지정한 Rule을 활성화합니다' },
+          { command: 'deactivate', description: '지정한 Rule을 비활성화합니다' },
+          { command: 'create', description: '새 Rule을 생성합니다' },
+          { command: 'delete', description: '지정한 Rule을 삭제합니다' },
+          { command: 'open', description: '지정한 Rule 파일을 엽니다' },
+          { command: 'info', description: 'Rules 시스템 정보를 표시합니다' }
+        ];
+
+        // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+        const suggestions = rulesSubcommands.map(cmd => ({
+          label: `/rules ${cmd.command}`,
+          description: cmd.description,
+          category: 'advanced',
+          insertText: `/rules ${cmd.command} `
+        }));
+
+        // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+        vscode.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+
+        // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+        vscode.window.showQuickPick(
+          rulesSubcommands.map(cmd => ({
+            label: cmd.command,
+            description: cmd.description,
+            detail: `Rules 하위 명령어: ${cmd.command}`
+          })),
+          {
+            placeHolder: 'Rules 명령어를 선택하세요',
+            matchOnDescription: true
+          }
+        ).then(selected => {
+          if (selected) {
+            // 선택한 명령어를 채팅 입력창에 삽입
+            vscode.commands.executeCommand('ape.insertToChatInput', `/rules ${selected.label}`);
+          }
+        });
+      } else if (subCommand === 'list' || subCommand === '목록') {
         // Rules 목록 표시
         await listRules(rulesService);
       } else if (subCommand === 'active' || subCommand === '활성' || subCommand === '활성화목록') {

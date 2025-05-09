@@ -10,6 +10,7 @@ import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
 import { createJiraCommands } from './jiraCommands';
 import { createTodoCommands } from './todoCommands';
+import { Message } from '../../types/chat';
 
 /**
  * 기본 슬래시 커맨드 목록 생성
@@ -124,8 +125,43 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     priority: 10,
     execute: async (context) => {
       const subCommand = context.args[0]?.toLowerCase();
-      
-      if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+
+      if (!subCommand) {
+        // Model 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+        const modelSubcommands = [
+          { command: 'list', description: '사용 가능한 모델 목록을 표시합니다' },
+          { command: 'use', description: '지정한 모델로 변경합니다' }
+        ];
+
+        // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+        const suggestions = modelSubcommands.map(cmd => ({
+          label: `/model ${cmd.command}`,
+          description: cmd.description,
+          category: 'advanced',
+          insertText: `/model ${cmd.command} `
+        }));
+
+        // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+        vscode.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+
+        // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+        vscode.window.showQuickPick(
+          modelSubcommands.map(cmd => ({
+            label: cmd.command,
+            description: cmd.description,
+            detail: `Model 하위 명령어: ${cmd.command}`
+          })),
+          {
+            placeHolder: 'Model 명령어를 선택하세요',
+            matchOnDescription: true
+          }
+        ).then(selected => {
+          if (selected) {
+            // 선택한 명령어를 채팅 입력창에 삽입
+            vscode.commands.executeCommand('ape.insertToChatInput', `/model ${selected.label}`);
+          }
+        });
+      } else if (subCommand === 'list' || subCommand === '목록') {
         // 모델 목록 표시
         await vscode.commands.executeCommand('ape.selectModel');
       } else if (subCommand === 'use' || subCommand === 'switch' || subCommand === '사용' || subCommand === '변경') {
@@ -201,6 +237,138 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
       await vscode.commands.executeCommand('workbench.action.openSettings', 'ape');
     }
   });
+
+  // 시스템 상태 명령어
+  commands.push({
+    name: 'system',
+    aliases: ['sys', '시스템', '상태'],
+    description: '시스템 정보와 메모리 상태를 표시합니다',
+    examples: ['/system', '/system memory', '/시스템'],
+    category: 'utility',
+    priority: 15,
+    execute: async (context) => {
+      try {
+        const subCommand = context.args[0]?.toLowerCase();
+
+        // 메모리 서비스와 LLM 서비스 참조
+        let memoryService;
+        let llmService;
+
+        if (services && services.memoryService && services.llmService) {
+          // 개발 환경에서는 services 객체가 전달됨
+          memoryService = services.memoryService;
+          llmService = services.llmService;
+        } else {
+          // 익스텐션에서 서비스 가져오기 시도
+          const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+          if (extension && extension.isActive) {
+            memoryService = extension.exports.memoryService;
+            llmService = extension.exports.llmService;
+          }
+        }
+
+        // 서비스 존재 확인
+        if (!memoryService) {
+          vscode.window.showErrorMessage('메모리 서비스를 찾을 수 없습니다');
+          return;
+        }
+
+        if (!llmService) {
+          vscode.window.showErrorMessage('LLM 서비스를 찾을 수 없습니다');
+          return;
+        }
+
+        // 시스템 정보 구성
+        let output = '## 🧠 APE 시스템 상태\n\n';
+
+        // 현재 세션 정보
+        const currentSession = memoryService.getCurrentSession();
+        const messagesResult = await memoryService.getMessages();
+        const messages = messagesResult.success ? messagesResult.data || [] : [];
+
+        // 현재 모델 정보
+        const currentModel = llmService.getActiveModel();
+        const modelDisplayName = llmService.getModelDisplayName(currentModel);
+
+        // 메시지 수 계산
+        const userMessages = messages.filter((m: Message) => m.role === 'user').length;
+        const assistantMessages = messages.filter((m: Message) => m.role === 'assistant').length;
+        const systemMessages = messages.filter((m: Message) => m.role === 'system').length;
+
+        // 기본 시스템 정보 표시
+        output += '### 📊 세션 정보\n\n';
+        output += `- **현재 세션**: ${currentSession?.name || '기본 세션'}\n`;
+        output += `- **세션 ID**: \`${currentSession?.id || 'default'}\`\n`;
+        output += `- **생성 시간**: ${currentSession?.createdAt.toLocaleString() || '알 수 없음'}\n`;
+        output += `- **마지막 업데이트**: ${currentSession?.updatedAt.toLocaleString() || '알 수 없음'}\n\n`;
+
+        output += '### 🤖 LLM 정보\n\n';
+        output += `- **현재 모델**: ${modelDisplayName}\n`;
+        output += `- **모델 ID**: \`${currentModel}\`\n\n`;
+
+        output += '### 💬 메모리 통계\n\n';
+        output += `- **총 메시지 수**: ${messages.length}개\n`;
+        output += `- **사용자 메시지**: ${userMessages}개\n`;
+        output += `- **어시스턴트 메시지**: ${assistantMessages}개\n`;
+        output += `- **시스템 메시지**: ${systemMessages}개\n\n`;
+
+        // 메모리 상세 정보 (메모리 하위 명령어인 경우)
+        if (!subCommand || subCommand === 'memory' || subCommand === '메모리') {
+          output += '### 🧠 메모리 세부 정보\n\n';
+
+          // 최근 메시지 5개 표시
+          if (messages.length > 0) {
+            output += '#### 최근 메시지 (최대 5개)\n\n';
+            output += '| 역할 | 내용 | 시간 |\n';
+            output += '|------|------|------|\n';
+
+            const recentMessages = messages.slice(-5).reverse();
+            for (const msg of recentMessages) {
+              let role = '';
+              switch (msg.role) {
+                case 'user': role = '사용자'; break;
+                case 'assistant': role = 'Claude'; break;
+                case 'system': role = '시스템'; break;
+                default: role = msg.role as string;
+              }
+
+              // 내용 일부만 표시
+              const content = String(msg.content).replace(/<[^>]*>/g, ''); // HTML 태그 제거
+              const truncatedContent = content.substring(0, 30) + (content.length > 30 ? '...' : '');
+
+              const timestamp = msg.timestamp.toLocaleTimeString();
+
+              output += `| ${role} | ${truncatedContent} | ${timestamp} |\n`;
+            }
+            output += '\n';
+          }
+        }
+
+        // 사용자에게 정보 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+          role: 'assistant',
+          content: output
+        });
+
+      } catch (error) {
+        console.error('시스템 상태 명령어 오류:', error);
+        vscode.window.showErrorMessage(`시스템 상태 조회 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    },
+    provideCompletions: (partialArgs) => {
+      const subCommands = ['memory', '메모리'];
+      const parts = partialArgs.split(' ');
+
+      // 첫 번째 인자 자동완성
+      if (parts.length <= 1) {
+        return subCommands.filter(cmd =>
+          cmd.toLowerCase().startsWith(parts[0]?.toLowerCase() || '')
+        );
+      }
+
+      return [];
+    }
+  });
   
   // 파일 열기
   commands.push({
@@ -229,10 +397,10 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
   
   // 대화 내역 저장 기능
   commands.push({
-    name: 'save-chat',
+    name: 'save',
     aliases: ['stack', 'history', 'save', '기록', '대화기록', '저장'],
     description: '현재 채팅 내역을 저장하고 관리합니다',
-    examples: ['/save-chat', '/stack', '/history', '/기록'],
+    examples: ['/save', '/stack', '/history', '/기록'],
     category: 'utility',
     priority: 25,
     execute: async () => {
@@ -420,7 +588,7 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           // 폴더가 없는 경우
           await vscode.commands.executeCommand('ape.sendLlmResponse', {
             role: 'assistant',
-            content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+            content: '저장된 대화 내역이 없습니다. `/save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
           });
           return;
         }
@@ -500,7 +668,7 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
       // 저장된 채팅 내역이 없는 경우
       await vscode.commands.executeCommand('ape.sendLlmResponse', {
         role: 'assistant',
-        content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+        content: '저장된 대화 내역이 없습니다. `/save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
       });
       return;
     }

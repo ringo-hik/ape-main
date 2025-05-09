@@ -23,8 +23,47 @@ export function createVaultCommands(vaultService: any): SlashCommand[] {
     priority: 5,
     execute: async (context: CommandContext) => {
       const subCommand = context.args[0]?.toLowerCase();
-      
-      if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+
+      if (!subCommand) {
+        // Vault 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+        const vaultSubcommands = [
+          { command: 'list', description: '모든 컨텍스트 및 아이템 목록을 표시합니다' },
+          { command: 'show', description: '특정 컨텍스트 또는 아이템 내용을 표시합니다' },
+          { command: 'use', description: '아이템을 사용하여 채팅창에 내용을 삽입합니다' },
+          { command: 'create', description: '새 컨텍스트 또는 아이템을 생성합니다' },
+          { command: 'delete', description: '컨텍스트 또는 아이템을 삭제합니다' },
+          { command: 'search', description: '컨텍스트 내에서 아이템을 검색합니다' }
+        ];
+
+        // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+        const suggestions = vaultSubcommands.map(cmd => ({
+          label: `/vault ${cmd.command}`,
+          description: cmd.description,
+          category: 'utility',
+          insertText: `/vault ${cmd.command} `
+        }));
+
+        // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+        vscode.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+
+        // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+        vscode.window.showQuickPick(
+          vaultSubcommands.map(cmd => ({
+            label: cmd.command,
+            description: cmd.description,
+            detail: `Vault 하위 명령어: ${cmd.command}`
+          })),
+          {
+            placeHolder: 'Vault 명령어를 선택하세요',
+            matchOnDescription: true
+          }
+        ).then(selected => {
+          if (selected) {
+            // 선택한 명령어를 채팅 입력창에 삽입
+            vscode.commands.executeCommand('ape.insertToChatInput', `/vault ${selected.label}`);
+          }
+        });
+      } else if (subCommand === 'list' || subCommand === '목록') {
         // 컨텍스트 목록 표시
         await showContextList(vaultService);
       } else if (subCommand === 'show' || subCommand === '보기' || subCommand === 'view') {
@@ -34,7 +73,7 @@ export function createVaultCommands(vaultService: any): SlashCommand[] {
           vscode.window.showErrorMessage('표시할 컨텍스트 또는 아이템 ID를 지정해주세요');
           return;
         }
-        
+
         await showContextOrItem(vaultService, id);
       } else if (subCommand === 'use' || subCommand === '사용') {
         // 아이템 사용 (채팅창에 내용 삽입)
