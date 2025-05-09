@@ -110,6 +110,51 @@
           "examples": ["/git consolidate", "/g squash", "/깃 통합"],
           "usage": "/git consolidate",
           "related": ["git auto", "git auto-on", "git auto-off"]
+        },
+        {
+          "name": "git solve",
+          "aliases": ["g solve", "git conflict", "깃 충돌", "충돌", "충돌해결"],
+          "description": "웹뷰를 통한 Git 충돌 해결 제안 및 승인 시스템을 제공합니다.",
+          "longDescription": "Git 충돌이 발생했을 때 각 충돌에 대한 해결 제안을 웹뷰를 통해 보여주고, 사용자가 검토 후 승인할 수 있는 인터랙티브한 해결 시스템을 제공합니다. 각 충돌에 대해 여러 해결 전략(현재 브랜치, 타겟 브랜치, 기본 병합, LLM 지능형)을 선택할 수 있으며, 승인된 해결책만 적용할 수 있습니다.",
+          "examples": ["/git solve", "/충돌", "/git conflict"],
+          "usage": "/git solve",
+          "related": ["git solve-auto", "git solve-ours", "git solve-theirs", "git solve-llm"]
+        },
+        {
+          "name": "git solve-auto",
+          "aliases": ["g solve-auto", "충돌자동해결"],
+          "description": "모든 Git 충돌을 자동으로 해결합니다.",
+          "longDescription": "Git 충돌을 발견하면 파일 유형과 충돌 내용에 따라 가장 적합한 전략을 자동으로 선택하여 모든 충돌을 한 번에 해결합니다. 코드 파일의 경우 LLM 기반 지능형 병합이 기본으로 사용되며, 기타 파일은 상황에 맞는 방식으로 해결됩니다.",
+          "examples": ["/git solve-auto", "/충돌자동해결"],
+          "usage": "/git solve-auto",
+          "related": ["git solve", "git solve-ours", "git solve-theirs", "git solve-llm"]
+        },
+        {
+          "name": "git solve-ours",
+          "aliases": ["g solve-ours", "충돌내것선택"],
+          "description": "모든 Git 충돌을 현재 브랜치의 코드로 해결합니다.",
+          "longDescription": "Git 충돌 발생 시 현재 브랜치(ours)의 코드를 선택하여 모든 충돌을 해결합니다. 이 명령은 타겟 브랜치의 변경 사항보다 현재 브랜치의 변경 사항을 우선시할 때 유용합니다.",
+          "examples": ["/git solve-ours", "/충돌내것선택"],
+          "usage": "/git solve-ours",
+          "related": ["git solve", "git solve-auto", "git solve-theirs", "git solve-llm"]
+        },
+        {
+          "name": "git solve-theirs",
+          "aliases": ["g solve-theirs", "충돌저것선택"],
+          "description": "모든 Git 충돌을 다른 브랜치의 코드로 해결합니다.",
+          "longDescription": "Git 충돌 발생 시 다른 브랜치(theirs)의 코드를 선택하여 모든 충돌을 해결합니다. 이 명령은 현재 브랜치의 변경 사항보다 타겟 브랜치의 변경 사항을 우선시할 때 유용합니다.",
+          "examples": ["/git solve-theirs", "/충돌저것선택"],
+          "usage": "/git solve-theirs",
+          "related": ["git solve", "git solve-auto", "git solve-ours", "git solve-llm"]
+        },
+        {
+          "name": "git solve-llm",
+          "aliases": ["g solve-llm", "충돌지능해결"],
+          "description": "LLM을 사용해 Git 충돌을 지능적으로 해결합니다.",
+          "longDescription": "LLM(대규모 언어 모델)을 사용하여 Git 충돌을 지능적으로 해결합니다. 이 명령어는 각 충돌 부분에 대해 두 코드 버전(현재 브랜치와 타겟 브랜치)을 모두 LLM에 전송하고, LLM이 두 버전을 이해하여 인간과 같은 수준으로 최적의 병합 결과를 생성합니다. 코드의 문맥과 의도를 이해하여 단순한 텍스트 합치기 이상의 지능적인 충돌 해결을 제공합니다.",
+          "examples": ["/git solve-llm", "/충돌지능해결"],
+          "usage": "/git solve-llm",
+          "related": ["git solve", "git solve-auto", "git solve-ours", "git solve-theirs"]
         }
       ]
     },
