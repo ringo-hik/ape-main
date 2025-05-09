@@ -30,33 +30,25 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
               <div class="action-icon">✧</div>
               <div class="action-content">
                 <div class="action-title">New Conversation</div>
-                <div class="action-description">Optimize this code for performance</div>
-              </div>
-            </div>
-            
-            <div class="action-button">
-              <div class="action-icon">✦</div>
-              <div class="action-content">
-                <div class="action-title">Code Analysis</div>
-                <div class="action-description">Understand and improve your existing code</div>
+                <div class="action-description">Begin a dialogue with your AI assistant</div>
               </div>
             </div>
           </div>
-          
+
           <div class="action-group">
+            <div class="action-button">
+              <div class="action-icon">✦</div>
+              <div class="action-content">
+                <div class="action-title">Code Assistant</div>
+                <div class="action-description">Analyze, optimize, and improve your code</div>
+              </div>
+            </div>
+
             <div class="action-button">
               <div class="action-icon">⟐</div>
               <div class="action-content">
-                <div class="action-title">Rapid Development</div>
-                <div class="action-description">Implement new features with efficiency</div>
-              </div>
-            </div>
-            
-            <div class="action-button">
-              <div class="action-icon">⟡</div>
-              <div class="action-content">
-                <div class="action-title">Code Discovery</div>
-                <div class="action-description">Find the code you need, when you need it</div>
+                <div class="action-title">Development Tools</div>
+                <div class="action-description">Test, debug, and implement new features</div>
               </div>
             </div>
           </div>
@@ -196,12 +188,24 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
           });
           
           // Add subtle hover animations
-          document.querySelectorAll('.action-button, .example-card').forEach(element => {
+          document.querySelectorAll('.example-card').forEach(element => {
             element.addEventListener('mouseover', () => {
               element.style.transform = 'translateY(-2px)';
               element.style.boxShadow = 'var(--ape-shadow-md)';
             });
-            
+
+            element.addEventListener('mouseout', () => {
+              element.style.transform = '';
+              element.style.boxShadow = '';
+            });
+          });
+
+          document.querySelectorAll('.action-button').forEach(element => {
+            element.addEventListener('mouseover', () => {
+              element.style.transform = 'translateY(-2px)';
+              element.style.boxShadow = 'var(--ape-shadow-md)';
+            });
+
             element.addEventListener('mouseout', () => {
               element.style.transform = '';
               element.style.boxShadow = '';
