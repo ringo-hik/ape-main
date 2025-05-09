@@ -155,6 +155,65 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
+   * 랜덤 인사말 생성 - 유저 컨텍스트에 맞는 인사말과 팁 제공
+   */
+  private getRandomGreeting(): string {
+    try {
+      // greetings.json 파일에서 인사말 데이터 불러오기
+      const greetingsUri = vscode.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
+      const greetingsPath = greetingsUri.fsPath;
+      const greetingsFile = require(greetingsPath);
+
+      // 변경된 포맷의 greetings.json 파일 처리
+      if (greetingsFile.messages && Array.isArray(greetingsFile.messages) && greetingsFile.messages.length > 0) {
+        // 단순 messages 배열에서 랜덤 메시지 선택
+        return greetingsFile.messages[Math.floor(Math.random() * greetingsFile.messages.length)];
+      }
+
+      // 이전 포맷의 파일도 지원 (하위 호환성)
+      if (greetingsFile.greetings && Array.isArray(greetingsFile.greetings)) {
+        // 모든 개별 인사말 메시지 수집
+        const allMessages: string[] = [];
+
+        // 일반 카테고리 메시지 수집
+        for (const category of greetingsFile.greetings) {
+          if (category.messages && Array.isArray(category.messages)) {
+            allMessages.push(...category.messages);
+          }
+        }
+
+        // 조합 카테고리도 포함
+        if (greetingsFile.combinations && Array.isArray(greetingsFile.combinations)) {
+          for (const combo of greetingsFile.combinations) {
+            if (combo.messages && Array.isArray(combo.messages)) {
+              allMessages.push(...combo.messages);
+            }
+          }
+        }
+
+        // 유효한 메시지가 있는지 확인
+        if (allMessages.length > 0) {
+          return allMessages[Math.floor(Math.random() * allMessages.length)];
+        }
+      }
+
+      throw new Error('No valid greeting messages found');
+
+    } catch (error) {
+      console.error('Error loading greetings:', error);
+
+      // 오류 발생 시 기본 인사말 반환
+      const fallbackGreetings = [
+        "안녕하세요! 무엇을 도와드릴까요? 도움이 필요하시면 '/'를 입력해보세요.",
+        "어떤 개발 작업을 도와드릴까요? 슬래시(/) 명령어로 다양한 기능을 사용하실 수 있어요.",
+        "오늘은 어떤 코드를 작성하고 계신가요? 도움이 필요하시면 알려주세요."
+      ];
+
+      return fallbackGreetings[Math.floor(Math.random() * fallbackGreetings.length)];
+    }
+  }
+
+  /**
    * Sends a user message to the LLM and processes the response
    */
   public async sendMessage(content: string): Promise<void> {
@@ -235,6 +294,14 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
                 this._streamUpdateTimeout = null;
               }
 
+              // 메시지가 오류 메시지인지 확인
+              const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
+              if (assistantMessage && assistantMessage.content.includes('[연결 오류가 발생했습니다]')) {
+                // 오류 메시지를 시스템 메시지로 변경
+                assistantMessage.role = MessageRole.System;
+                assistantMessage.content = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+              }
+
               // Save messages to memory
               this.saveMessages();
 
@@ -294,7 +361,7 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
         {
           id: assistantId,
           role: MessageRole.Assistant,
-          content: '안녕하세요! 무엇을 도와드릴까요?',
+          content: this.getRandomGreeting(),
           timestamp: new Date()
         }
       ];
@@ -347,7 +414,7 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
           {
             id: assistantId,
             role: MessageRole.Assistant,
-            content: '안녕하세요! 무엇을 도와드릴까요?',
+            content: this.getRandomGreeting(),
             timestamp: new Date()
           }
         ];
@@ -630,25 +697,38 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
         <div id="chat-input-container">
           <div id="input-actions">
             <button id="smart-prompting-toggle" title="스마트 프롬프팅 전환" class="input-top-button">
-              <span class="emoji-icon">✦</span> <span id="smart-prompting-label">스마트 프롬프팅</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3L14.057 8.17159L19.5 8.88418L15.75 12.8789L16.7135 19L12 16L7.2865 19L8.25 12.8789L4.5 8.88418L9.943 8.17159L12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span id="smart-prompting-label">스마트 프롬프팅</span>
             </button>
           </div>
-          <textarea id="chat-input" placeholder="메시지 입력..." rows="1"></textarea>
-          <div id="input-buttons">
-            <button id="clear-button" title="대화 지우기">
-              <span class="emoji-icon">ⓧ</span>
-            </button>
-            <button id="send-button" title="메시지 전송">
-              <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+          <div class="input-wrapper">
+            <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1"></textarea>
+            <div id="input-buttons">
+              <button id="clear-button" title="대화 지우기" class="action-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 6L5 20M5 6L19 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button id="send-button" title="메시지 전송" class="action-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         <div id="model-indicator">
           <span id="model-name">LLM Model</span>
           <button id="model-selector" title="모델 변경">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 4L19 8V16L12 20L5 16V8L12 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12L19 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12L5 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             모델 변경
           </button>
         </div>

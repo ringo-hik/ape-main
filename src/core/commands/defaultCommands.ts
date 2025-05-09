@@ -4,13 +4,14 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { SlashCommand } from './slashCommand';
 import { createGitCommands } from '../git/commands';
 import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
 import { createJiraCommands } from './jiraCommands';
 import { createTodoCommands } from './todoCommands';
-import { Message } from '../../types/chat';
+import { Message, MessageRole } from '../../types/chat';
 
 /**
  * 기본 슬래시 커맨드 목록 생성
@@ -238,6 +239,189 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     }
   });
 
+  // Ask 명령어 - 가이드 및 도움말을 LLM 기반으로 제공
+  commands.push({
+    name: 'ask',
+    aliases: ['질문', '물어보기', '가이드', '어떻게', '어떡해', '방법', '조언'],
+    description: 'LLM을 사용하여 질문에 대한 가이드와 도움말을 제공합니다',
+    examples: ['/ask 컨플릭 해결하려면 어떻게해?', '/ask 자동 커밋 사용 방법', '/질문 규칙 관리는 어떻게 하나요?'],
+    category: 'general',
+    priority: 1,
+    execute: async (context) => {
+      try {
+        const question = context.args.join(' ').trim();
+
+        if (!question) {
+          vscode.window.showErrorMessage('질문을 입력해주세요');
+          return;
+        }
+
+        // LLM 서비스 가져오기
+        let llmService;
+
+        if (services && services.llmService) {
+          // 개발 환경에서는 services 객체가 전달됨
+          llmService = services.llmService;
+        } else {
+          // 익스텐션에서 서비스 가져오기 시도
+          const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+          if (extension && extension.isActive) {
+            llmService = extension.exports.llmService;
+          }
+        }
+
+        // LLM 서비스 존재 확인
+        if (!llmService) {
+          vscode.window.showErrorMessage('LLM 서비스를 찾을 수 없습니다');
+          return;
+        }
+
+        // help.json과 guide.json 내용 로드
+        const helpPath = path.join(vscode.extensions.getExtension('ape-team.ape-extension')?.extensionPath || '', 'src', 'data', 'help.json');
+        const guidePath = path.join(vscode.extensions.getExtension('ape-team.ape-extension')?.extensionPath || '', 'src', 'data', 'guide.json');
+
+        let helpData;
+        let guideData;
+
+        try {
+          helpData = JSON.parse(fs.readFileSync(helpPath, 'utf8'));
+        } catch (error) {
+          console.error('help.json 파일 로드 오류:', error);
+          helpData = { categories: [], faq: [], guides: [] };
+        }
+
+        try {
+          guideData = JSON.parse(fs.readFileSync(guidePath, 'utf8'));
+        } catch (error) {
+          console.error('guide.json 파일 로드 오류:', error);
+          guideData = { workflows: [], commandGuides: [] };
+        }
+
+        // 시스템 프롬프트 생성
+        const systemPrompt = `당신은 APE(Agentic Programming Extension)의 가이드 도우미입니다.
+사용자의 질문에 대해 help.json과 guide.json에 있는 정보를 기반으로 명확하고 구체적인 답변을 제공해야 합니다.
+질문과 가장 관련성 높은 명령어, 워크플로우, 가이드를 찾아 답변하세요.
+
+답변 시 다음 규칙을 따르세요:
+1. 사용자 질문과 관련된 명령어가 있다면 명령어 이름, 설명, 예시를 포함하세요
+2. 명령어 사용법과 별칭을 명확히 설명하세요
+3. 관련된 워크플로우가 있다면 단계별로 설명하세요
+4. 사용자가 질문한 작업을 수행하는 방법을 구체적인 예시와 함께 제공하세요
+5. 모든 답변은 한국어로 제공합니다
+6. 관련 명령어가 여러 개 있으면 가장 적합한 것을 중심으로 설명하고 다른 관련 명령어도 간략히 언급하세요
+7. 답변은 간결하고 명확하게 작성하세요
+8. 가이드와 도움말에 없는 내용에 대해서는 정확히 모른다고 답변하세요
+
+답변은 다음 형식을 따르세요:
+1. 핵심 명령어 또는 기능을 간략히 소개
+2. 단계별 사용 방법
+3. 예시 명령어
+
+답변 형식:
+[핵심 답변 - 1-2문장]
+
+[상세 설명 및 단계별 방법]
+
+[예시 및 관련 명령어]
+`;
+
+        // 컨텍스트 메시지 생성 (help.json, guide.json 데이터)
+        const helpCommandsStr = helpData.categories
+          .flatMap((category: any) => category.commands)
+          .map((cmd: any) => `${cmd.name}: ${cmd.description}\n사용법: ${cmd.usage || '/' + cmd.name}\n예시: ${cmd.examples?.join(', ') || '없음'}\n별칭: ${cmd.aliases?.join(', ') || '없음'}\n`)
+          .join('\n');
+
+        const faqStr = helpData.faq
+          .map((item: any) => `Q: ${item.question}\nA: ${item.answer}`)
+          .join('\n\n');
+
+        const guidesStr = guideData.commandGuides
+          .map((guide: any) => `${guide.title}:\n${guide.content.replace(/#+\s/g, '')}`)
+          .join('\n\n');
+
+        const workflowsStr = guideData.workflows
+          .map((workflow: any) => `${workflow.name}: ${workflow.description}\n권장 명령어: ${workflow.recommendedCommands.map((cmd: any) => cmd.command).join(', ')}`)
+          .join('\n\n');
+
+        // 질문을 LLM에 전송
+        const messages = [
+          {
+            id: `system_${Date.now()}`,
+            role: MessageRole.System,
+            content: systemPrompt,
+            timestamp: new Date()
+          },
+          {
+            id: `context_1_${Date.now()}`,
+            role: MessageRole.User,
+            content: `다음은 APE의 명령어 목록입니다:\n\n${helpCommandsStr}`,
+            timestamp: new Date()
+          },
+          {
+            id: `context_2_${Date.now()}`,
+            role: MessageRole.User,
+            content: `다음은 APE의 FAQ 목록입니다:\n\n${faqStr}`,
+            timestamp: new Date()
+          },
+          {
+            id: `context_3_${Date.now()}`,
+            role: MessageRole.User,
+            content: `다음은 APE의 가이드 목록입니다:\n\n${guidesStr}`,
+            timestamp: new Date()
+          },
+          {
+            id: `context_4_${Date.now()}`,
+            role: MessageRole.User,
+            content: `다음은 APE의 워크플로우 목록입니다:\n\n${workflowsStr}`,
+            timestamp: new Date()
+          },
+          {
+            id: `question_${Date.now()}`,
+            role: MessageRole.User,
+            content: question,
+            timestamp: new Date()
+          }
+        ];
+
+        // 진행 중 메시지 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+          role: 'assistant',
+          content: '질문을 분석하고 답변을 준비하고 있습니다...',
+          messageId: 'temp_loading'
+        });
+
+        // LLM에 요청 전송
+        const response = await llmService.sendRequest(messages, { temperature: 0.2 });
+
+        if (response.success && response.data) {
+          // 결과를 채팅창에 표시
+          await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: response.data.message.content,
+            replaceMessageId: 'temp_loading'
+          });
+        } else {
+          // 실패 메시지 표시
+          await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: '죄송합니다. 질문에 답변하는 중 오류가 발생했습니다.',
+            replaceMessageId: 'temp_loading'
+          });
+        }
+      } catch (error) {
+        console.error('Ask 명령어 오류:', error);
+        vscode.window.showErrorMessage(`질문 응답 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+
+        // 오류 메시지 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+          role: 'assistant',
+          content: '죄송합니다. 질문에 답변하는 중 오류가 발생했습니다.',
+          replaceMessageId: 'temp_loading'
+        });
+      }
+    }
+  });
+
   // 시스템 상태 명령어
   commands.push({
     name: 'system',
@@ -278,8 +462,9 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           return;
         }
 
-        // 시스템 정보 구성
-        let output = '## 🧠 APE 시스템 상태\n\n';
+        // 시스템 정보 구성 (일반 텍스트 형식)
+        let output = 'APE 시스템 상태\n';
+        output += '=================\n\n';
 
         // 현재 세션 정보
         const currentSession = memoryService.getCurrentSession();
@@ -295,32 +480,30 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
         const assistantMessages = messages.filter((m: Message) => m.role === 'assistant').length;
         const systemMessages = messages.filter((m: Message) => m.role === 'system').length;
 
-        // 기본 시스템 정보 표시
-        output += '### 📊 세션 정보\n\n';
-        output += `- **현재 세션**: ${currentSession?.name || '기본 세션'}\n`;
-        output += `- **세션 ID**: \`${currentSession?.id || 'default'}\`\n`;
-        output += `- **생성 시간**: ${currentSession?.createdAt.toLocaleString() || '알 수 없음'}\n`;
-        output += `- **마지막 업데이트**: ${currentSession?.updatedAt.toLocaleString() || '알 수 없음'}\n\n`;
+        // 기본 시스템 정보 표시 (텍스트 형식)
+        output += '[ 세션 정보 ]\n\n';
+        output += `현재 세션: ${currentSession?.name || '기본 세션'}\n`;
+        output += `세션 ID: ${currentSession?.id || 'default'}\n`;
+        output += `생성 시간: ${currentSession?.createdAt.toLocaleString() || '알 수 없음'}\n`;
+        output += `마지막 업데이트: ${currentSession?.updatedAt.toLocaleString() || '알 수 없음'}\n\n`;
 
-        output += '### 🤖 LLM 정보\n\n';
-        output += `- **현재 모델**: ${modelDisplayName}\n`;
-        output += `- **모델 ID**: \`${currentModel}\`\n\n`;
+        output += '[ LLM 정보 ]\n\n';
+        output += `현재 모델: ${modelDisplayName}\n`;
+        output += `모델 ID: ${currentModel}\n\n`;
 
-        output += '### 💬 메모리 통계\n\n';
-        output += `- **총 메시지 수**: ${messages.length}개\n`;
-        output += `- **사용자 메시지**: ${userMessages}개\n`;
-        output += `- **어시스턴트 메시지**: ${assistantMessages}개\n`;
-        output += `- **시스템 메시지**: ${systemMessages}개\n\n`;
+        output += '[ 메모리 통계 ]\n\n';
+        output += `총 메시지 수: ${messages.length}개\n`;
+        output += `사용자 메시지: ${userMessages}개\n`;
+        output += `어시스턴트 메시지: ${assistantMessages}개\n`;
+        output += `시스템 메시지: ${systemMessages}개\n\n`;
 
         // 메모리 상세 정보 (메모리 하위 명령어인 경우)
         if (!subCommand || subCommand === 'memory' || subCommand === '메모리') {
-          output += '### 🧠 메모리 세부 정보\n\n';
+          output += '[ 메모리 세부 정보 ]\n\n';
 
-          // 최근 메시지 5개 표시
+          // 최근 메시지 5개 표시 (일반 텍스트 형식)
           if (messages.length > 0) {
-            output += '#### 최근 메시지 (최대 5개)\n\n';
-            output += '| 역할 | 내용 | 시간 |\n';
-            output += '|------|------|------|\n';
+            output += '최근 메시지 (최대 5개):\n\n';
 
             const recentMessages = messages.slice(-5).reverse();
             for (const msg of recentMessages) {
@@ -338,7 +521,7 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
 
               const timestamp = msg.timestamp.toLocaleTimeString();
 
-              output += `| ${role} | ${truncatedContent} | ${timestamp} |\n`;
+              output += `* ${timestamp} | ${role}: ${truncatedContent}\n`;
             }
             output += '\n';
           }
