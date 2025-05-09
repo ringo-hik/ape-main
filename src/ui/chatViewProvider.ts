@@ -529,11 +529,41 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     if (!this._view) {
       return;
     }
-    
+
     // 채팅창에 텍스트 입력 요청
     this._view.webview.postMessage({
       type: 'insertCommandToInput',
       command: text
+    });
+  }
+
+  /**
+   * 채팅 입력창에 텍스트 삽입 (ape.insertToChatInput 명령어용)
+   */
+  public insertToChatInput(text: string): void {
+    if (!this._view) {
+      return;
+    }
+
+    // 채팅창에 텍스트 입력 요청
+    this._view.webview.postMessage({
+      type: 'insertCommandToInput',
+      command: text
+    });
+  }
+
+  /**
+   * 명령어 제안 갱신 (ape.showCommandSuggestions 명령어용)
+   */
+  public updateCommandSuggestions(suggestions: any[]): void {
+    if (!this._view) {
+      return;
+    }
+
+    // 웹뷰에 명령어 제안 전송
+    this._view.webview.postMessage({
+      type: 'commandSuggestions',
+      suggestions
     });
   }
   

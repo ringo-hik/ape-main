@@ -356,9 +356,23 @@ function registerComponents(context: vscode.ExtensionContext, services: ServiceC
     vscode.commands.registerCommand('ape.handleChatInput', (text) => {
       services.chatViewProvider.handleChatInput(text);
     }),
-    
+
     vscode.commands.registerCommand('ape.sendChatMessage', () => {
       vscode.commands.executeCommand('ape.sendMessage');
+    }),
+
+    vscode.commands.registerCommand('ape.showCommandSuggestions', (suggestions) => {
+      // 채팅 인터페이스에 명령어 제안 전송
+      if (services.chatViewProvider && Array.isArray(suggestions)) {
+        services.chatViewProvider.updateCommandSuggestions(suggestions);
+      }
+    }),
+
+    vscode.commands.registerCommand('ape.insertToChatInput', (text) => {
+      // 채팅 입력창에 텍스트 삽입
+      if (services.chatViewProvider && typeof text === 'string') {
+        services.chatViewProvider.insertToChatInput(text);
+      }
     }),
     
     // VAULT 관련 명령어
