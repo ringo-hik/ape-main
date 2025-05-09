@@ -1,0 +1,41 @@
+{
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "eslint.validate": [
+        "javascript",
+        "typescript"
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/out": false
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/out": true
+    },
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "javascript.preferences.importModuleSpecifier": "relative",
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/out/**": true
+    },
+    "typescript.tsc.autoDetect": "off",
+    "npm.autoDetect": "on",
+    "debug.javascript.autoAttachFilter": "smart",
+    "[typescript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
+}
