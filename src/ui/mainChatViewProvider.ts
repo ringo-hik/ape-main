@@ -6,6 +6,7 @@ import { Message, MessageRole } from '../types/chat';
 import { CommandSuggestion } from '../core/commands/slashCommand';
 import { CodeService } from './chat/codeService';
 import { ModelManager } from '../core/llm/modelManager';
+import { SmartPromptingService, SmartPromptingState, SmartPromptingMode } from '../core/services/smartPromptingService';
 import { WelcomeViewProvider } from './welcomeView';
 
 /**
@@ -21,6 +22,8 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
   private _currentStreamMessageId: string | null = null;
   private _streamUpdateTimeout: NodeJS.Timeout | null = null;
   private _modelChangeListener?: vscode.Disposable;
+  private _smartPromptingService?: SmartPromptingService;
+  private _smartPromptingStateListener?: vscode.Disposable;
 
   // Command suggestion event
   private readonly _onDidSuggestCommands = new vscode.EventEmitter<CommandSuggestion[]>();
@@ -32,7 +35,18 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
     private readonly _memoryService: MemoryService,
     private readonly _commandManager: CommandManager,
     private readonly _modelManager?: ModelManager
-  ) { }
+  ) {
+    // Initialize SmartPromptingService
+    this._smartPromptingService = new SmartPromptingService(_context, _llmService);
+
+    // Register state change listener
+    this._smartPromptingStateListener = this._smartPromptingService.onStateChanged(state => {
+      this._updateSmartPromptingUI(state);
+    });
+
+    // Add listener to context subscriptions for proper disposal
+    this._context.subscriptions.push(this._smartPromptingStateListener);
+  }
   
   /**
    * Converts a URI to a webview-compatible URI
@@ -161,11 +175,17 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
+    // Apply smart prompting (if enabled)
+    let processedContent = content;
+    if (this._smartPromptingService && this._smartPromptingService.isEnabled()) {
+      processedContent = this._smartPromptingService.processMessage(content);
+    }
+
     // Create and add user message
     const userMessage: Message = {
       id: `msg_${Date.now()}`,
       role: MessageRole.User,
-      content,
+      content: processedContent,
       timestamp: new Date()
     };
 
@@ -442,6 +462,20 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
         }
         break;
         
+      case 'toggleSmartPrompting':
+        // Toggle Smart Prompting service
+        if (this._smartPromptingService) {
+          this._smartPromptingService.toggle();
+        }
+        break;
+
+      case 'setSmartPromptingMode':
+        // Set Smart Prompting mode
+        if (this._smartPromptingService && message.mode) {
+          this._smartPromptingService.setMode(message.mode as SmartPromptingMode);
+        }
+        break;
+
       case 'copyCode':
       case 'insertCodeToEditor':
       case 'createFileWithCode':
@@ -591,10 +625,14 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
     <body>
       <div id="chat-container">
         <div class="chat-header">
-          <div class="chat-title">APE Chat</div>
         </div>
         <div id="chat-messages"></div>
         <div id="chat-input-container">
+          <div id="input-actions">
+            <button id="smart-prompting-toggle" title="스마트 프롬프팅 전환" class="input-top-button">
+              <span class="emoji-icon">✦</span> <span id="smart-prompting-label">스마트 프롬프팅</span>
+            </button>
+          </div>
           <textarea id="chat-input" placeholder="메시지 입력..." rows="1"></textarea>
           <div id="input-buttons">
             <button id="clear-button" title="대화 지우기">
@@ -661,6 +699,35 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
                 }
                 break;
               }
+
+              case 'updateSmartPrompting': {
+                // Update Smart Prompting UI state
+                if (smartPromptingToggle && smartPromptingLabel) {
+                  if (message.enabled) {
+                    smartPromptingToggle.classList.add('active');
+
+                    // Update label based on mode
+                    let modeText = '스마트 프롬프팅';
+                    switch (message.mode) {
+                      case 'basic':
+                        modeText = '기본 모드';
+                        break;
+                      case 'advanced':
+                        modeText = '고급 모드';
+                        break;
+                      case 'expert':
+                        modeText = '전문가 모드';
+                        break;
+                    }
+
+                    smartPromptingLabel.textContent = modeText;
+                  } else {
+                    smartPromptingToggle.classList.remove('active');
+                    smartPromptingLabel.textContent = '스마트 프롬프팅';
+                  }
+                }
+                break;
+              }
             }
           });
           
@@ -671,7 +738,9 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
           let clearButton;
           let modelIndicator;
           let modelSelector;
-          
+          let smartPromptingToggle;
+          let smartPromptingLabel;
+
           // Command suggestions container
           let commandSuggestionsContainer;
           
@@ -907,7 +976,6 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
                 if (message.role === 'user') {
                   const statusElement = document.createElement('div');
                   statusElement.className = 'message-status';
-                  statusElement.textContent = '읽음';
                   messageElement.appendChild(statusElement);
                 }
                 
@@ -1380,8 +1448,13 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
             modelSelector = document.getElementById('model-selector');
             commandSuggestionsContainer = document.getElementById('command-suggestions');
             
+            // Get Smart Prompting elements
+            smartPromptingToggle = document.getElementById('smart-prompting-toggle');
+            smartPromptingLabel = document.getElementById('smart-prompting-label');
+
             // Check if elements are found
-            if (!chatMessages || !chatInput || !sendButton || !clearButton || !commandSuggestionsContainer) {
+            if (!chatMessages || !chatInput || !sendButton || !clearButton ||
+                !commandSuggestionsContainer || !smartPromptingToggle || !smartPromptingLabel) {
               console.error("Critical UI elements missing");
               setTimeout(init, 500);
               return;
@@ -1460,6 +1533,11 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
             modelSelector.addEventListener('click', () => {
               vscode.postMessage({ type: 'showModelSelector' });
             });
+
+            // Smart Prompting toggle click handler
+            smartPromptingToggle.addEventListener('click', () => {
+              vscode.postMessage({ type: 'toggleSmartPrompting' });
+            });
             
             // Set up code block action listeners
             setupCodeBlockListeners();
@@ -1513,11 +1591,20 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
   }
   
   /**
-   * Smart Prompting UI update - required for interface compatibility
-   * No-op in this implementation as we don't need this feature for the iPhone style
+   * Updates the Smart Prompting UI with the current state
+   * @param state The current SmartPromptingState
    */
-  public _updateSmartPromptingUI(enabled: boolean): void {
-    // No-op for this implementation
+  public _updateSmartPromptingUI(state: SmartPromptingState): void {
+    if (!this._view) {
+      return;
+    }
+
+    // Send update message to webview
+    this._view.webview.postMessage({
+      type: 'updateSmartPrompting',
+      enabled: state.enabled,
+      mode: state.mode
+    });
   }
   
   /**
