@@ -2,7 +2,7 @@
   "name": "ape-extension",
   "displayName": "APE: Agentic Pipeline Extension",
   "description": "VSCode extension for integrating AI capabilities into developer workflow with a focus on C++ development",
-  "version": "0.9.22",
+  "version": "0.9.9",
   "publisher": "APE KIM",
   "private": true,
   "license": "UNLICENSED",

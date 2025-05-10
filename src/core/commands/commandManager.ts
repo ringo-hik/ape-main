@@ -64,11 +64,26 @@ export class CommandManager {
   }
 
   /**
-   * Registers a single command
+   * Registers a single command with safety check for duplicates
    */
   private _registerCommand(commandId: string, handler: (...args: any[]) => any): void {
-    const disposable = vscode.commands.registerCommand(commandId, handler);
-    this._context.subscriptions.push(disposable);
+    // 비동기 처리를 동기화하기 위한 즉시 실행 함수
+    (async () => {
+      try {
+        // 명령어가 이미 존재하는지 확인
+        const commands = await vscode.commands.getCommands(true);
+
+        if (!commands.includes(commandId)) {
+          // 명령어가 없는 경우에만 등록
+          const disposable = vscode.commands.registerCommand(commandId, handler);
+          this._context.subscriptions.push(disposable);
+        } else {
+          console.log(`명령 '${commandId}'는 이미 등록되어 있어 건너뜁니다.`);
+        }
+      } catch (error) {
+        console.error(`명령 등록 중 오류 발생 (${commandId}):`, error);
+      }
+    })();
   }
 
   /**

@@ -191,7 +191,7 @@ async function initializeServices(context: vscode.ExtensionContext): Promise<Ser
  * @param context Extension context
  * @param services Service container
  */
-function registerComponents(context: vscode.ExtensionContext, services: ServiceContainer): void {
+async function registerComponents(context: vscode.ExtensionContext, services: ServiceContainer): Promise<void> {
   // Register WebView provider
   const chatViewProviderRegistration = vscode.window.registerWebviewViewProvider(
     'apeChat',
@@ -727,7 +727,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     const services = await initializeServices(context);
     
     // Register VSCode components
-    registerComponents(context, services);
+    await registerComponents(context, services);
     
     // Load internal plugins
     try {

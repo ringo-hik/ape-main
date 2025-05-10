@@ -2573,7 +2573,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         }
 
         #chat-input-container {
-          padding: 12px;
+          padding: 16px 16px 12px 16px;
           border-top: 1px solid var(--vscode-input-border);
           background: var(--vscode-editor-background);
         }
@@ -2583,13 +2583,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           align-items: flex-end;
           width: 100%;
           position: relative;
+          margin-bottom: 12px;
         }
 
         #chat-input {
           flex: 1;
-          min-height: 40px;
-          max-height: 120px;
-          padding: 10px 40px 10px 12px;
+          min-height: 60px;
+          max-height: 200px;
+          padding: 12px 50px 12px 16px;
           resize: none;
           border-radius: 8px;
           font-size: 14px;
@@ -2597,6 +2598,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           border: 1px solid var(--vscode-input-border);
           color: var(--vscode-input-foreground);
           width: 100%;
+          box-sizing: border-box;
         }
 
         #chat-input:focus {
@@ -2607,18 +2609,19 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         #input-buttons {
           display: flex;
           position: absolute;
-          right: 8px;
-          bottom: 8px;
+          right: 12px;
+          bottom: 18px;
+          z-index: 1;
+          gap: 8px;
         }
 
         .input-action-button, #send-button {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          margin-left: 6px;
           background: transparent;
           border: none;
           color: var(--vscode-foreground);
@@ -2636,9 +2639,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         #style-selector-bar {
           display: flex;
           align-items: center;
-          margin-top: 8px;
-          margin-bottom: 4px;
+          margin-top: 0;
+          margin-bottom: 0;
+          padding-top: 8px;
           font-size: 12px;
+          width: 100%;
+          height: 36px;
         }
 
         #smart-prompting-toggle {
@@ -2651,6 +2657,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           border: none;
           font-size: 12px;
           color: var(--vscode-foreground);
+          margin-right: 15px;
         }
 
         #smart-prompting-toggle:hover {
