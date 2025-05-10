@@ -328,11 +328,11 @@ export class ModelManager implements vscode.Disposable {
       case 'google/gemma-7b-it':
         return 'Gemma 7B';
       case 'NARRNAS':
-        return '🔒 NARRNAS (internal)';
+        return '✦ NARRNAS (internal)';
       case 'LLAMA4-MAVERICK':
-        return '🔒 Llama 4 Maverick (internal)';
+        return '⟐ Llama 4 Maverick (internal)';
       case 'LLAMA4-SCOUT':
-        return '🔒 Llama 4 Scout (internal)';
+        return '⟡ Llama 4 Scout (internal)';
       default: {
         // 'provider/model-name' 형식에서 이름 추출
         const parts = modelId.split('/');
