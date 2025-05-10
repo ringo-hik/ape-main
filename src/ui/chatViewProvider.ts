@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { LLMService } from '../core/llm/llmService';
 import { MemoryService } from '../core/memory/memoryService';
 import { CommandManager } from '../core/commands/commandManager';
@@ -8,6 +9,7 @@ import { CommandSuggestion } from '../core/commands/slashCommand';
 import { CodeService } from './chat/codeService';
 import { ModelManager } from '../core/llm/modelManager';
 import { SmartPromptingService, SmartPromptingState } from '../core/services/smartPromptingService';
+import { WelcomeViewProvider } from './welcomeView';
 
 /**
  * ChatViewProvider manages the WebView that displays the luxurious chat interface
@@ -418,6 +420,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     // 즉시 UI 업데이트
     this._updateChatView();
   }
+
+  /**
+   * 메시지 로드 및 초기화
+   * @returns Promise<void>
+   */
+  private async _loadMessages(): Promise<void> {
     console.log('메시지 로드 중 - 기존 메시지 확인');
     const result = await this._memoryService.getMessages();
     if (result.success && result.data && result.data.length > 0) {
@@ -425,7 +433,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       this._messages = result.data;
     } else {
       console.log('저장된 메시지 없음, 웰컴 메시지 추가');
-      
+
       try {
         // Get welcome message HTML with error handling
         let welcomeHTML = '';
@@ -633,6 +641,80 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         // 텍스트 포맷 기능
         this._formatInputText();
         break;
+
+      case 'inputContent':
+        // 입력 내용을 받아서 포맷 처리
+        if (message.content) {
+          this._processFormattedText(message.content);
+        }
+        break;
+    }
+  }
+
+  /**
+   * 텍스트 포맷 기능 구현
+   * 입력 텍스트를 개선된 형식으로 포맷팅
+   */
+  private async _formatInputText(): Promise<void> {
+    if (!this._view) {
+      return;
+    }
+
+    try {
+      // 현재 입력 내용을 가져오기 위해 웹뷰에 요청
+      this._view.webview.postMessage({
+        type: 'getInputContent'
+      });
+    } catch (error) {
+      console.error('텍스트 포맷 요청 중 오류 발생:', error);
+      vscode.window.showErrorMessage('텍스트 포맷 요청 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 텍스트 포맷팅 처리
+   * 클라이언트에서 받은 입력 내용을 포맷팅하여 응답
+   */
+  private async _processFormattedText(content: string): Promise<void> {
+    if (!this._view) {
+      return;
+    }
+
+    try {
+      // 간단한 텍스트 포맷팅 처리
+      let formattedText = content;
+
+      // 기본 포맷팅 규칙 적용
+      // 1. 줄 시작 부분 공백 제거
+      formattedText = formattedText.split('\n')
+        .map(line => line.trimStart())
+        .join('\n');
+
+      // 2. 연속된 공백 제거
+      formattedText = formattedText.replace(/\s{2,}/g, ' ');
+
+      // 3. 마크다운 제목 앞뒤에 공백 추가
+      formattedText = formattedText.replace(/^(#{1,6})([^\s#])/gm, '$1 $2');
+
+      // 4. 리스트 항목 포맷팅
+      formattedText = formattedText.replace(/^([*+-])([^\s])/gm, '$1 $2');
+      formattedText = formattedText.replace(/^(\d+\.)([^\s])/gm, '$1 $2');
+
+      // 고급 포맷팅 - 나중에 LLM 통합 가능
+      // 지금은 간단한 규칙만 적용
+
+      // 포맷된 텍스트 전송
+      this._view.webview.postMessage({
+        type: 'formatResponse',
+        formattedText: formattedText
+      });
+    } catch (error) {
+      console.error('텍스트 포맷 처리 중 오류 발생:', error);
+      // 오류 시 원본 텍스트 반환
+      this._view.webview.postMessage({
+        type: 'formatResponse',
+        formattedText: content
+      });
     }
   }
 

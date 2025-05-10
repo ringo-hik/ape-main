@@ -98,6 +98,17 @@ export class ChatViewService {
           }
           break;
         }
+
+        case 'getInputContent': {
+          // 현재 입력 내용을 서버로 전송
+          if (chatInput) {
+            vscode.postMessage({
+              type: 'inputContent',
+              content: chatInput.value
+            });
+          }
+          break;
+        }
       }
     });
     
@@ -358,7 +369,7 @@ export class ChatViewService {
       let processedContent = content;
 
       // 코드 블록 처리 (먼저 처리하여 다른 마크다운 변환에 영향을 주지 않도록)
-      processedContent = processedContent.replace(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g, function(match, language, code) {
+      processedContent = processedContent.replace(/```([a-zA-Z0-9_]*)\n([\s\S]*?)\n```/g, function(match, language, code) {
         const codeId = 'code_' + (++codeBlockCounter);
         const escapedCode = escapeHtml(code);
         const lang = language || 'plaintext';
@@ -544,7 +555,7 @@ export class ChatViewService {
     // Handle editor content insertion
     function handleEditorContent(content) {
       if (content) {
-        chatInput.value += '\`\`\`\\n' + content + '\\n\`\`\`\\n';
+        chatInput.value += '```\n' + content + '\n```\n';
         resizeInput();
       }
     }
@@ -860,8 +871,10 @@ export class ChatViewService {
       updateCommandSuggestions([]);
       
       // 플레이스홀더 숨기기
-      inputPlaceholder.classList.remove('visible');
-      
+      if (inputPlaceholder && inputPlaceholder.classList) {
+        inputPlaceholder.classList.remove('visible');
+      }
+
       // Notify about input change
       notifyInputChanged();
     }
@@ -1067,7 +1080,7 @@ export class ChatViewService {
       });
     }
     
-    // 입력값에 따라 플레이스홀더 업데이트 - 제거함 (팝오버 UI로 기능 대체)
+    // 입력값에 따라 플레이스홀더 업데이트 - 팝오버 UI로 기능 대체
     function updateInputPlaceholder(inputValue) {
       // 플레이스홀더는 항상 숨김 상태로 유지
       if (inputPlaceholder && inputPlaceholder.classList) {
@@ -1403,7 +1416,9 @@ export class ChatViewService {
       
       // 포커스를 잃을 때 플레이스홀더 숨기기
       chatInput.addEventListener('blur', () => {
-        inputPlaceholder.classList.remove('visible');
+        if (inputPlaceholder && inputPlaceholder.classList) {
+          inputPlaceholder.classList.remove('visible');
+        }
       });
       
       // 포커스를 얻을 때 플레이스홀더 재검사
@@ -1753,6 +1768,7 @@ export class ChatViewService {
    * @returns 변환된 내용
    */
   private static replaceCodeBlocks(content: string, options: FormatOptions): string {
+    // 클라이언트 측 코드와 정확히 동일한 정규식 패턴 사용
     return content.replace(/```([a-zA-Z0-9_]*)\n([\s\S]*?)\n```/g, (match, language, code) => {
       return this.formatCodeBlock(code.trim(), language || 'plaintext', options);
     });
