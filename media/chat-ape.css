@@ -751,14 +751,14 @@ body {
   transform: translateY(-1px);
 }
 
-/* 슬래시 명령어 자동완성 - 현대적 디자인 */
+/* 슬래시 명령어 자동완성 */
 #command-suggestions {
   position: absolute;
   bottom: 100%;
   left: 16px;
   width: 300px;
   max-width: 80%;
-  max-height: 210px; /* Limit height to show ~5 items */
+  max-height: 210px;
   overflow-y: auto;
   background-color: var(--ape-bg-secondary);
   border: 1px solid var(--ape-border-strong);
@@ -785,8 +785,9 @@ body {
   border-radius: var(--ape-border-radius-full);
 }
 
+/* 카테고리 헤더 */
 .suggestion-category {
-  display: none; /* Hide category headers to save space */
+  display: none;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -798,6 +799,7 @@ body {
   font-weight: 500;
 }
 
+/* 명령어 제안 */
 .command-suggestion {
   padding: 8px 12px;
   cursor: pointer;
@@ -812,7 +814,7 @@ body {
   align-items: center;
 }
 
-.command-suggestion:hover, 
+.command-suggestion:hover,
 .command-suggestion.active {
   background-color: var(--ape-bg-hover);
 }
@@ -821,7 +823,7 @@ body {
   border-left: 2px solid var(--ape-accent-primary);
 }
 
-/* 하위 명령어 스타일 */
+/* 하위 명령어 */
 .command-suggestion.has-children .suggestion-label::after {
   content: "›";
   margin-left: 5px;
@@ -898,7 +900,7 @@ body {
   opacity: 1;
 }
 
-/* 웰컴 화면 - 미니멀리즘 디자인 */
+/* 웰컴 화면 */
 .welcome-container {
   width: 100%;
   max-width: var(--ape-container-max-width);
@@ -921,13 +923,12 @@ body {
 .welcome-logo {
   width: 80px;
   height: 80px;
-  margin: 0 auto;
+  margin: 0 auto var(--ape-spacing-md);
   background-color: var(--ape-accent-primary);
   border-radius: var(--ape-border-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--ape-spacing-md);
   box-shadow: var(--ape-shadow-md);
   position: relative;
   overflow: hidden;
@@ -965,6 +966,7 @@ body {
   margin: 0;
 }
 
+/* 액션 버튼 */
 .welcome-actions {
   margin-bottom: var(--ape-spacing-xl);
 }
@@ -1015,6 +1017,7 @@ body {
   color: var(--ape-text-secondary);
 }
 
+/* 예제 카드 */
 .welcome-examples {
   margin-bottom: var(--ape-spacing-lg);
 }
@@ -1061,6 +1064,7 @@ body {
   color: var(--ape-text-primary);
 }
 
+/* 퀵 액션 */
 .welcome-quick-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1092,7 +1096,7 @@ body {
   justify-content: center;
 }
 
-/* 반응형 디자인 - 구조적 유연성 */
+/* 반응형 디자인 */
 @media (max-width: 1024px) {
   :root {
     --ape-container-max-width: 90%;
@@ -1103,7 +1107,7 @@ body {
   :root {
     --ape-container-max-width: 100%;
   }
-  
+
   .welcome-container,
   #chat-input-container,
   #model-indicator {
@@ -1112,61 +1116,55 @@ body {
     padding-left: var(--ape-mobile-padding);
     padding-right: var(--ape-mobile-padding);
   }
-  
-  .action-group {
-    grid-template-columns: 1fr;
-  }
 
+  .action-group,
   .example-cards {
     grid-template-columns: 1fr;
   }
-  
+
   #chat-messages {
     padding-left: var(--ape-mobile-padding);
     padding-right: var(--ape-mobile-padding);
   }
-  
+
   .message {
     max-width: 100%;
     width: calc(100% - var(--ape-spacing-md));
   }
-  
+
   .user, .assistant {
-    max-width: 90%; /* 85%에서 90%로 증가 */
+    max-width: 90%;
   }
 }
 
-/* 모바일 최적화 - 실용적 미니멀리즘 */
+/* 모바일 최적화 */
 @media (max-width: 480px) {
   #chat-input-container {
     padding: var(--ape-spacing-sm);
   }
-  
+
   #input-buttons {
     margin-top: var(--ape-spacing-xs);
   }
-  
+
   .message {
     padding: var(--ape-spacing-sm);
     margin-bottom: var(--ape-spacing-md);
   }
-  
-  .user, .assistant {
-    max-width: 90%;
-  }
-  
+
   .welcome-container {
     padding: var(--ape-spacing-md);
   }
 }
 
-/* 에어비앤비 스타일 모놀로그 - 프리미엄 에디션 */
+/* 웰컴 모놀로그 */
 .welcome-monologue {
   max-width: 680px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem;
   text-align: center;
   letter-spacing: -0.02em;
+  animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .welcome-title {
@@ -1181,7 +1179,7 @@ body {
 .title-separator {
   width: 40px;
   height: 1px;
-  background-color: var(--ape-accent-gold, #d4af37);
+  background-color: var(--ape-accent-gold);
   margin: 1.8rem auto;
   opacity: 0.8;
 }
@@ -1205,14 +1203,9 @@ body {
   font-family: var(--ape-font-display);
 }
 
-/* 애니메이션 효과 */
-.welcome-monologue {
-  animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* 브랜드 아이덴티티 - 프리미엄 모놀로그 */
+/* 프리미엄 스타일 */
 .signature-monologue {
-  font-family: 'Montserrat', 'Didot', serif;
+  font-family: var(--ape-font-display);
   text-align: center;
 }
 
@@ -1239,22 +1232,16 @@ body {
 }
 
 @keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* 미디어 쿼리 */
+/* 모놀로그 반응형 */
 @media (max-width: 1024px) {
   .welcome-title {
     font-size: 4rem;
   }
-  
+
   .welcome-subtitle {
     font-size: 1.1rem;
   }
@@ -1264,26 +1251,25 @@ body {
   .welcome-title {
     font-size: 3.5rem;
   }
-  
+
   .welcome-subtitle {
     font-size: 1rem;
   }
 }
 
-/* 비주얼 요소 (이모지 및 아이콘) - 미니멀한 표현 */
+/* 아이콘 스타일 */
 .emoji-icon {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   font-style: normal;
 }
 
-/* 검색 버튼 아이콘 크기 조정 */
 #search-button .emoji-icon {
   font-size: 20px;
   transform: scale(1.2);
   display: inline-block;
 }
 
-/* 상단 버튼 공통 스타일 */
+/* 버튼 공통 스타일 */
 .input-top-button {
   height: 38px;
   padding: 6px 14px;

@@ -7,9 +7,9 @@ import {
   LLMRequest, 
   LLMResponse, 
   LLMRequestOptions,
-  StreamCallback,
-  LLMModel
+  StreamCallback
 } from '../../types/chat';
+import { ModelId } from '../../types/models';
 import { ModelManager } from './modelManager';
 import { VaultService } from '../services/vaultService';
 import { RulesService } from '../services/rulesService';
@@ -25,6 +25,232 @@ import {
 
 // Define constants for WebSocket states
 const WS_OPEN = 1;
+
+/**
+ * UUID 생성 함수 - 분산 환경에서의 추적성 향상
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, 
+        v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+/**
+ * 세밀한 진단을 위한 로깅 유틸리티 - 기존 코드에 영향 없이 추가됨
+ */
+class LogUtil {
+  // 로그 수준 설정으로 진단 깊이 조절 가능
+  static LOG_LEVEL = {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3
+  };
+  
+  static CURRENT_LOG_LEVEL = LogUtil.LOG_LEVEL.INFO;
+  private static logCounter = 0;
+  
+  static getLogId(): string {
+    return `log_${Date.now()}_${++LogUtil.logCounter}`;
+  }
+  
+  // 순환 참조 객체 안전하게 JSON으로 변환
+  private static getCircularReplacer() {
+    const seen = new WeakSet();
+    return (key: string, value: any) => {
+      // undefined 값은 건너뜀
+      if (value === undefined) return '[undefined]';
+      
+      // 원시 타입이나 null이면 그대로 반환
+      if (typeof value !== 'object' || value === null) return value;
+      
+      // 순환 참조 감지
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      
+      // Error 객체 특수 처리
+      if (value instanceof Error) {
+        return {
+          name: value.name,
+          message: value.message,
+          stack: value.stack
+        };
+      }
+      
+      // 객체 추적에 추가 (비원시 타입만)
+      seen.add(value);
+      return value;
+    };
+  }
+  
+  // 진단 가능한 구조화 정보 출력 (순환 참조 안전처리)
+  static formatObject(obj: any, depth: number = 2): string {
+    try {
+      return JSON.stringify(obj, this.getCircularReplacer(), 2);
+    } catch (error) {
+      console.error('로깅 중 오류 발생:', error);
+      return '[로깅 불가 객체]';
+    }
+  }
+
+  // 향상된 시각적 패턴으로 API 요청 추적
+  static logRequest(endpoint: string, headers: any, body: any): void {
+    const logId = LogUtil.getLogId();
+    if (LogUtil.CURRENT_LOG_LEVEL <= LogUtil.LOG_LEVEL.DEBUG) {
+      console.log(`
+╔════════════════════════════════════════════════════════════
+║ API 요청 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════
+║ 엔드포인트: ${endpoint}
+║ 
+║ 요청 헤더:
+${LogUtil.formatObject(headers).split('\n').map((line: string) => `║ ${line}`).join('\n')}
+║
+║ 요청 본문:
+${LogUtil.formatObject(body).split('\n').map((line: string) => `║ ${line}`).join('\n')}
+╚════════════════════════════════════════════════════════════
+      `);
+    }
+  }
+
+  // 응답 데이터 구조적 분석 도구
+  static logResponse(responseData: any): void {
+    const logId = LogUtil.getLogId();
+    if (LogUtil.CURRENT_LOG_LEVEL <= LogUtil.LOG_LEVEL.DEBUG) {
+      console.log(`
+╔════════════════════════════════════════════════════════════
+║ API 응답 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════
+║ 응답 본문:
+${LogUtil.formatObject(responseData).split('\n').map((line: string) => `║ ${line}`).join('\n')}
+╚════════════════════════════════════════════════════════════
+      `);
+    }
+  }
+
+  // 복합적 오류 컨텍스트 캡처
+  static logError(operation: string, error: any): void {
+    const logId = LogUtil.getLogId();
+    if (LogUtil.CURRENT_LOG_LEVEL <= LogUtil.LOG_LEVEL.ERROR) {
+      // 순환 구조 문제를 방지하기 위해 안전한 오류 출력
+      let errorDetails = '';
+      try {
+        // 기본 오류 정보 추출
+        errorDetails = `
+║ 작업 컨텍스트: ${operation}
+║ 에러 코드: ${error?.code || 'N/A'}
+║ 상태 코드: ${error?.response?.status || 'N/A'}
+║ 에러 메시지: ${error?.message || '알 수 없는 오류'}`;
+        
+        // 응답 데이터가 있으면 안전하게 추가
+        if (error?.response?.data) {
+          try {
+            const safeResponseData = typeof error.response.data === 'object' ? 
+              JSON.stringify(error.response.data, this.getCircularReplacer()) : 
+              String(error.response.data);
+            errorDetails += `\n║ 응답 데이터: ${safeResponseData}`;
+          } catch (formatError) {
+            errorDetails += '\n║ 응답 데이터: [순환 참조 또는 직렬화 불가 객체]';
+          }
+        } else {
+          errorDetails += '\n║ 응답 데이터: N/A';
+        }
+        
+        // 스택 트레이스 안전하게 추가
+        errorDetails += '\n║ \n║ 스택 트레이스:';
+        if (error?.stack) {
+          errorDetails += `\n${error.stack.split('\n').map((line: string) => `║ ${line}`).join('\n')}`;
+        } else {
+          try {
+            const safeErrorString = JSON.stringify(error, this.getCircularReplacer());
+            errorDetails += `\n${safeErrorString.split('\n').map((line: string) => `║ ${line}`).join('\n')}`;
+          } catch (stringifyError) {
+            errorDetails += '\n║ [순환 참조로 인해 스택 트레이스를 표시할 수 없음]';
+          }
+        }
+      } catch (loggingError) {
+        // 최악의 경우에도 기본 오류 정보는 제공
+        errorDetails = `
+║ 작업 컨텍스트: ${operation}
+║ 기본 에러 정보: 순환 참조로 인해 자세한 정보를 표시할 수 없습니다
+║ 에러 메시지: ${error?.message || '알 수 없는 오류'}`;
+      }
+      
+      // 최종 오류 출력
+      console.error(`
+╔════════════════════════════════════════════════════════════
+║ ⚠️ 시스템 오류 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════${errorDetails}
+╚════════════════════════════════════════════════════════════
+      `);
+    }
+  }
+
+  // 스트리밍 데이터 흐름 추적
+  static logStreamChunk(chunk: any, parsed: any): void {
+    // Skip logging empty chunks or when only structural content exists
+    const isEmpty = !chunk ||
+      (typeof chunk === 'string' && !chunk.trim()) ||
+      (parsed && Object.keys(parsed).length === 0);
+
+    if (isEmpty) {
+      return;
+    }
+
+    // Check if content is empty (to reduce logging noise)
+    const hasContent = parsed &&
+      (parsed.content || parsed.text || parsed.delta?.content ||
+       parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content);
+
+    // Only log if DEBUG level is enabled and content exists
+    const logId = LogUtil.getLogId();
+    if (LogUtil.CURRENT_LOG_LEVEL <= LogUtil.LOG_LEVEL.DEBUG && hasContent) {
+      console.log(`
+╔════════════════════════════════════════════════════════════
+║ 스트림 데이터 청크 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════
+║ 원본 데이터:
+${(typeof chunk === 'string' ? chunk : LogUtil.formatObject(chunk)).split('\n').map((line: string) => `║ ${line}`).join('\n')}
+║
+║ 구조화 데이터:
+${LogUtil.formatObject(parsed).split('\n').map((line: string) => `║ ${line}`).join('\n')}
+╚════════════════════════════════════════════════════════════
+      `);
+    }
+  }
+  
+  // 시스템 상태 및 주요 이벤트 추적
+  static logInfo(message: string, data?: any): void {
+    const logId = LogUtil.getLogId();
+    if (LogUtil.CURRENT_LOG_LEVEL <= LogUtil.LOG_LEVEL.INFO) {
+      try {
+        const safeData = data ? LogUtil.formatObject(data) : '';
+        console.log(`
+╔════════════════════════════════════════════════════════════
+║ 시스템 이벤트 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════
+║ ${message}
+${data ? `║ 
+${safeData.split('\n').map((line: string) => `║ ${line}`).join('\n')}` : ''}
+╚════════════════════════════════════════════════════════════
+        `);
+      } catch (error) {
+        // 로깅 실패 시에도 최소한의 정보는 출력
+        console.log(`
+╔════════════════════════════════════════════════════════════
+║ 시스템 이벤트 [ID:${logId}] (${new Date().toISOString()})
+╠════════════════════════════════════════════════════════════
+║ ${message}
+║ [로깅 불가 데이터: 순환 참조 또는 직렬화 오류]
+╚════════════════════════════════════════════════════════════
+        `);
+      }
+    }
+  }
+}
 
 /**
  * LLM connection type
@@ -75,7 +301,7 @@ export class LLMService implements vscode.Disposable {
     this._endpoint = '';
     this._connectionType = ConnectionType.HTTP;
     
-    console.log('LLMService 초기화 시작...');
+    LogUtil.logInfo('LLMService 초기화 시작...');
     
     // Load configuration
     this._loadConfiguration();
@@ -84,18 +310,18 @@ export class LLMService implements vscode.Disposable {
     this._configListener = vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('ape.llm') && 
           !event.affectsConfiguration('ape.llm.defaultModel')) { // Only handle non-model configs
-        console.log('LLM 설정 변경 감지:', event);
+        LogUtil.logInfo('LLM 설정 변경 감지:', event);
         this._loadConfiguration();
       }
     });
     
     // Listen for model changes from ModelManager
     this._modelChangeListener = this._modelManager.onDidChangeModel(event => {
-      console.log(`모델 변경 감지: ${event.oldModel} -> ${event.newModel}`);
+      LogUtil.logInfo(`모델 변경 감지: ${event.oldModel} -> ${event.newModel}`);
       // No need to update internal state as we'll always use modelManager.getActiveModel()
     });
     
-    console.log('LLMService 초기화 완료, 기본 모델:', this.getActiveModel());
+    LogUtil.logInfo('LLMService 초기화 완료, 기본 모델:', this.getActiveModel());
   }
   
   /**
@@ -104,6 +330,7 @@ export class LLMService implements vscode.Disposable {
    */
   public setVaultService(vaultService: VaultService): void {
     this._vaultService = vaultService;
+    LogUtil.logInfo('VAULT 서비스 설정됨');
   }
   
   /**
@@ -112,6 +339,7 @@ export class LLMService implements vscode.Disposable {
    */
   public setRulesService(rulesService: RulesService): void {
     this._rulesService = rulesService;
+    LogUtil.logInfo('Rules 서비스 설정됨');
   }
   
   /**
@@ -127,10 +355,12 @@ export class LLMService implements vscode.Disposable {
     // Only update endpoint and API key if changed
     if (this._endpoint !== newEndpoint) {
       this._endpoint = newEndpoint;
+      LogUtil.logInfo('엔드포인트 설정 변경됨', { endpoint: this._endpoint });
     }
     
     if (this._apiKey !== newApiKey) {
       this._apiKey = newApiKey;
+      LogUtil.logInfo('API 키 설정 변경됨', { keyLength: this._apiKey.length });
     }
     
     // Update connection type
@@ -140,11 +370,13 @@ export class LLMService implements vscode.Disposable {
     
     if (this._connectionType !== newConnectionType) {
       this._connectionType = newConnectionType;
+      LogUtil.logInfo('연결 타입 변경됨', { connectionType: this._connectionType });
       
       // Handle WebSocket connection changes
       if (this._connectionType === ConnectionType.WebSocket && this._wsConnection) {
         this._wsConnection.close();
         this._wsConnection = null;
+        LogUtil.logInfo('기존 WebSocket 연결 종료됨');
       }
     }
   }
@@ -153,7 +385,7 @@ export class LLMService implements vscode.Disposable {
    * Gets the currently active LLM model
    * @returns The active LLM model
    */
-  public getActiveModel(): LLMModel {
+  public getActiveModel(): ModelId {
     return this._modelManager.getActiveModel();
   }
   
@@ -161,7 +393,8 @@ export class LLMService implements vscode.Disposable {
    * Changes the active LLM model
    * @param model The model to switch to
    */
-  public async setActiveModel(model: LLMModel): Promise<boolean> {
+  public async setActiveModel(model: ModelId): Promise<boolean> {
+    LogUtil.logInfo('모델 변경 요청', { newModel: model });
     return this._modelManager.setActiveModel(model);
   }
   
@@ -169,7 +402,7 @@ export class LLMService implements vscode.Disposable {
    * Gets all available LLM models
    * @returns Array of available LLM models
    */
-  public getAvailableModels(): LLMModel[] {
+  public getAvailableModels(): ModelId[] {
     return this._modelManager.getAvailableModels();
   }
   
@@ -193,18 +426,29 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResult<LLMResponse>> {
     try {
+      LogUtil.logInfo('LLM 요청 시작', {
+        messageCount: messages.length,
+        options: options
+      });
+      
       // 모델 지정 (디버깅 목적으로 사용됩니다)
       // options?.model || this.getActiveModel();
       
       if (this._connectionType === ConnectionType.WebSocket) {
+        LogUtil.logInfo('WebSocket 요청 실행', { 
+          model: options?.model || this.getActiveModel() 
+        });
         const response = await this._sendWebSocketRequest(messages, options);
         return { success: true, data: response };
       } else {
+        LogUtil.logInfo('HTTP 요청 실행', { 
+          model: options?.model || this.getActiveModel() 
+        });
         const response = await this._sendHttpRequest(messages, options);
         return { success: true, data: response };
       }
     } catch (error) {
-      console.error('Error sending LLM request:', error);
+      LogUtil.logError('LLM 요청 중 오류 발생', error);
       return { 
         success: false, 
         error: error instanceof Error 
@@ -227,18 +471,29 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResult<void>> {
     try {
+      LogUtil.logInfo('LLM 스트리밍 요청 시작', {
+        messageCount: messages.length,
+        options: options
+      });
+      
       // 모델 지정 (디버깅 목적으로 사용됩니다)
       // options?.model || this.getActiveModel();
 
       if (this._connectionType === ConnectionType.WebSocket) {
+        LogUtil.logInfo('WebSocket 스트리밍 시작', {
+          model: options?.model || this.getActiveModel()
+        });
         await this._streamWebSocketResponse(messages, streamCallback, options);
         return { success: true };
       } else {
+        LogUtil.logInfo('HTTP 스트리밍 시작', {
+          model: options?.model || this.getActiveModel()
+        });
         await this._streamHttpResponse(messages, streamCallback, options);
         return { success: true };
       }
     } catch (error) {
-      console.error('Error streaming LLM response:', error);
+      LogUtil.logError('LLM 스트리밍 중 오류 발생', error);
 
       // 에러 발생 시 스트리밍 완료 콜백 호출로 UI가 대기 상태에서 벗어나게 함
       // 에러 메시지를 마지막 청크로 전달하여 사용자에게 표시
@@ -263,9 +518,12 @@ export class LLMService implements vscode.Disposable {
    * @param streamCallback Optional callback to notify about cancellation
    */
   public cancelStream(streamCallback?: StreamCallback): void {
+    LogUtil.logInfo('스트림 취소 요청됨');
+    
     if (this._connectionType === ConnectionType.HTTP && this._cancelTokenSource) {
       this._cancelTokenSource.cancel('Operation canceled by user');
       this._cancelTokenSource = null;
+      LogUtil.logInfo('HTTP 스트림 취소됨');
 
       // 취소 알림 메시지 전달 (선택적)
       if (streamCallback) {
@@ -275,13 +533,14 @@ export class LLMService implements vscode.Disposable {
       // Send cancel message if supported
       try {
         this._wsConnection.send(JSON.stringify({ type: 'cancel' }));
+        LogUtil.logInfo('WebSocket 취소 메시지 전송됨');
 
         // 취소 알림 메시지 전달 (선택적)
         if (streamCallback) {
           streamCallback('\n\n*요청이 취소되었습니다.*', true);
         }
       } catch (error) {
-        console.error('Error sending cancel message to WebSocket:', error);
+        LogUtil.logError('WebSocket 취소 메시지 전송 실패', error);
         // 취소 오류 알림 (선택적)
         if (streamCallback) {
           streamCallback('\n\n*요청 취소 중 오류가 발생했습니다.*', true);
@@ -301,6 +560,7 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResponse> {
     const formattedMessages = this._formatMessagesForAPI(messages, options);
+    const requestId = generateUUID();
     
     // OpenRouter API 요청 형식으로 변환
     const openRouterMessages = formattedMessages.map(msg => ({
@@ -324,11 +584,17 @@ export class LLMService implements vscode.Disposable {
       'X-Title': 'APE (Agentic Pipeline Engine)'
     };
     
-    console.log("LLM 요청:", JSON.stringify(request, null, 2));
-    const response = await axios.post(this._endpoint, request, { headers });
-    console.log("LLM 응답:", JSON.stringify(response.data, null, 2));
+    LogUtil.logRequest(this._endpoint, headers, request);
     
-    return this._processHttpResponse(response.data);
+    try {
+      const response = await axios.post(this._endpoint, request, { headers });
+      LogUtil.logResponse(response.data);
+      
+      return this._processHttpResponse(response.data);
+    } catch (error) {
+      LogUtil.logError('HTTP 요청 중 오류 발생', error);
+      throw error;
+    }
   }
   
   /**
@@ -345,7 +611,9 @@ export class LLMService implements vscode.Disposable {
       this._ensureWebSocketConnection();
       
       if (!this._wsConnection) {
-        reject(new Error('Failed to establish WebSocket connection'));
+        const error = new Error('Failed to establish WebSocket connection');
+        LogUtil.logError('WebSocket 연결 실패', error);
+        reject(error);
         return;
       }
       
@@ -361,12 +629,17 @@ export class LLMService implements vscode.Disposable {
       };
       
       // Generate a unique request ID
-      const requestId = `req_${Date.now()}`;
+      const requestId = generateUUID();
+      LogUtil.logInfo('WebSocket 요청 준비 완료', { requestId });
       
       // Set up one-time message handler for this request
       const messageHandler = (data: any) => {
         try {
           const dataStr = data.toString();
+          LogUtil.logInfo('WebSocket 응답 수신', {
+            dataPreview: dataStr.substring(0, 100) + (dataStr.length > 100 ? '...' : '')
+          });
+          
           const response = JSON.parse(dataStr);
           
           // Check if this is the response to our request
@@ -377,12 +650,15 @@ export class LLMService implements vscode.Disposable {
             }
             
             if (response.error) {
+              LogUtil.logError('WebSocket 응답 오류', new Error(response.error));
               reject(new Error(response.error));
             } else {
+              LogUtil.logInfo('WebSocket 응답 처리 성공');
               resolve(this._processWebSocketResponse(response));
             }
           }
         } catch (error) {
+          LogUtil.logError('WebSocket 응답 처리 중 오류', error);
           reject(error);
         }
       };
@@ -391,17 +667,26 @@ export class LLMService implements vscode.Disposable {
       this._wsConnection.on('message', messageHandler);
       
       // Send the request with the request ID
-      this._wsConnection.send(JSON.stringify({
-        ...request,
-        requestId
-      }));
+      try {
+        this._wsConnection.send(JSON.stringify({
+          ...request,
+          requestId
+        }));
+        LogUtil.logInfo('WebSocket 요청 전송 완료', { requestId });
+      } catch (error) {
+        LogUtil.logError('WebSocket 요청 전송 실패', error);
+        reject(error);
+        return;
+      }
       
       // Set a timeout in case of no response
       const timeoutId = setTimeout(() => {
         if (this._wsConnection) {
           this._wsConnection.removeListener('message', messageHandler);
         }
-        reject(new Error('Request timed out'));
+        const timeoutError = new Error('Request timed out');
+        LogUtil.logError('WebSocket 요청 타임아웃', timeoutError);
+        reject(timeoutError);
       }, 30000); // 30 seconds timeout
       
       // Also set up an error handler
@@ -409,6 +694,7 @@ export class LLMService implements vscode.Disposable {
         clearTimeout(timeoutId);
         this._wsConnection?.removeListener('message', messageHandler);
         this._wsConnection?.removeListener('error', errorHandler);
+        LogUtil.logError('WebSocket 오류 발생', error);
         reject(error);
       };
       
@@ -428,6 +714,7 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<void> {
     const formattedMessages = this._formatMessagesForAPI(messages, options);
+    const requestId = generateUUID();
 
     // OpenRouter API 요청 형식으로 변환
     const openRouterMessages = formattedMessages.map(msg => ({
@@ -454,8 +741,13 @@ export class LLMService implements vscode.Disposable {
     // Create a cancellation token
     this._cancelTokenSource = axios.CancelToken.source();
 
+    LogUtil.logRequest(this._endpoint, headers, request);
+    LogUtil.logInfo('HTTP 스트리밍 요청 시작', { requestId });
+
     try {
       // 누적 텍스트는 디버깅 목적으로 사용될 수 있음
+      let chunkCount = 0;
+      let accumulatedText = '';
 
       const response = await axios.post(this._endpoint, request, {
         responseType: 'stream',
@@ -463,31 +755,53 @@ export class LLMService implements vscode.Disposable {
         headers: headers
       });
 
+      LogUtil.logInfo('스트리밍 응답 시작됨', {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       response.data.on('data', (chunk: Buffer) => {
-        const lines = chunk.toString().split('\n').filter(Boolean);
+        const chunkStr = chunk.toString();
+        LogUtil.logInfo(`스트림 데이터 청크 #${++chunkCount} 수신`, {
+          chunkSize: chunkStr.length,
+          chunkPreview: chunkStr.substring(0, 100) + (chunkStr.length > 100 ? '...' : '')
+        });
+
+        const lines = chunkStr.split('\n').filter(Boolean);
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.substring('data: '.length);
             if (data === '[DONE]') {
+              LogUtil.logInfo('스트림 완료 신호 [DONE] 수신');
               streamCallback('', true); // 스트림 완료 신호
             } else {
               try {
                 const parsed = JSON.parse(data);
+                LogUtil.logStreamChunk(data, parsed);
+                
                 if (parsed.choices && parsed.choices.length > 0) {
                   const content = parsed.choices[0].delta?.content ||
                                  parsed.choices[0].message?.content || '';
                   if (content) {
+                    accumulatedText += content;
+                    LogUtil.logInfo('스트림 콘텐츠 추출', {
+                      contentLength: content.length,
+                      contentPreview: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+                      totalAccumulated: accumulatedText.length
+                    });
+                    
                     streamCallback(content, false);
                   }
                 } else if (parsed.error) {
                   // 스트리밍 중 API 에러 처리
                   const errorContent = `\n\n**오류 발생**: ${parsed.error.message || '알 수 없는 오류가 발생했습니다.'}`;
+                  LogUtil.logError('API 스트리밍 오류 응답', new Error(parsed.error.message));
                   streamCallback(errorContent, true); // 에러 메시지 전달 후 스트림 완료 처리
                   throw new Error(parsed.error.message || 'API error during streaming');
                 }
               } catch (err) {
-                console.error('Stream parsing error:', err);
+                LogUtil.logError('스트림 데이터 파싱 오류', err);
                 // JSON 파싱 에러는 스트림을 중단시키지 않음 (단일 청크 손상 처리)
               }
             }
@@ -497,28 +811,55 @@ export class LLMService implements vscode.Disposable {
 
       response.data.on('end', () => {
         this._cancelTokenSource = null;
+        LogUtil.logInfo('스트림 종료', {
+          totalChunks: chunkCount,
+          totalAccumulatedLength: accumulatedText.length
+        });
         streamCallback('', true); // 스트림 완료 신호
       });
 
       response.data.on('error', (err: Error) => {
         this._cancelTokenSource = null;
-        console.error('Stream error:', err);
+        
+        // 스트림 에러 처리 (TLS 소켓 순환 참조 오류 등)
+        let errorMessage = '연결이 중단되었습니다.';
+        try {
+          errorMessage = err.message || errorMessage;
+        } catch (serializationError) {
+          // 순환 참조 객체로 인한 오류 - 기본 메시지 사용
+        }
+        
+        LogUtil.logError('스트림 에러', { 
+          message: errorMessage,
+          name: err.name || 'Unknown Error'
+        });
+        
         // 스트림 에러 발생 시 에러 메시지 전달 후 스트림 완료 처리
-        const errorContent = `\n\n**스트림 오류 발생**: ${err.message || '연결이 중단되었습니다.'}`;
+        const errorContent = `\n\n**스트림 오류 발생**: ${errorMessage}`;
         streamCallback(errorContent, true);
       });
     } catch (error) {
       this._cancelTokenSource = null;
       if (axios.isCancel(error)) {
         // Request was canceled intentionally
+        LogUtil.logInfo('스트림 요청이 취소됨');
         streamCallback('\n\n*요청이 취소되었습니다.*', true); // 사용자에게 취소 알림
       } else {
-        // Real error
-        const errorMessage = error instanceof Error
-          ? `\n\n**API 오류 발생**: ${error.message}`
-          : `\n\n**API 오류 발생**: 연결 실패 (${String(error)})`;
-
-        streamCallback(errorMessage, true); // 에러 메시지 전달 후 스트림 완료 처리
+        // Real error - 순환 참조 방지 처리
+        let errorMessage = '연결 실패';
+        try {
+          errorMessage = error instanceof Error ? error.message : String(error);
+        } catch (serializationError) {
+          // 순환 참조 객체로 인한 오류 - 기본 메시지 사용
+        }
+        
+        LogUtil.logError('스트림 요청 처리 중 오류 발생', { 
+          message: errorMessage,
+          name: error instanceof Error ? error.name : 'Unknown Error'
+        });
+        
+        const errorContent = `\n\n**API 오류 발생**: ${errorMessage}`;
+        streamCallback(errorContent, true); // 에러 메시지 전달 후 스트림 완료 처리
         throw error;
       }
     }
@@ -541,6 +882,7 @@ export class LLMService implements vscode.Disposable {
       if (!this._wsConnection) {
         // 연결 실패 시 에러 메시지 전달 후 스트림 완료 처리
         const errorMessage = '\n\n**WebSocket 연결 실패**: 서버에 연결할 수 없습니다.';
+        LogUtil.logError('WebSocket 연결 실패', new Error('Failed to establish WebSocket connection'));
         streamCallback(errorMessage, true);
         reject(new Error('Failed to establish WebSocket connection'));
         return;
@@ -558,7 +900,11 @@ export class LLMService implements vscode.Disposable {
       };
 
       // Generate a unique request ID
-      const requestId = `req_${Date.now()}`;
+      const requestId = generateUUID();
+      LogUtil.logInfo('WebSocket 스트리밍 요청 준비 완료', { requestId });
+
+      let chunkCount = 0;
+      let accumulatedText = '';
 
       // Set up message handler for streaming
       const messageHandler = (data: any) => {
@@ -571,6 +917,7 @@ export class LLMService implements vscode.Disposable {
             if (response.error) {
               // Error response - 에러 메시지를 사용자에게 표시
               const errorMessage = `\n\n**WebSocket 오류 발생**: ${response.error}`;
+              LogUtil.logError('WebSocket 스트리밍 오류 응답', new Error(response.error));
               streamCallback(errorMessage, true); // 에러 메시지 전달 후 스트림 완료 처리
 
               if (this._wsConnection) {
@@ -579,9 +926,26 @@ export class LLMService implements vscode.Disposable {
               reject(new Error(response.error));
             } else if (response.type === 'chunk') {
               // Streaming chunk
-              streamCallback(response.content || '', false);
+              chunkCount++;
+              const content = response.content || '';
+              
+              if (content) {
+                accumulatedText += content;
+                LogUtil.logInfo(`WebSocket 스트림 청크 #${chunkCount}`, {
+                  contentLength: content.length,
+                  contentPreview: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+                  totalAccumulated: accumulatedText.length
+                });
+              }
+              
+              streamCallback(content, false);
             } else if (response.type === 'complete') {
               // Stream complete
+              LogUtil.logInfo('WebSocket 스트리밍 완료', {
+                totalChunks: chunkCount,
+                totalAccumulatedLength: accumulatedText.length
+              });
+              
               if (this._wsConnection) {
                 this._wsConnection.removeListener('message', messageHandler);
               }
@@ -591,8 +955,20 @@ export class LLMService implements vscode.Disposable {
           }
         } catch (error) {
           // JSON 파싱 에러 등의 예외 처리
-          const errorMessage = `\n\n**WebSocket 데이터 처리 오류**: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
-          streamCallback(errorMessage, true);
+          let errorMessage = '알 수 없는 오류';
+          try {
+            errorMessage = error instanceof Error ? error.message : String(error);
+          } catch (serializationError) {
+            // 순환 참조 객체로 인한 오류 - 기본 메시지 사용
+          }
+          
+          LogUtil.logError('WebSocket 데이터 처리 오류', { 
+            message: errorMessage,
+            name: error instanceof Error ? error.name : 'Unknown Error'
+          });
+          
+          const wsErrorMessage = `\n\n**WebSocket 데이터 처리 오류**: ${errorMessage}`;
+          streamCallback(wsErrorMessage, true);
 
           if (this._wsConnection) {
             this._wsConnection.removeListener('message', messageHandler);
@@ -610,10 +986,23 @@ export class LLMService implements vscode.Disposable {
           ...request,
           requestId
         }));
+        LogUtil.logInfo('WebSocket 스트리밍 요청 전송 완료', { requestId });
       } catch (error) {
         // 전송 실패 시 에러 처리
-        const errorMessage = `\n\n**WebSocket 요청 전송 실패**: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
-        streamCallback(errorMessage, true);
+        let errorMessage = '알 수 없는 오류';
+        try {
+          errorMessage = error instanceof Error ? error.message : String(error);
+        } catch (serializationError) {
+          // 순환 참조 객체로 인한 오류 - 기본 메시지 사용
+        }
+        
+        LogUtil.logError('WebSocket 스트리밍 요청 전송 실패', { 
+          message: errorMessage,
+          name: error instanceof Error ? error.name : 'Unknown Error'
+        });
+        
+        const wsErrorMessage = `\n\n**WebSocket 요청 전송 실패**: ${errorMessage}`;
+        streamCallback(wsErrorMessage, true);
         reject(error);
         return;
       }
@@ -624,17 +1013,31 @@ export class LLMService implements vscode.Disposable {
           this._wsConnection.removeListener('message', messageHandler);
         }
         // 타임아웃 발생 시 에러 메시지 전달
+        const timeoutError = new Error('Streaming request timed out');
+        LogUtil.logError('WebSocket 스트리밍 요청 타임아웃', timeoutError);
         const timeoutMessage = '\n\n**연결 시간 초과**: 응답을 기다리는 시간이 너무 깁니다.';
         streamCallback(timeoutMessage, true);
-        reject(new Error('Streaming request timed out'));
+        reject(timeoutError);
       }, 300000); // 5 minutes timeout for streaming
 
       // Also set up an error handler
       const errorHandler = (error: Error) => {
         clearTimeout(timeoutId);
         // WebSocket 에러 발생 시 에러 메시지 전달
-        const errorMessage = `\n\n**WebSocket 오류 발생**: ${error.message || '연결 중 오류가 발생했습니다.'}`;
-        streamCallback(errorMessage, true);
+        let errorMessage = '연결 중 오류가 발생했습니다.';
+        try {
+          errorMessage = error.message || errorMessage;
+        } catch (serializationError) {
+          // 순환 참조 객체로 인한 오류 - 기본 메시지 사용
+        }
+        
+        LogUtil.logError('WebSocket 오류 발생', { 
+          message: errorMessage,
+          name: error.name || 'Unknown Error'
+        });
+        
+        const wsErrorMessage = `\n\n**WebSocket 오류 발생**: ${errorMessage}`;
+        streamCallback(wsErrorMessage, true);
 
         this._wsConnection?.removeListener('message', messageHandler);
         this._wsConnection?.removeListener('error', errorHandler);
@@ -650,10 +1053,13 @@ export class LLMService implements vscode.Disposable {
    */
   private _ensureWebSocketConnection(): void {
     if (this._connectionType !== ConnectionType.WebSocket) {
+      LogUtil.logInfo('WebSocket 연결 필요 없음 - HTTP 모드로 동작 중');
       return;
     }
     
     if (!this._wsConnection || this._wsConnection.readyState !== WS_OPEN) {
+      LogUtil.logInfo('새 WebSocket 연결 시도', { endpoint: this._endpoint });
+      
       try {
         // Create a new WebSocket connection
         this._wsConnection = new WebSocket(this._endpoint);
@@ -661,23 +1067,26 @@ export class LLMService implements vscode.Disposable {
         // Set up event handlers
         if (this._wsConnection) {
           this._wsConnection.on('error', (error) => {
-            console.error('WebSocket error:', error);
+            LogUtil.logError('WebSocket 오류', error);
             this._wsConnection = null;
           });
           
           this._wsConnection.on('close', () => {
+            LogUtil.logInfo('WebSocket 연결 닫힘');
             this._wsConnection = null;
           });
           
           // Wait for connection to be established
           this._wsConnection.on('open', () => {
-            console.log('WebSocket connection established');
+            LogUtil.logInfo('WebSocket 연결 성공적으로 설정됨');
           });
         }
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        LogUtil.logError('WebSocket 연결 생성 실패', error);
         this._wsConnection = null;
       }
+    } else {
+      LogUtil.logInfo('기존 WebSocket 연결 재사용');
     }
   }
   
@@ -688,6 +1097,12 @@ export class LLMService implements vscode.Disposable {
    * @returns Formatted messages array
    */
   private _formatMessagesForAPI(messages: Message[], options?: LLMRequestOptions): Message[] {
+    LogUtil.logInfo('API용 메시지 포맷팅 시작', { 
+      messageCount: messages.length,
+      hasSystemPrompt: !!options?.systemPrompt,
+      hasContextMessages: options?.contextMessages ? options.contextMessages.length : 0 
+    });
+    
     let formattedMessages: Message[] = [...messages];
     
     // Add system prompt as a system message if provided
@@ -698,11 +1113,13 @@ export class LLMService implements vscode.Disposable {
         content: options.systemPrompt,
         timestamp: new Date()
       });
+      LogUtil.logInfo('시스템 프롬프트 추가됨');
     }
     
     // Add context messages if provided
     if (options?.contextMessages && options.contextMessages.length > 0) {
       formattedMessages = [...options.contextMessages, ...formattedMessages];
+      LogUtil.logInfo(`컨텍스트 메시지 ${options.contextMessages.length}개 추가됨`);
     }
     
     // Apply VAULT context if available and requested
@@ -710,15 +1127,18 @@ export class LLMService implements vscode.Disposable {
       const vaultOptions = (options as LLMRequestOptionsWithVault).vaultOptions;
       // vaultOptions가 undefined일 수 없지만 타입 에러를 해결하기 위해 기본 객체 제공
       formattedMessages = applyVaultContext(formattedMessages, this._vaultService, vaultOptions || {});
+      LogUtil.logInfo('VAULT 컨텍스트 적용됨');
     }
     
     // Apply Rules if available
     if (this._rulesService) {
       const rulesOptions = (options as LLMRequestOptionsWithRules)?.rulesOptions;
       formattedMessages = applyRulesContext(formattedMessages, this._rulesService, rulesOptions);
+      LogUtil.logInfo('Rules 컨텍스트 적용됨');
     }
     
     // Return formatted messages
+    LogUtil.logInfo('메시지 포맷팅 완료', { finalMessageCount: formattedMessages.length });
     return formattedMessages;
   }
   
@@ -731,6 +1151,11 @@ export class LLMService implements vscode.Disposable {
     // OpenRouter/OpenAI 형식 응답 처리 (choices 배열 사용)
     if (responseData.choices && Array.isArray(responseData.choices)) {
       const content = responseData.choices[0]?.message?.content || '';
+      
+      LogUtil.logInfo('OpenAI/OpenRouter 형식 응답 처리', {
+        responseId: responseData.id,
+        contentLength: content.length
+      });
       
       return {
         message: {
@@ -753,11 +1178,18 @@ export class LLMService implements vscode.Disposable {
     } 
     // 기존 응답 형식 처리
     else {
+      const messageContent = responseData.content || responseData.message?.content || '';
+      
+      LogUtil.logInfo('기존 형식 응답 처리', {
+        responseId: responseData.message?.id,
+        contentLength: messageContent.length
+      });
+      
       return {
         message: {
           id: responseData.message?.id || `msg_${Date.now()}`,
           role: MessageRole.Assistant,
-          content: responseData.content || responseData.message?.content || '',
+          content: messageContent,
           timestamp: new Date(),
           metadata: responseData.message?.metadata || {
             model: responseData.model || this.getActiveModel()
@@ -780,11 +1212,18 @@ export class LLMService implements vscode.Disposable {
    */
   private _processWebSocketResponse(responseData: any): LLMResponse {
     // Process according to the WebSocket response format
+    const messageContent = responseData.content || responseData.message?.content || '';
+    
+    LogUtil.logInfo('WebSocket 응답 처리', {
+      responseId: responseData.message?.id,
+      contentLength: messageContent.length
+    });
+    
     return {
       message: {
         id: responseData.message?.id || `msg_${Date.now()}`,
         role: MessageRole.Assistant,
-        content: responseData.content || responseData.message?.content || '',
+        content: messageContent,
         timestamp: new Date(),
         metadata: responseData.message?.metadata || {
           model: responseData.model || this.getActiveModel()
@@ -805,21 +1244,58 @@ export class LLMService implements vscode.Disposable {
    * @returns Processed chunk as a string
    */
   private _processStreamChunk(chunk: any): string {
+    // Skip processing for empty chunks
+    if (!chunk) {
+      return '';
+    }
+
+    LogUtil.logInfo('스트림 청크 처리 시작');
+
     // Process based on the API's streaming format
     try {
       if (typeof chunk === 'string') {
-        // Try to parse as JSON if it's a string
-        const data = JSON.parse(chunk);
-        return data.content || data.text || data.chunk || '';
+        // Skip empty strings
+        if (!chunk.trim()) {
+          return '';
+        }
+
+        try {
+          // Try to parse as JSON if it's a string
+          const data = JSON.parse(chunk);
+          const content = data.content || data.text || data.chunk || '';
+
+          // Only log non-empty content
+          if (content) {
+            LogUtil.logInfo('청크 처리 완료 (문자열 형식)', {
+              contentLength: content.length
+            });
+          }
+
+          return content;
+        } catch (e) {
+          // If it's not JSON, return as is
+          return chunk;
+        }
       } else if (typeof chunk === 'object') {
         // Already a parsed object
-        return chunk.content || chunk.text || chunk.chunk || '';
+        const content = chunk.content || chunk.text || chunk.chunk || '';
+
+        // Only log non-empty content
+        if (content) {
+          LogUtil.logInfo('청크 처리 완료 (객체 형식)', {
+            contentLength: content.length
+          });
+        }
+
+        return content;
       }
-    } catch {
-      // If parsing fails, return as is
-      return chunk.toString();
+    } catch (error) {
+      // If parsing fails, return as is but log error
+      LogUtil.logError('청크 파싱 실패', error);
+      return chunk ? chunk.toString() : '';
     }
-    
+
+    // Default case - return empty string for anything else
     return '';
   }
   
@@ -834,6 +1310,11 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResult<string>> {
     try {
+      LogUtil.logInfo('단순 완성 요청 시작', {
+        promptLength: prompt.length,
+        promptPreview: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')
+      });
+      
       // Create a simple message with the prompt
       const messages: Message[] = [
         {
@@ -848,18 +1329,25 @@ export class LLMService implements vscode.Disposable {
       const result = await this.sendRequest(messages, options);
       
       if (result.success && result.data) {
+        LogUtil.logInfo('완성 요청 성공', {
+          contentLength: result.data.message.content.length
+        });
+        
         return {
           success: true,
           data: result.data.message.content
         };
       } else {
+        LogUtil.logError('완성 요청 실패', result.error || new Error('Failed to get completion'));
+        
         return {
           success: false,
           error: result.error || new Error('Failed to get completion')
         };
       }
     } catch (error) {
-      console.error('Error getting completion:', error);
+      LogUtil.logError('완성 가져오기 중 오류', error);
+      
       return {
         success: false,
         error: error instanceof Error 
@@ -873,6 +1361,8 @@ export class LLMService implements vscode.Disposable {
    * Disposes resources
    */
   public dispose(): void {
+    LogUtil.logInfo('LLMService 리소스 정리 시작');
+    
     // Dispose event listeners
     this._configListener.dispose();
     this._modelChangeListener.dispose();
@@ -881,12 +1371,16 @@ export class LLMService implements vscode.Disposable {
     if (this._cancelTokenSource) {
       this._cancelTokenSource.cancel('Extension deactivated');
       this._cancelTokenSource = null;
+      LogUtil.logInfo('진행 중인 HTTP 요청 취소됨');
     }
     
     // Close WebSocket connection
     if (this._wsConnection) {
       this._wsConnection.close();
       this._wsConnection = null;
+      LogUtil.logInfo('WebSocket 연결 닫힘');
     }
+    
+    LogUtil.logInfo('LLMService 리소스 정리 완료');
   }
 }
