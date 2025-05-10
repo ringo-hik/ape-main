@@ -8,8 +8,7 @@ import { SlashCommand } from './slashCommand';
 import { createGitCommands } from '../git/commands';
 import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
-import { createJiraCommands } from './jiraCommands';
-import { createCustomJiraCommand } from './customJiraCommand';
+import { createJiraCommands } from './minimalJiraCommands';
 
 /**
  * 기본 슬래시 커맨드 목록 생성
@@ -29,12 +28,9 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     commands.push(...rulesCommands);
   }
   
-  // Jira 명령어 추가 (Jira 서비스가 있는 경우)
-  if (services?.jiraService) {
-    const jiraCommands = createJiraCommands(services.jiraService);
-    const customJiraCommands = createCustomJiraCommand(services.jiraService);
-    commands.push(...jiraCommands, ...customJiraCommands);
-  }
+  // Jira 명령어 추가 (Atlassian Extension API 사용)
+  const jiraCommands = createJiraCommands();
+  commands.push(...jiraCommands);
   
   // Todo 관련 코드 삭제됨
   
