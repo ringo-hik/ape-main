@@ -26,6 +26,11 @@ export function generateHtmlHeader(
     vscode.Uri.joinPath(extensionUri, 'media', 'welcome-custom.css')
   );
 
+  // 버튼 스타일 CSS 로드
+  const buttonStylesUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-buttons.css')
+  );
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,6 +40,7 @@ export function generateHtmlHeader(
   <link href="${modernStylesUri}" rel="stylesheet">
   <link href="${codiconsUri}" rel="stylesheet">
   <link href="${welcomeCustomCssUri}" rel="stylesheet">
+  <link href="${buttonStylesUri}" rel="stylesheet">
   <title>APE Chat</title>
 </head>`;
 }
@@ -65,16 +71,19 @@ export function generateChatUiHtml(
         <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
         <div id="input-buttons">
           <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-            <img src="${mascotIconUri}" width="18" height="18" />
+            <img src="${mascotIconUri}" width="20" height="20" />
           </button>
           <button id="attach-button" title="Attach File" class="input-action-button">
-            <span class="emoji-icon">◈</span>
+            <span class="emoji-icon">📎</span>
+          </button>
+          <button id="format-button" title="Format Text" class="input-action-button">
+            <span class="emoji-icon">✨</span>
           </button>
           <button id="clear-button" title="Clear Chat" class="input-action-button">
-            <span class="emoji-icon">⌫</span>
+            <span class="emoji-icon">↺</span>
           </button>
           <button id="send-button" title="Send Message">
-            <span class="emoji-icon">↑</span>
+            <span class="emoji-icon">↗</span>
           </button>
         </div>
       </div>
@@ -105,16 +114,19 @@ export function generateChatUiHtml(
         <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
         <div id="input-buttons">
           <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-            <img src="${mascotIconUri}" width="18" height="18" />
+            <img src="${mascotIconUri}" width="20" height="20" />
           </button>
           <button id="attach-button" title="Attach File" class="input-action-button">
-            <span class="emoji-icon">◈</span>
+            <span class="emoji-icon">📎</span>
+          </button>
+          <button id="format-button" title="Format Text" class="input-action-button">
+            <span class="emoji-icon">✨</span>
           </button>
           <button id="clear-button" title="Clear Chat" class="input-action-button">
-            <span class="emoji-icon">⌫</span>
+            <span class="emoji-icon">↺</span>
           </button>
           <button id="send-button" title="Send Message">
-            <span class="emoji-icon">↑</span>
+            <span class="emoji-icon">↗</span>
           </button>
         </div>
       </div>

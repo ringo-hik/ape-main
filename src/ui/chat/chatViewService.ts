@@ -89,6 +89,15 @@ export class ChatViewService {
           }
           break;
         }
+
+        case 'formatResponse': {
+          // 텍스트 포맷 응답 처리
+          if (message.formattedText && chatInput) {
+            chatInput.value = message.formattedText;
+            resizeInput();
+          }
+          break;
+        }
       }
     });
     
@@ -421,22 +430,22 @@ export class ChatViewService {
     function updateCommandSuggestions(newSuggestions) {
       suggestions = newSuggestions || [];
       activeSuggestionIndex = -1;
-      
+
       // Clear the container
       commandSuggestionsContainer.innerHTML = '';
-      
+
       if (suggestions.length === 0) {
         // Hide the container if there are no suggestions
         commandSuggestionsContainer.style.display = 'none';
         return;
       }
-      
+
       // Position the suggestions container to align with cursor
       positionCommandSuggestions();
-      
+
       // Show the container
       commandSuggestionsContainer.style.display = 'block';
-      
+
       // Group suggestions by category
       const categorizedSuggestions = {};
       suggestions.forEach(suggestion => {
@@ -445,7 +454,7 @@ export class ChatViewService {
         }
         categorizedSuggestions[suggestion.category].push(suggestion);
       });
-      
+
       // Add each category group
       Object.keys(categorizedSuggestions).forEach(category => {
         // Create category header
@@ -453,14 +462,14 @@ export class ChatViewService {
         categoryHeader.className = 'suggestion-category';
         categoryHeader.textContent = getCategoryTitle(category);
         commandSuggestionsContainer.appendChild(categoryHeader);
-        
+
         // Add suggestions for this category
         categorizedSuggestions[category].forEach((suggestion, index) => {
           const suggestionElement = document.createElement('div');
           suggestionElement.className = 'command-suggestion';
           const suggestionIndex = suggestions.findIndex(s => s.label === suggestion.label);
           suggestionElement.dataset.index = String(suggestionIndex);
-          
+
           // Add keyboard shortcut hint (Tab+index number)
           let shortcutHint = '';
           if (suggestionIndex >= 0 && suggestionIndex < 9) {
@@ -471,41 +480,34 @@ export class ChatViewService {
             shortcutHint = '';
           }
           suggestionElement.dataset.shortcut = shortcutHint;
-          
-          // 이모지 아이콘 표시
-          const iconText = getSvgIconForCategory(suggestion.category);
-          const iconElement = document.createElement('span');
-          iconElement.className = 'suggestion-icon emoji-icon';
-          iconElement.textContent = iconText;
-          suggestionElement.appendChild(iconElement);
-          
+
           // Label
           const labelElement = document.createElement('span');
           labelElement.className = 'suggestion-label';
           labelElement.textContent = suggestion.label;
           suggestionElement.appendChild(labelElement);
-          
+
           // Description
           const descriptionElement = document.createElement('span');
           descriptionElement.className = 'suggestion-description';
           descriptionElement.textContent = suggestion.description;
           suggestionElement.appendChild(descriptionElement);
-          
+
           // Click handler
           suggestionElement.addEventListener('click', () => {
             insertSuggestion(suggestion);
           });
-          
+
           // Mouseover handler
           suggestionElement.addEventListener('mouseover', () => {
             activeSuggestionIndex = Number(suggestionElement.dataset.index);
             highlightActiveSuggestion();
           });
-          
+
           commandSuggestionsContainer.appendChild(suggestionElement);
         });
       });
-      
+
       // Scroll to top
       commandSuggestionsContainer.scrollTop = 0;
     }
@@ -1008,6 +1010,14 @@ export class ChatViewService {
       attachButton.addEventListener('click', () => {
         vscode.postMessage({ type: 'attachFile' });
       });
+
+      // 텍스트 포맷 버튼 이벤트 핸들러
+      const formatButton = document.getElementById('format-button');
+      if (formatButton) {
+        formatButton.addEventListener('click', () => {
+          vscode.postMessage({ type: 'formatText' });
+        });
+      }
       
       // 스마트 프롬프팅 관련 요소
       const smartPromptingToggle = document.getElementById('smart-prompting-toggle');

@@ -1,0 +1,266 @@
+/* 
+ * 마크다운 스타일 - APE Extension
+ * 기본 마크다운 요소에 대한 스타일 정의
+ */
+
+/* 마크다운 컨테이너 스타일 */
+.markdown-content {
+  line-height: 1.6;
+  word-wrap: break-word;
+  font-size: 14px;
+  color: var(--ape-text-primary);
+  font-family: var(--ape-font-sans);
+}
+
+/* 제목 스타일 */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ape-text-primary);
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--ape-border-subtle);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--ape-border-subtle);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.markdown-content h4 {
+  font-size: 1em;
+}
+
+.markdown-content h5 {
+  font-size: 0.875em;
+}
+
+.markdown-content h6 {
+  font-size: 0.85em;
+  color: var(--ape-text-secondary);
+}
+
+/* 텍스트 스타일링 */
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content del {
+  text-decoration: line-through;
+}
+
+/* 리스트 스타일 */
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-content ul ul,
+.markdown-content ul ol,
+.markdown-content ol ul,
+.markdown-content ol ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content li {
+  margin-bottom: 4px;
+}
+
+.markdown-content li > p {
+  margin-top: 16px;
+}
+
+/* 체크박스 리스트 */
+.markdown-content ul.contains-task-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content .task-list-item {
+  list-style-type: none;
+  padding-left: 24px;
+  position: relative;
+}
+
+.markdown-content .task-list-item input {
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+}
+
+/* 인용구 */
+.markdown-content blockquote {
+  margin: 0 0 16px 0;
+  padding: 0 1em;
+  color: var(--ape-text-secondary);
+  border-left: 0.25em solid var(--ape-border-strong);
+}
+
+.markdown-content blockquote > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* 코드 스타일 */
+.markdown-content code {
+  font-family: var(--ape-font-mono);
+  font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  margin: 0;
+  background-color: var(--ape-bg-tertiary);
+  border-radius: var(--ape-border-radius-sm);
+}
+
+.markdown-content pre {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding: 16px;
+  overflow: auto;
+  background-color: var(--ape-bg-tertiary);
+  border-radius: var(--ape-border-radius-md);
+}
+
+.markdown-content pre code {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  border: 0;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* 표 스타일 */
+.markdown-content table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  margin: 0 0 16px 0;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.markdown-content table th {
+  font-weight: 600;
+  padding: 6px 13px;
+  border: 1px solid var(--ape-border-subtle);
+  background-color: var(--ape-bg-hover);
+}
+
+.markdown-content table td {
+  padding: 6px 13px;
+  border: 1px solid var(--ape-border-subtle);
+}
+
+.markdown-content table tr {
+  background-color: transparent;
+  border-top: 1px solid var(--ape-border-subtle);
+}
+
+.markdown-content table tr:nth-child(2n) {
+  background-color: var(--ape-bg-tertiary);
+}
+
+/* 수평선 */
+.markdown-content hr {
+  height: 1px;
+  padding: 0;
+  margin: 24px 0;
+  background-color: var(--ape-border-subtle);
+  border: 0;
+}
+
+/* 링크 스타일 */
+.markdown-content a {
+  color: var(--ape-text-accent);
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+/* 이미지 스타일 */
+.markdown-content img {
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: transparent;
+  border-radius: var(--ape-border-radius-md);
+}
+
+/* 인라인 코드 vs 코드 블록 구분 */
+.markdown-content p code,
+.markdown-content li code {
+  white-space: normal;
+}
+
+.markdown-content pre code {
+  display: block;
+  line-height: 1.45;
+  font-size: 0.9em;
+}
+
+/* 코드 테마 - VS Code 다크 테마 기반 */
+.markdown-content .hljs-keyword,
+.markdown-content .hljs-selector-tag {
+  color: #569cd6;
+}
+
+.markdown-content .hljs-title,
+.markdown-content .hljs-section {
+  color: #dcdcaa;
+}
+
+.markdown-content .hljs-string {
+  color: #ce9178;
+}
+
+.markdown-content .hljs-attr,
+.markdown-content .hljs-selector-attr,
+.markdown-content .hljs-selector-class {
+  color: #9cdcfe;
+}
+
+.markdown-content .hljs-number,
+.markdown-content .hljs-literal {
+  color: #b5cea8;
+}
+
+.markdown-content .hljs-comment {
+  color: #6a9955;
+}
+
+.markdown-content .hljs-doctag,
+.markdown-content .hljs-meta {
+  color: #c586c0;
+}
