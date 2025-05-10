@@ -18,12 +18,12 @@ export function createMinimalGitCommands(): SlashCommand[] {
     name: 'git',
     aliases: ['g', '깃', '깃작업'],
     description: 'Git 작업을 수행합니다',
-    examples: ['/git status', '/git commit', '/git diff', '/git log', '/깃 상태', '/깃 로그'],
+    examples: ['/git status', '/git commit', '/git diff', '/git log', '/git auto', '/git solve', '/깃 상태', '/깃 로그'],
     category: 'git',
     priority: 3,
     execute: async (context) => {
       const subCommand = context.args[0]?.toLowerCase();
-      
+
       if (!subCommand || subCommand === 'status' || subCommand === '상태') {
         // Git 상태 확인
         await handleGitStatus();
@@ -36,21 +36,42 @@ export function createMinimalGitCommands(): SlashCommand[] {
       } else if (subCommand === 'log' || subCommand === '로그' || subCommand === '이력') {
         // Git log
         await handleGitLog();
+      } else if (subCommand === 'auto' || subCommand === '자동' || subCommand === '자동커밋') {
+        // 자동 커밋 토글 또는 명시적 상태 설정
+        const secondArg = context.args[1]?.toLowerCase();
+
+        if (secondArg === 'on' || secondArg === '켜기' || secondArg === 'true') {
+          // 자동 커밋 켜기
+          await vscode.workspace.getConfiguration('ape.git')
+            .update('autoCommit', true, vscode.ConfigurationTarget.Workspace);
+          vscode.window.showInformationMessage('자동 커밋이 켜졌습니다');
+        } else if (secondArg === 'off' || secondArg === '끄기' || secondArg === 'false') {
+          // 자동 커밋 끄기
+          await vscode.workspace.getConfiguration('ape.git')
+            .update('autoCommit', false, vscode.ConfigurationTarget.Workspace);
+          vscode.window.showInformationMessage('자동 커밋이 꺼졌습니다');
+        } else {
+          // 토글 (인자 없는 경우)
+          await vscode.commands.executeCommand('ape.git.toggleAutoCommit');
+        }
+      } else if (subCommand === 'solve' || subCommand === '충돌' || subCommand === '충돌해결') {
+        // 충돌 해결
+        await vscode.commands.executeCommand('ape.git.solveConflicts');
       } else {
         vscode.window.showErrorMessage('알 수 없는 Git 하위 명령어입니다');
       }
     },
     provideCompletions: (partialArgs) => {
-      const subCommands = ['status', 'commit', 'diff', 'log',
-                      '상태', '커밋', '저장', '차이', '변경사항', '로그', '이력'];
-      
+      const subCommands = ['status', 'commit', 'diff', 'log', 'auto', 'solve',
+                      '상태', '커밋', '저장', '차이', '변경사항', '로그', '이력', '자동', '자동커밋', '충돌', '충돌해결'];
+
       // 첫 번째 인자 자동완성
       if (!partialArgs.includes(' ')) {
-        return subCommands.filter(cmd => 
+        return subCommands.filter(cmd =>
           cmd.startsWith(partialArgs.toLowerCase())
         );
       }
-      
+
       return [];
     }
   });
@@ -105,7 +126,7 @@ async function handleGitStatus(): Promise<void> {
     let changedFiles = '';
     if (changes > 0) {
       changedFiles = '\n### 변경된 파일\n\n';
-      state.workingTreeChanges.forEach(change => {
+      state.workingTreeChanges.forEach((change: any) => {
         const fileName = change.uri.fsPath.split('/').pop();
         const status = getChangeTypeLabel(change.status);
         changedFiles += `- **${fileName}** (${status})\n`;
@@ -116,7 +137,7 @@ async function handleGitStatus(): Promise<void> {
     let stagedFiles = '';
     if (staged > 0) {
       stagedFiles = '\n### 스테이징된 파일\n\n';
-      state.indexChanges.forEach(change => {
+      state.indexChanges.forEach((change: any) => {
         const fileName = change.uri.fsPath.split('/').pop();
         const status = getChangeTypeLabel(change.status);
         stagedFiles += `- **${fileName}** (${status})\n`;
@@ -127,7 +148,7 @@ async function handleGitStatus(): Promise<void> {
     let untrackedFilesList = '';
     if (untracked > 0) {
       untrackedFilesList = '\n### 추적되지 않는 파일\n\n';
-      state.untrackedChanges.forEach(change => {
+      state.untrackedChanges.forEach((change: any) => {
         const fileName = change.uri.fsPath.split('/').pop();
         untrackedFilesList += `- **${fileName}**\n`;
       });
