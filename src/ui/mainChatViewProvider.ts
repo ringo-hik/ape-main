@@ -187,21 +187,48 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
       this._isStreaming = true;
       this.updateChatView();
 
-      // Start streaming response from LLM
+      // Filter messages before sending to LLM
+      const filteredMessages = this._messages.filter(message => {
+        // Remove UI-only messages by checking metadata flag
+        if (message.metadata?.uiOnly === true) {
+          console.log(`Filtering out UI-only message: ${message.id}`);
+          return false;
+        }
+
+        // As a fallback, also filter by content for older message formats
+        if (message.role === MessageRole.System) {
+          const content = message.content || '';
+          if (content.includes('<div class="welcome-container"') ||
+              (content.trim().startsWith('<') && content.includes('</div>'))) {
+            console.log(`Filtering out HTML system message: ${message.id}`);
+            return false;
+          }
+        }
+
+        // Keep all other messages
+        return true;
+      });
+
+      console.log(`Filtered out ${this._messages.length - filteredMessages.length} UI-only messages before LLM request`);
+
+      // Start streaming response from LLM with filtered messages
       await this._llmService.streamResponse(
-        this._messages,
+        filteredMessages,
         (chunk: string, done: boolean) => {
-          // Update the assistant message with the new chunk
+          // Update the assistant message with the new chunk only if it has content
           const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
           if (assistantMessage) {
-            assistantMessage.content += chunk;
+            // Only append non-empty chunks
+            if (chunk && chunk.trim()) {
+              assistantMessage.content += chunk;
 
-            // Debounce updates for efficiency
-            if (!this._streamUpdateTimeout) {
-              this._streamUpdateTimeout = setTimeout(() => {
-                this.updateChatView();
-                this._streamUpdateTimeout = null;
-              }, 30); // 30ms debouncing
+              // Debounce updates for efficiency
+              if (!this._streamUpdateTimeout) {
+                this._streamUpdateTimeout = setTimeout(() => {
+                  this.updateChatView();
+                  this._streamUpdateTimeout = null;
+                }, 30); // 30ms debouncing
+              }
             }
 
             if (done) {
@@ -309,25 +336,43 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
       console.log('No saved messages found, adding welcome message');
       
       try {
-        // Get HTML content for welcome message
-        const welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
-        console.log('WelcomeViewProvider used - welcome HTML generated, length:', welcomeHTML.length);
-        
-        // Create welcome messages
-        const welcomeId = `welcome_${Date.now()}`;
+        // Get HTML content for welcome message with error handling
+        let welcomeHTML = '';
+        try {
+          welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
+          console.log('WelcomeViewProvider used - welcome HTML generated');
+        } catch (welcomeError) {
+          console.error('Error getting welcome HTML from provider:', welcomeError);
+          welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+        }
+
+        // Create UI-only welcome message and conversation starter
+        const welcomeId = `welcome_ui_${Date.now()}`;
         const assistantId = `assistant_welcome_${Date.now()}`;
-        
+
+        // Ensure welcome HTML is not empty
+        if (!welcomeHTML || welcomeHTML.trim() === '') {
+          welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+          console.warn('Empty welcome HTML detected, using fallback');
+        }
+
         this._messages = [
+          // UI-only message with metadata flag
           {
             id: welcomeId,
             role: MessageRole.System,
             content: welcomeHTML,
-            timestamp: new Date()
+            timestamp: new Date(),
+            metadata: {
+              uiOnly: true, // Flag to indicate this shouldn't be sent to LLM
+              type: 'welcome' // Mark this as a welcome message
+            }
           },
+          // Actual assistant greeting message
           {
             id: assistantId,
             role: MessageRole.Assistant,
-            content: '안녕하세요! 무엇을 도와드릴까요?',
+            content: 'Welcome to APE. How can I assist with your development today?',
             timestamp: new Date()
           }
         ];
@@ -907,7 +952,6 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
                 if (message.role === 'user') {
                   const statusElement = document.createElement('div');
                   statusElement.className = 'message-status';
-                  statusElement.textContent = '읽음';
                   messageElement.appendChild(statusElement);
                 }
                 

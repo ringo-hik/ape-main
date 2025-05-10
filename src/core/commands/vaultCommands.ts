@@ -79,6 +79,7 @@ export function createVaultCommands(vaultService: any): SlashCommand[] {
       }
     },
     provideCompletions: (partialArgs) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const parts = partialArgs.split(' ');
       
       // 첫 번째 인자 자동완성 (하위 명령어)
@@ -414,6 +415,7 @@ async function createItem(vaultService: any, context: any, name: string): Promis
       language: 'markdown'
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const editor = await vscode.window.showTextDocument(document);
     
     // 사용자가 내용 편집을 완료할 때까지 대기

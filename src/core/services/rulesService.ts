@@ -8,7 +8,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ServiceConfigManager, ServiceType } from './serviceConfig';
+import { ServiceConfigManager } from './serviceConfig';
 import { ServiceError } from './serviceError';
 
 /**

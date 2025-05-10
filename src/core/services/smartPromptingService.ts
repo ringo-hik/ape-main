@@ -16,7 +16,9 @@ export enum SmartPromptingMode {
   Basic = 'basic',         // 기본 모드 - 디버깅
   Advanced = 'advanced',   // 고급 모드 - 글쓰기
   Expert = 'expert',       // 전문가 모드 - 코드 분석
-  Custom = 'custom'        // 사용자 정의 모드 - 리팩토링
+  Custom = 'custom',       // 사용자 정의 모드 - 리팩토링
+  Creative = 'creative',   // 창의적 모드 - 아이디어 생성
+  Friendly = 'friendly'    // 친구 모드 - 캐주얼 대화
 }
 
 /**
@@ -139,6 +141,10 @@ export class SmartPromptingService {
         return this.applyExpertPrompting(message);
       case SmartPromptingMode.Custom:
         return this.applyCustomPrompting(message);
+      case SmartPromptingMode.Creative:
+        return this.applyCreativePrompting(message);
+      case SmartPromptingMode.Friendly:
+        return this.applyFriendlyPrompting(message);
       default:
         return message;
     }
@@ -217,6 +223,42 @@ export class SmartPromptingService {
 제안하는 변경 사항은 기존 기능을 손상시키지 않으면서 코드베이스의 품질을 향상시키는 데 중점을 두어야 합니다. 대규모 변경이 필요한 경우, 점진적인 리팩토링 접근 방식을 제안해 주세요.`;
   }
   
+  /**
+   * 창의적 스마트 프롬프팅 적용 (아이디어 생성 특화)
+   * @param message 원본 메시지
+   * @returns 증강된 메시지
+   */
+  private applyCreativePrompting(message: string): string {
+    // 아이디어 생성 특화 프롬프팅: 혁신적인 아이디어와 창의적 사고에 중점
+    return `${message}\n\n이 주제에 대한 창의적이고 혁신적인 아이디어를 제시해 주세요. 다음 접근 방식으로 진행해 주세요:
+
+1. 기존 패러다임을 넘어선 다양한 관점 탐색
+2. 문제 해결을 위한 비관습적인 접근법 모색
+3. 미래 지향적 기술 및 개념 적용 가능성 제시
+4. 실현 가능한 단기 및 장기 아이디어 제안
+5. 잠재적 영향과 파급 효과 고려
+
+자유롭고 창의적인 사고를 바탕으로, 구체적이고 실용적인 아이디어를 균형 있게 제시해 주세요. 혁신적이면서도 현실적으로 구현 가능한 제안에 초점을 맞춰주세요.`;
+  }
+
+  /**
+   * 친근한 스마트 프롬프팅 적용 (친구 모드)
+   * @param message 원본 메시지
+   * @returns 증강된 메시지
+   */
+  private applyFriendlyPrompting(message: string): string {
+    // 친구 모드 프롬프팅: 캐주얼하고 친근한 대화 스타일에 중점
+    return `${message}\n\n이 질문에 친근하고 편안한 방식으로 답변해 주세요. 다음과 같은 접근 방식으로 대화해 주세요:
+
+1. 전문적이면서도 친근하고 격식 없는 어조 사용
+2. 직관적이고 이해하기 쉬운 설명 제공
+3. 실용적인 조언과 개인적인 경험을 적절히 공유
+4. 공감과 이해를 바탕으로 한 대화 진행
+5. 필요한 경우 유머와 친근함을 자연스럽게 표현
+
+기술적인 정확성을 유지하면서도, 마치 동료와 대화하듯 편안하고 접근하기 쉬운 방식으로 답변해 주세요.`;
+  }
+
   /**
    * 서비스 정리
    */

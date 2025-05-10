@@ -89,6 +89,10 @@ export declare class ChatViewProvider implements vscode.WebviewViewProvider {
      */
     private _openAttachedFile;
     /**
+     * 메시지 컨텍스트 포함/제외 토글
+     */
+    private _toggleMessageContext;
+    /**
      * Gets the current editor content
      */
     private _getEditorContent;

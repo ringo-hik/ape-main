@@ -13,10 +13,11 @@ import { ModelId } from '../../types/models';
 import { ModelManager } from './modelManager';
 import { VaultService } from '../services/vaultService';
 import { RulesService } from '../services/rulesService';
-import { 
-  LLMRequestOptionsWithVault, 
-  VaultContextOptions, 
-  applyVaultContext 
+import {
+  LLMRequestOptionsWithVault,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  VaultContextOptions,
+  applyVaultContext
 } from './vaultIntegration';
 import {
   LLMRequestOptionsWithRules,

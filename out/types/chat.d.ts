@@ -7,23 +7,10 @@ export declare enum MessageRole {
     System = "system"
 }
 /**
- * Supported LLM models
+ * @deprecated Use ModelId from 'types/models.ts' instead.
+ * This type is kept for backward compatibility.
  */
-export declare enum LLMModel {
-    GPT_4_1_MINI = "openai/gpt-4.1-mini",// 기본 모델
-    GPT_4_1_PREVIEW = "openai/gpt-4.1-preview",// 최신 고성능
-    GPT_4O = "openai/gpt-4o",// 고성능
-    GPT_3_5_TURBO = "openai/gpt-3.5-turbo",// 경제적인 모델
-    CLAUDE_3_OPUS = "anthropic/claude-3-opus-20240229",// 최고 성능 모델
-    CLAUDE_3_SONNET = "anthropic/claude-3-sonnet-20240229",// 균형잡힌 성능
-    CLAUDE_3_HAIKU = "anthropic/claude-3-haiku-20240307",// 빠른 응답 모델
-    GEMINI_PRO = "google/gemini-pro",// Google의 최신 모델
-    GEMMA_7B = "google/gemma-7b-it",// 소형 오픈소스 모델
-    QWEN_72B = "qwen/qwen-72b-chat",// Alibaba의 고성능 모델
-    DEEPSEEK = "deepseek/deepseek-coder",// 코딩 특화 모델
-    MISTRAL_7B = "mistralai/mistral-7b-instruct",// 무료 오픈소스 모델
-    LLAMA3_8B = "meta-llama/llama-3-8b-instruct"
-}
+export { ModelId as LLMModel } from './models';
 /**
  * Represents a chat message
  */
@@ -64,6 +51,12 @@ export interface MessageMetadata {
     };
     /** Model used for this message */
     model?: string;
+    /** Whether to exclude this message from context when sending to LLM */
+    excludeFromContext?: boolean;
+    /** Whether this message is a slash command */
+    isSlashCommand?: boolean;
+    /** Result of executing a slash command */
+    commandResult?: boolean;
     /** Additional custom metadata */
     [key: string]: any;
 }

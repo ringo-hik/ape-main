@@ -10,6 +10,11 @@ export declare class WelcomeViewProvider {
      */
     static getWelcomeMessageHTML(): string;
     /**
+     * Generate HTML for the welcome webview panel
+     * Extracts the HTML generation logic for better maintainability
+     */
+    private static generateHtml;
+    /**
      * Create standalone webview panel with welcome content
      */
     static createOrShow(context: vscode.ExtensionContext): vscode.WebviewPanel;

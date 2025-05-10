@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ModelId, ModelDisplayNames, ModelDescriptions, getModelInfo } from '../../types/models';
+import { ModelId, ModelDisplayNames, ModelDescriptions } from '../../types/models';
 
 /**
  * 모델 변경 이벤트 인터페이스

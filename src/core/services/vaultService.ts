@@ -60,7 +60,9 @@ export class VaultService implements vscode.Disposable {
   private contexts: Map<string, VaultContext> = new Map();
   private disposables: vscode.Disposable[] = [];
   private vaultDir: string;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   private fs = require('fs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   private path = require('path');
   
   /**

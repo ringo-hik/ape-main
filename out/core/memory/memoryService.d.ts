@@ -83,6 +83,12 @@ export declare class MemoryService implements vscode.Disposable {
      */
     addMessage(message: Message): Promise<MemoryResult<void>>;
     /**
+     * 특정 메시지를 업데이트
+     * @param message 업데이트할 메시지
+     * @returns Promise that resolves to a MemoryResult indicating success or failure
+     */
+    updateMessage(message: Message): Promise<MemoryResult<void>>;
+    /**
      * Saves messages to the current session
      * @param messages Messages to save
      * @returns Promise that resolves to a MemoryResult indicating success or failure

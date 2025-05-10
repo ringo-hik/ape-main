@@ -1,0 +1,8 @@
+/**
+ * SWDP 명령어 정의
+ */
+import { SlashCommand } from './slashCommand';
+/**
+ * SWDP 관련 명령어 생성
+ */
+export declare function createSwdpCommands(): SlashCommand[];

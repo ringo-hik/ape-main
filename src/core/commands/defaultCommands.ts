@@ -9,6 +9,7 @@ import { createGitCommands } from '../git/commands';
 import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
 import { createJiraCommands } from './jiraCommands';
+import { createCustomJiraCommand } from './customJiraCommand';
 
 /**
  * 기본 슬래시 커맨드 목록 생성
@@ -31,7 +32,8 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
   // Jira 명령어 추가 (Jira 서비스가 있는 경우)
   if (services?.jiraService) {
     const jiraCommands = createJiraCommands(services.jiraService);
-    commands.push(...jiraCommands);
+    const customJiraCommands = createCustomJiraCommand(services.jiraService);
+    commands.push(...jiraCommands, ...customJiraCommands);
   }
   
   // Todo 관련 코드 삭제됨

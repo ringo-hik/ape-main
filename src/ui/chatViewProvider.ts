@@ -4,10 +4,10 @@ import { MemoryService } from '../core/memory/memoryService';
 import { CommandManager } from '../core/commands/commandManager';
 import { Message, MessageRole } from '../types/chat';
 import { CommandSuggestion } from '../core/commands/slashCommand';
-import { ChatViewService } from './chat/chatViewService';
+// import { ChatViewService } from './chat/chatViewService'; // 사용하지 않음
 import { CodeService } from './chat/codeService';
 import { ModelManager } from '../core/llm/modelManager';
-import { SmartPromptingService, SmartPromptingState, SmartPromptingMode } from '../core/services/smartPromptingService';
+import { SmartPromptingService, SmartPromptingState } from '../core/services/smartPromptingService';
 import { WelcomeViewProvider } from './welcomeView';
 
 /**
@@ -63,7 +63,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
    */
   public async resolveWebviewView(
     webviewView: vscode.WebviewView,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _context: vscode.WebviewViewResolveContext,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _token: vscode.CancellationToken
   ) {
     this._view = webviewView;
@@ -533,7 +535,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
       case 'cancelStream':
         // 취소 메시지를 표시하기 위한 콜백 정의
-        const cancelCallback = (chunk: string, done: boolean) => {
+        const cancelCallback = (chunk: string, _done: boolean) => {
           // 현재 스트리밍 중인 메시지가 있는 경우
           if (this._currentStreamMessageId) {
             const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { Message, LLMResponse, LLMRequestOptions, StreamCallback, LLMModel } from '../../types/chat';
+import { Message, LLMResponse, LLMRequestOptions, StreamCallback } from '../../types/chat';
+import { ModelId } from '../../types/models';
 import { ModelManager } from './modelManager';
 import { VaultService } from '../services/vaultService';
 import { RulesService } from '../services/rulesService';
@@ -62,17 +63,17 @@ export declare class LLMService implements vscode.Disposable {
      * Gets the currently active LLM model
      * @returns The active LLM model
      */
-    getActiveModel(): LLMModel;
+    getActiveModel(): ModelId;
     /**
      * Changes the active LLM model
      * @param model The model to switch to
      */
-    setActiveModel(model: LLMModel): Promise<boolean>;
+    setActiveModel(model: ModelId): Promise<boolean>;
     /**
      * Gets all available LLM models
      * @returns Array of available LLM models
      */
-    getAvailableModels(): LLMModel[];
+    getAvailableModels(): ModelId[];
     /**
      * Gets a user-friendly display name for a model
      * @param modelId The model ID
@@ -96,8 +97,9 @@ export declare class LLMService implements vscode.Disposable {
     streamResponse(messages: Message[], streamCallback: StreamCallback, options?: LLMRequestOptions): Promise<LLMResult<void>>;
     /**
      * Cancels an ongoing streaming response
+     * @param streamCallback Optional callback to notify about cancellation
      */
-    cancelStream(): void;
+    cancelStream(streamCallback?: StreamCallback): void;
     /**
      * HTTP implementation of sendRequest
      * @param messages Messages to send

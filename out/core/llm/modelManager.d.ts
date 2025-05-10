@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LLMModel } from '../../types/chat';
+import { ModelId } from '../../types/models';
 /**
  * 모델 변경 이벤트 인터페이스
  */
@@ -37,18 +37,18 @@ export declare class ModelManager implements vscode.Disposable {
      * 현재 활성 모델 가져오기
      * @returns 현재 활성 모델
      */
-    getActiveModel(): LLMModel;
+    getActiveModel(): ModelId;
     /**
      * 활성 모델 변경
      * @param model 사용할 새 모델
      * @returns 성공 여부를 나타내는 Promise
      */
-    setActiveModel(model: LLMModel): Promise<boolean>;
+    setActiveModel(model: ModelId): Promise<boolean>;
     /**
      * 모든 사용 가능한 모델 가져오기
      * @returns 사용 가능한 모델 배열
      */
-    getAvailableModels(): LLMModel[];
+    getAvailableModels(): ModelId[];
     /**
      * 모델 선택 명령어 등록 - 명령어는 CommandManager를 사용합니다
      * @deprecated 이 메서드는 더 이상 사용되지 않으며, 명령어 등록은 CommandManager에서 담당합니다.

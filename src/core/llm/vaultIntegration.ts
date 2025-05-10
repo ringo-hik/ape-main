@@ -186,7 +186,7 @@ function createContextMessages(items: VaultItem[]): Message[] {
  */
 function formatItemContent(item: VaultItem): string {
   // 기본적으로 콘텐츠를 그대로 사용
-  let content = item.content;
+  const content = item.content;
   
   // 아이템 유형에 따라 특별한 포맷팅 적용
   if (item.contextType === VaultContextType.System) {

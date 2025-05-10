@@ -11,9 +11,12 @@ export interface SmartPromptingState {
  * 스마트 프롬프팅 모드 열거형
  */
 export declare enum SmartPromptingMode {
-    Basic = "basic",// 기본 모드
-    Advanced = "advanced",// 고급 모드
-    Expert = "expert"
+    Basic = "basic",// 기본 모드 - 디버깅
+    Advanced = "advanced",// 고급 모드 - 글쓰기
+    Expert = "expert",// 전문가 모드 - 코드 분석
+    Custom = "custom",// 사용자 정의 모드 - 리팩토링
+    Creative = "creative",// 창의적 모드 - 아이디어 생성
+    Friendly = "friendly"
 }
 /**
  * 스마트 프롬프팅 서비스
@@ -74,23 +77,41 @@ export declare class SmartPromptingService {
      */
     processMessage(message: string): string;
     /**
-     * 기본 스마트 프롬프팅 적용
+     * 기본 스마트 프롬프팅 적용 (디버깅 특화)
      * @param message 원본 메시지
      * @returns 증강된 메시지
      */
     private applyBasicPrompting;
     /**
-     * 고급 스마트 프롬프팅 적용
+     * 고급 스마트 프롬프팅 적용 (글쓰기 특화)
      * @param message 원본 메시지
      * @returns 증강된 메시지
      */
     private applyAdvancedPrompting;
     /**
-     * 전문가 스마트 프롬프팅 적용
+     * 전문가 스마트 프롬프팅 적용 (코드 분석 특화)
      * @param message 원본 메시지
      * @returns 증강된 메시지
      */
     private applyExpertPrompting;
+    /**
+     * 사용자 정의 스마트 프롬프팅 적용 (리팩토링 특화)
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    private applyCustomPrompting;
+    /**
+     * 창의적 스마트 프롬프팅 적용 (아이디어 생성 특화)
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    private applyCreativePrompting;
+    /**
+     * 친근한 스마트 프롬프팅 적용 (친구 모드)
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    private applyFriendlyPrompting;
     /**
      * 서비스 정리
      */

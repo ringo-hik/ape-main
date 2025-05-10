@@ -673,8 +673,9 @@ function registerComponents(context: vscode.ExtensionContext, services: ServiceC
 /**
  * Extension activation point
  * @param context Extension context
+ * @returns API object that can be used by other extensions
  */
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export async function activate(context: vscode.ExtensionContext): Promise<any> {
   console.log('APE Extension is now active!');
   
   // 테스트 모드 여부 확인 및 환경 변수 설정
@@ -783,6 +784,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }, 1500); // 충분한 지연 시간으로 확실히 초기화 후 실행
     
     // 짧은 지연을 위한 헬퍼 함수
+    // eslint-disable-next-line no-inner-declarations
     function sleep(ms: number): Promise<void> {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -799,9 +801,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       
       context.globalState.update('ape.hasShownWelcome', true);
     }
+
+    // Return API for other extensions to consume
+    return {
+      // Expose Jira service API for external extensions
+      jiraService: services.jiraService,
+
+      // Dedicated API for creating Jira issues
+      createJiraIssue: async (options: {
+        projectKey: string;
+        issueType: string;
+        summary: string;
+        description?: string;
+        assignee?: string;
+        components?: string[];
+        labels?: string[];
+        dueDate?: string;
+      }) => {
+        return services.jiraService.createIssueExternal(options);
+      }
+    };
   } catch (error) {
     console.error('Failed to activate APE extension:', error);
     vscode.window.showErrorMessage(`Failed to activate APE extension: ${error instanceof Error ? error.message : String(error)}`);
+
+    // Return empty API if error occurred
+    return {};
   }
 }
 
