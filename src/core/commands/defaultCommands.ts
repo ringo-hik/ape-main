@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { SlashCommand } from './slashCommand';
-import { createGitCommands } from '../git/commands';
+import { createMinimalGitCommands } from '../git/minimalGitCommands';
 import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
 import { createJiraCommands } from './minimalJiraCommands';
@@ -179,8 +179,8 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     }
   });
   
-  // Git 명령어 추가
-  const gitCommands = createGitCommands();
+  // Git 명령어 추가 (VS Code Git 확장 활용)
+  const gitCommands = createMinimalGitCommands();
   commands.push(...gitCommands);
   
   // 설정
