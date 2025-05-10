@@ -448,9 +448,9 @@ export class LLMService implements vscode.Disposable {
     // 요청 설정
     const axiosConfig: any = { headers };
 
-    // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
-    if (model === LLMModel.NARRANS) {
-      console.log("[LLMService] Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
+    // 내부망 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+    if (isInternalModel(model)) {
+      console.log(`[LLMService] 내부망 모델(${model}) 요청: 프록시 무시 및 SSL 검증 비활성화`);
       axiosConfig.proxy = false;
       axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
     }
@@ -649,9 +649,9 @@ export class LLMService implements vscode.Disposable {
         headers: headers
       };
 
-      // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
-      if (model === LLMModel.NARRANS) {
-        console.log("[LLMService] Narrans 모델 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화");
+      // 내부망 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+      if (isInternalModel(model)) {
+        console.log(`[LLMService] 내부망 모델(${model}) 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화`);
         axiosConfig.proxy = false;
         axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
       }
