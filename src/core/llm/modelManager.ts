@@ -15,7 +15,7 @@ export interface ModelChangeEvent {
  */
 export class ModelManager implements vscode.Disposable {
   // 현재 활성 모델
-  private _activeModel: LLMModel = LLMModel.GPT_4_1_MINI;
+  private _activeModel: LLMModel = LLMModel.LLAMA4_MAVERICK;
   
   // 설정 업데이트 중인지 여부를 추적하는 플래그
   private _isUpdatingConfig: boolean = false;
@@ -49,7 +49,7 @@ export class ModelManager implements vscode.Disposable {
   private _loadConfiguration(): void {
     try {
       const config = vscode.workspace.getConfiguration('ape.llm');
-      const configModel = config.get<string>('defaultModel', LLMModel.GPT_4_1_MINI);
+      const configModel = config.get<string>('defaultModel', LLMModel.LLAMA4_MAVERICK);
       
       // 유효한 모델인지 확인
       if (this._isValidModel(configModel)) {
@@ -65,25 +65,25 @@ export class ModelManager implements vscode.Disposable {
           });
         }
       } else {
-        console.warn(`유효하지 않은 모델: ${configModel}, 기본 모델 사용: ${LLMModel.GPT_4_1_MINI}`);
-        
+        console.warn(`유효하지 않은 모델: ${configModel}, 기본 모델 사용: ${LLMModel.LLAMA4_MAVERICK}`);
+
         // 활성 모델이 이미 기본 모델이 아닌 경우에만 업데이트
-        if (this._activeModel !== LLMModel.GPT_4_1_MINI) {
+        if (this._activeModel !== LLMModel.LLAMA4_MAVERICK) {
           const oldModel = this._activeModel;
-          this._activeModel = LLMModel.GPT_4_1_MINI;
+          this._activeModel = LLMModel.LLAMA4_MAVERICK;
           
           // 설정 업데이트 플래그 설정
           this._isUpdatingConfig = true;
           
           // 설정 업데이트
-          Promise.resolve(config.update('defaultModel', LLMModel.GPT_4_1_MINI, vscode.ConfigurationTarget.Global))
+          Promise.resolve(config.update('defaultModel', LLMModel.LLAMA4_MAVERICK, vscode.ConfigurationTarget.Global))
             .then(() => {
               // 모델 변경 이벤트 발생
               this._onDidChangeModel.fire({
                 oldModel,
-                newModel: LLMModel.GPT_4_1_MINI
+                newModel: LLMModel.LLAMA4_MAVERICK
               });
-              console.log(`기본 모델로 설정 업데이트됨: ${LLMModel.GPT_4_1_MINI}`);
+              console.log(`기본 모델로 설정 업데이트됨: ${LLMModel.LLAMA4_MAVERICK}`);
             })
             .then(undefined, (err: Error) => {
               console.error('모델 설정 업데이트 실패:', err);
@@ -185,21 +185,47 @@ export class ModelManager implements vscode.Disposable {
       const config = vscode.workspace.getConfiguration('ape.llm');
       // inspect 결과가 다양한 형태일 수 있으므로 안전하게 처리
       const inspection = config.inspect('defaultModel');
-      const configModels = inspection && typeof inspection === 'object' ? 
+      const configModels = inspection && typeof inspection === 'object' ?
         (inspection as any).properties?.enum : undefined;
-      
-      // 설정에 정의된 모델 배열이 있으면 사용
+
+      // 설정에 정의된 모델 배열이 있으면 사용하고 내부망 모델을 맨 앞으로 정렬
       if (configModels && Array.isArray(configModels)) {
-        return configModels as LLMModel[];
+        // 내부망 모델을 맨 앞으로 정렬
+        const internalModels = configModels.filter(model =>
+          model === LLMModel.NARRANS ||
+          model === 'NARRNAS' ||
+          model === LLMModel.LLAMA4_SCOUT ||
+          model === 'LLAMA4-SCOUT' ||
+          model === LLMModel.LLAMA4_MAVERICK ||
+          model === 'LLAMA4-MAVERICK');
+
+        const otherModels = configModels.filter(model =>
+          model !== LLMModel.NARRANS &&
+          model !== 'NARRNAS' &&
+          model !== LLMModel.LLAMA4_SCOUT &&
+          model !== 'LLAMA4-SCOUT' &&
+          model !== LLMModel.LLAMA4_MAVERICK &&
+          model !== 'LLAMA4-MAVERICK');
+
+        return [...internalModels, ...otherModels] as LLMModel[];
       }
-      
+
       // 설정에서 가져올 수 없으면 기본 정의 사용
-      const standardModels = Object.values(LLMModel);
-      
-      // 내부 테스트 모델 추가 (package.json에 정의되어 있어야 함)
-      const testModels = ['NARRNAS', 'LLAMA4-MAVERICK', 'LLAMA4-SCOUT'] as any[];
-      
-      return [...standardModels, ...testModels];
+      // 내부망 모델 정의 (LLMModel에 정의되지 않은 별칭들 포함)
+      const internalModels = [
+        LLMModel.NARRANS,
+        LLMModel.LLAMA4_SCOUT,
+        LLMModel.LLAMA4_MAVERICK
+      ];
+
+      // 표준 모델에서 내부망 모델 제외
+      const standardModels = Object.values(LLMModel).filter(model =>
+        model !== LLMModel.NARRANS &&
+        model !== LLMModel.LLAMA4_SCOUT &&
+        model !== LLMModel.LLAMA4_MAVERICK);
+
+      // 내부망 모델을 앞으로 배치
+      return [...internalModels, ...standardModels];
     } catch (error) {
       // 오류 발생 시 기본 모델 목록만 반환
       console.error('사용 가능한 모델 가져오기 오류:', error);
@@ -302,11 +328,11 @@ export class ModelManager implements vscode.Disposable {
       case 'google/gemma-7b-it':
         return 'Gemma 7B';
       case 'NARRNAS':
-        return 'NARRNAS';
+        return '🔒 NARRNAS (internal)';
       case 'LLAMA4-MAVERICK':
-        return 'Llama 4 Maverick';
+        return '🔒 Llama 4 Maverick (internal)';
       case 'LLAMA4-SCOUT':
-        return 'Llama 4 Scout';
+        return '🔒 Llama 4 Scout (internal)';
       default: {
         // 'provider/model-name' 형식에서 이름 추출
         const parts = modelId.split('/');
@@ -340,11 +366,11 @@ export class ModelManager implements vscode.Disposable {
       case 'google/gemma-7b-it':
         return '경량 오픈소스 모델, 낮은 지연 시간';
       case 'NARRNAS':
-        return '범용 모델 (내부 테스트용)';
+        return '🔴 범용 모델 (Ferrari 내부망 모델)';
       case 'LLAMA4-MAVERICK':
-        return '코드 생성 및 디버깅 특화 (내부 테스트용)';
+        return '🟢 코드 생성 및 디버깅 특화 (Gucci 내부망 모델)';
       case 'LLAMA4-SCOUT':
-        return '코드 분석 및 이해 최적화 (내부 테스트용)';
+        return '🔵 코드 분석 및 이해 최적화 (Hermès 내부망 모델)';
       default:
         return '';
     }
