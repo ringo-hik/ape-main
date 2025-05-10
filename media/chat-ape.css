@@ -152,7 +152,51 @@ body {
   position: relative;
   animation: message-fade-in 0.3s ease forwards;
   box-shadow: var(--ape-shadow-sm);
-  transition: transform var(--ape-transition-normal);
+  transition: transform var(--ape-transition-normal), opacity 0.2s ease;
+}
+
+/* 메시지 헤더 (컨텍스트 토글 버튼) */
+.message-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+  height: 24px;
+}
+
+/* 컨텍스트 토글 버튼 */
+.context-toggle-button {
+  background: none;
+  border: none;
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.context-toggle-button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 특별한 메시지 스타일 */
+.message.slash-command {
+  border-left: 3px solid var(--ape-accent-primary);
+}
+
+.message.command-result {
+  border-left: 3px solid var(--ape-accent-silver);
+  opacity: 0.8;
+}
+
+.message.excluded-from-context {
+  opacity: 0.6;
+  border-left: 3px dashed var(--ape-text-error);
 }
 
 /* 메시지 호버 효과 - 미묘한 텍스처 변화 */
@@ -308,17 +352,218 @@ body {
   );
 }
 
-/* #input-actions 삭제됨 */
+/* 인풋 상단 액션 영역 - 기능성 디자인 */
+#input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ape-spacing-xs) var(--ape-spacing-sm);
+  margin-bottom: var(--ape-spacing-sm);
+}
 
-/* 스마트 프롬프팅 토글 버튼 삭제됨 */
+/* 스마트 프롬프팅 토글 버튼 - 고급 기능 액세스 */
+#smart-prompting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--ape-bg-secondary);
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: var(--ape-border-radius-md);
+  color: var(--ape-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  position: relative;
+}
 
-/* APE MODE 버튼 삭제됨 */
+/* 스마트 프롬프팅 팝오버 */
+#smart-prompting-popover {
+  position: absolute;
+  top: calc(-100% - 180px);
+  left: 0;
+  width: 300px;
+  background-color: var(--ape-bg-secondary);
+  border: 1px solid var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-md);
+  box-shadow: var(--ape-shadow-lg);
+  padding: var(--ape-spacing-md);
+  z-index: 100;
+  display: none;
+  transform-origin: bottom left;
+  animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-/* 스마트 프롬프팅 토글 상태 스타일 삭제됨 */
+/* 팝오버 화살표 */
+#smart-prompting-popover::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 15%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--ape-border-strong);
+}
 
-/* APE MODE 버튼 스타일 삭제됨 */
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
-/* 스마트 프롬프팅 아이콘 스타일 삭제됨 */
+/* 스마트 프롬프팅 팝오버 헤더 */
+.prompting-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ape-spacing-md);
+  padding-bottom: var(--ape-spacing-sm);
+  border-bottom: 1px solid var(--ape-border-subtle);
+}
+
+.prompting-popover-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ape-text-primary);
+}
+
+.prompting-popover-close {
+  background: none;
+  border: none;
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ape-border-radius-full);
+  transition: all var(--ape-transition-fast);
+}
+
+.prompting-popover-close:hover {
+  background-color: var(--ape-bg-hover);
+  color: var(--ape-text-primary);
+}
+
+/* 스마트 프롬프팅 모드 옵션 */
+.prompting-modes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ape-spacing-sm);
+  margin-bottom: var(--ape-spacing-md);
+}
+
+.prompting-mode-option {
+  padding: var(--ape-spacing-sm);
+  background-color: var(--ape-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--ape-border-radius-sm);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.prompting-mode-option:hover {
+  background-color: var(--ape-bg-hover);
+  transform: translateY(-2px);
+}
+
+.prompting-mode-option.active {
+  border-color: var(--ape-accent-primary);
+  background-color: var(--ape-accent-tertiary);
+}
+
+.prompting-mode-icon {
+  font-size: 20px;
+  margin-bottom: var(--ape-spacing-xs);
+}
+
+.prompting-mode-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 특화된 프롬프팅 옵션 */
+.specialized-prompting {
+  margin-top: var(--ape-spacing-md);
+}
+
+.specialized-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ape-spacing-xs);
+}
+
+.specialized-option {
+  padding: var(--ape-spacing-xs) var(--ape-spacing-sm);
+  background-color: var(--ape-bg-tertiary);
+  border-radius: var(--ape-border-radius-sm);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  text-align: center;
+  font-size: 11px;
+}
+
+.specialized-option:hover {
+  background-color: var(--ape-bg-hover);
+  transform: translateY(-1px);
+}
+
+.specialized-title {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: var(--ape-spacing-xs);
+  color: var(--ape-text-secondary);
+}
+
+/* APE MODE 버튼 (마스코트) */
+#search-button {
+  height: 38px;
+  width: 38px;
+  padding: 0;
+  border-radius: var(--ape-border-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+}
+
+/* 스마트 프롬프팅 토글 상태 */
+#smart-prompting-toggle.active {
+  background-color: var(--ape-accent-tertiary);
+  border-color: var(--ape-accent-primary);
+  color: var(--ape-text-primary);
+}
+
+/* 마스코트 버튼 스타일 */
+#search-button:hover {
+  background-color: var(--ape-accent-tertiary);
+  transform: translateY(-1px);
+}
+
+/* 스마트 프롬프팅 아이콘 스타일 */
+#smart-prompting-toggle .toggle-icon {
+  font-size: 14px;
+  transition: transform var(--ape-transition-fast);
+}
+
+#smart-prompting-toggle.active .toggle-icon {
+  transform: rotate(180deg);
+}
 
 /* 입력 필드 - 시대를 초월한 클래식함 */
 #input-wrapper {

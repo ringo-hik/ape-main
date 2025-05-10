@@ -180,11 +180,66 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     // 슬래시 명령어 처리
     if (content.trim().startsWith('/')) {
-      // 슬래시 명령어 실행 - 직접 commandManager 호출
-      await this._commandManager.slashCommandManager.executeCommand(content);
+      // 슬래시 명령어를 별도의 메시지로 기록 (LLM 컨텍스트에서 제외됨)
+      const commandMessageId = `cmd_${Date.now()}`;
+      const commandMessage: Message = {
+        id: commandMessageId,
+        role: MessageRole.User,
+        content: content,
+        timestamp: new Date(),
+        metadata: {
+          isSlashCommand: true,
+          excludeFromContext: true
+        }
+      };
+
+      // 명령어 메시지를 UI에만 표시하기 위해 추가
+      this._messages.push(commandMessage);
+      this._updateChatView();
+
+      try {
+        // 슬래시 명령어 실행
+        const commandResult = await this._commandManager.slashCommandManager.executeCommand(content);
+
+        // 명령어 실행 결과 메시지 추가 (선택적)
+        if (commandResult) {
+          const resultMessageId = `cmd_result_${Date.now()}`;
+          const resultMessage: Message = {
+            id: resultMessageId,
+            role: MessageRole.System,
+            content: `Command executed: ${content}`,
+            timestamp: new Date(),
+            metadata: {
+              commandResult: true,
+              excludeFromContext: true
+            }
+          };
+
+          this._messages.push(resultMessage);
+          this._updateChatView();
+        }
+      } catch (error) {
+        // 명령어 실행 오류 메시지 추가
+        const errorMessageId = `cmd_error_${Date.now()}`;
+        const errorMessage: Message = {
+          id: errorMessageId,
+          role: MessageRole.System,
+          content: `Error executing command: ${error instanceof Error ? error.message : String(error)}`,
+          timestamp: new Date(),
+          metadata: {
+            excludeFromContext: true
+          }
+        };
+
+        this._messages.push(errorMessage);
+        this._updateChatView();
+      }
+
+      // 메시지 저장
+      this._saveMessages();
       return;
     }
-    
+
     // 스마트 프롬프팅 적용 (활성화된 경우)
     let processedContent = content;
     if (this._smartPromptingService && this._smartPromptingService.isEnabled()) {
@@ -217,21 +272,54 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       this._isStreaming = true;
       this._updateChatView();
 
-      // Start streaming response from LLM
+      // Filter messages before sending to LLM
+      const filteredMessages = this._messages.filter(message => {
+        // Remove messages excluded from context
+        if (message.metadata?.excludeFromContext === true) {
+          console.log(`Filtering out excluded message: ${message.id}`);
+          return false;
+        }
+
+        // Remove UI-only messages (like welcome HTML)
+        if (message.metadata?.uiOnly === true) {
+          console.log(`Filtering out UI-only message: ${message.id}`);
+          return false;
+        }
+
+        // As a fallback, also filter by content for older message formats
+        if (message.role === MessageRole.System) {
+          const content = message.content || '';
+          if (content.includes('<div class="welcome-container"') ||
+              (content.trim().startsWith('<') && content.includes('</div>'))) {
+            console.log(`Filtering out HTML system message: ${message.id}`);
+            return false;
+          }
+        }
+
+        // Keep all other messages
+        return true;
+      });
+
+      console.log(`Filtered out ${this._messages.length - filteredMessages.length} messages before LLM request`);
+
+      // Start streaming response from LLM with filtered messages
       await this._llmService.streamResponse(
-        this._messages,
+        filteredMessages,
         (chunk: string, done: boolean) => {
-          // Update the assistant message with the new chunk
+          // Update the assistant message with the new chunk only if it's not empty
           const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
           if (assistantMessage) {
-            assistantMessage.content += chunk;
+            // Only append chunk if it contains content
+            if (chunk && chunk.trim()) {
+              assistantMessage.content += chunk;
 
-            // Debounce updates for efficiency
-            if (!this._streamUpdateTimeout) {
-              this._streamUpdateTimeout = setTimeout(() => {
-                this._updateChatView();
-                this._streamUpdateTimeout = null;
-              }, 30); // 30ms debounce
+              // Debounce updates for efficiency
+              if (!this._streamUpdateTimeout) {
+                this._streamUpdateTimeout = setTimeout(() => {
+                  this._updateChatView();
+                  this._streamUpdateTimeout = null;
+                }, 30); // 30ms debounce
+              }
             }
 
             if (done) {
@@ -268,7 +356,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         id: `msg_error_${Date.now()}`,
         role: MessageRole.System,
         content: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        timestamp: new Date()
+        timestamp: new Date(),
+        metadata: {
+          excludeFromContext: true
+        }
       };
 
       this._messages.push(errorMessage);
@@ -286,20 +377,40 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     this._memoryService.clearMessages();
     
     try {
-      // 새로운 웰컴 메시지 HTML 콘텐츠 가져오기
-      const welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
-      
-      // 새로운 웰컴뷰 사용
-      const welcomeId = `welcome_${Date.now()}`;
+      // Get welcome message HTML with error handling
+      let welcomeHTML = '';
+      try {
+        welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
+        console.log('Welcome HTML generated successfully');
+      } catch (welcomeError) {
+        console.error('Error getting welcome HTML from provider:', welcomeError);
+        welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+      }
+
+      // Ensure welcome HTML is not empty
+      if (!welcomeHTML || welcomeHTML.trim() === '') {
+        welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+        console.warn('Empty welcome HTML detected, using fallback');
+      }
+
+      // Create a UI-only welcome message and conversation starter
+      const welcomeId = `welcome_ui_${Date.now()}`;
       const assistantId = `assistant_welcome_${Date.now()}`;
-      
+
+      // Create display messages - the welcome HTML message is UI-only and will not be sent to LLM
       this._messages = [
+        // This is a UI-only message that won't be sent to LLM
         {
           id: welcomeId,
           role: MessageRole.System,
           content: welcomeHTML,
-          timestamp: new Date()
+          timestamp: new Date(),
+          metadata: {
+            uiOnly: true, // Flag to indicate this shouldn't be sent to LLM
+            type: 'welcome' // Mark as welcome message
+          }
         },
+        // This is the actual conversation starter from the assistant
         {
           id: assistantId,
           role: MessageRole.Assistant,
@@ -336,20 +447,40 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       console.log('저장된 메시지 없음, 웰컴 메시지 추가');
       
       try {
-        // 새로운 웰컴 메시지 HTML 콘텐츠 가져오기
-        const welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
-        
-        // 메시지가 없으면 웰컴 메시지 추가
-        const welcomeId = `welcome_${Date.now()}`;
+        // Get welcome message HTML with error handling
+        let welcomeHTML = '';
+        try {
+          welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
+          console.log('Load messages: Welcome HTML generated successfully');
+        } catch (welcomeError) {
+          console.error('Load messages: Error getting welcome HTML from provider:', welcomeError);
+          welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+        }
+
+        // Ensure welcome HTML is not empty
+        if (!welcomeHTML || welcomeHTML.trim() === '') {
+          welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
+          console.warn('Load messages: Empty welcome HTML detected, using fallback');
+        }
+
+        // Create a UI-only welcome message and conversation starter
+        const welcomeId = `welcome_ui_${Date.now()}`;
         const assistantId = `assistant_welcome_${Date.now()}`;
-        
+
+        // Create display messages with UI-only flag for welcome HTML
         this._messages = [
+          // This is a UI-only message that won't be sent to LLM
           {
             id: welcomeId,
             role: MessageRole.System,
             content: welcomeHTML,
-            timestamp: new Date()
+            timestamp: new Date(),
+            metadata: {
+              uiOnly: true, // Flag to indicate this shouldn't be sent to LLM
+              type: 'welcome' // Mark as welcome message
+            }
           },
+          // This is the actual conversation starter
           {
             id: assistantId,
             role: MessageRole.Assistant,
@@ -480,9 +611,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         break;
         
       case 'advancedSearch':
-        // 고급 검색 기능
-        vscode.window.showInformationMessage('Advanced search feature activated');
-        // 여기에 고급 검색 기능 구현
+        // 고급 검색 기능 - 미니멀하게 구현
+        vscode.window.showInformationMessage('새로운 고급 검색 기능 준비 중');
+        // 향후 확장 가능한 고급 검색 기능용 플레이스홀더
         break;
         
       case 'setSmartPromptingMode':
@@ -491,11 +622,27 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           this._smartPromptingService.setMode(message.mode);
         }
         break;
+
+      case 'applySpecializedPrompt':
+        // 특화된 전문 프롬프트 적용
+        if (this._smartPromptingService && message.promptType) {
+          // 현재는 스마트 프롬프팅 활성화 및 알림만 표시
+          this._smartPromptingService.setEnabled(true);
+          vscode.window.showInformationMessage(`${message.promptType} 프롬프트 템플릿이 적용되었습니다.`);
+        }
+        break;
       
       case 'openFile':
         // 첨부된 파일 열기
         if (message.fileName) {
           this._openAttachedFile(message.fileName);
+        }
+        break;
+
+      case 'toggleMessageContext':
+        // 메시지 컨텍스트 포함/제외 토글
+        if (message.messageId) {
+          this._toggleMessageContext(message.messageId);
         }
         break;
     }
@@ -594,19 +741,19 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
       if (vscode.workspace.workspaceFolders?.length) {
         const workspaceFolder = vscode.workspace.workspaceFolders[0];
-        
+
         const searchPattern = new vscode.RelativePattern(
           workspaceFolder,
           `**/${fileName}`
         );
-        
+
         const files = await vscode.workspace.findFiles(searchPattern, null, 1);
-        
+
         if (files.length > 0) {
           targetFile = files[0];
         }
       }
-      
+
       if (targetFile) {
         const document = await vscode.workspace.openTextDocument(targetFile);
         await vscode.window.showTextDocument(document);
@@ -616,6 +763,44 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       console.error('Error opening file:', error);
       vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 메시지 컨텍스트 포함/제외 토글
+   */
+  private async _toggleMessageContext(messageId: string): Promise<void> {
+    try {
+      // 메시지 찾기
+      const message = this._messages.find(m => m.id === messageId);
+      if (!message) {
+        console.error(`Message with ID ${messageId} not found`);
+        return;
+      }
+
+      // 메타데이터가 없으면 생성
+      if (!message.metadata) {
+        message.metadata = {};
+      }
+
+      // 컨텍스트 포함/제외 토글
+      message.metadata.excludeFromContext = !message.metadata.excludeFromContext;
+
+      // 메모리 서비스 업데이트
+      await this._memoryService.updateMessage(message);
+
+      // 웹뷰에 상태 변경 알림
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: 'messageContextToggled',
+          messageId: messageId,
+          excludeFromContext: message.metadata.excludeFromContext
+        });
+      }
+
+      console.log(`Message ${messageId} context exclusion set to ${message.metadata.excludeFromContext}`);
+    } catch (error) {
+      console.error('Error toggling message context:', error);
     }
   }
   
@@ -724,7 +909,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           if (e.key === 'ArrowUp') {
             e.preventDefault();
             navigateSuggestion('up');
-          } 
+          }
           else if (e.key === 'ArrowDown') {
             e.preventDefault();
             navigateSuggestion('down');
@@ -736,7 +921,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               const activeEl = suggestionContainer.querySelector(
                 '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
               );
-              
+
               if (activeEl && activeEl.classList.contains('has-children')) {
                 // 펼치기
                 activeEl.classList.add('expanded');
@@ -750,54 +935,51 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               const activeEl = suggestionContainer.querySelector(
                 '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
               );
-              
+
               if (activeEl && activeEl.classList.contains('expanded')) {
                 // 접기
                 activeEl.classList.remove('expanded');
               }
             }
           }
-              
-            case 'Tab':
-              // 탭 키 입력 추적
-              const now = Date.now();
-              const isDoubleTap = (now - lastTabTime < 500);
-              lastTabTime = now;
-              
-              if (isDoubleTap) {
-                tabCount = (tabCount + 1) % suggestions.length;
-              } else {
-                tabCount = 0;
-              }
-              
-              if (suggestions.length > 0) {
-                e.preventDefault();
-                activeSuggestionIndex = tabCount;
-                highlightActiveSuggestion();
-              }
-              break;
-              
-            case 'Enter':
-              if (activeSuggestionIndex >= 0) {
-                e.preventDefault();
-                const activeEl = suggestionContainer.querySelector(
-                  '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
-                );
-                
-                if (activeEl && activeEl.classList.contains('has-children') && !activeEl.classList.contains('expanded')) {
-                  // 하위 명령어가 있고 접혀있는 경우 펼치기
-                  activeEl.classList.add('expanded');
-                } else {
-                  // 그 외의 경우 명령어 선택
-                  selectSuggestion(activeSuggestionIndex);
-                }
-              }
-              break;
-              
-            case 'Escape':
+          else if (e.key === 'Tab') {
+            // 탭 키 입력 추적
+            const now = Date.now();
+            const isDoubleTap = (now - lastTabTime < 500);
+            lastTabTime = now;
+
+            if (isDoubleTap) {
+              tabCount = (tabCount + 1) % suggestions.length;
+            } else {
+              tabCount = 0;
+            }
+
+            if (suggestions.length > 0) {
               e.preventDefault();
-              hideSuggestions();
-              break;
+              activeSuggestionIndex = tabCount;
+              highlightActiveSuggestion();
+            }
+          }
+          else if (e.key === 'Enter') {
+            if (activeSuggestionIndex >= 0) {
+              e.preventDefault();
+              const activeEl = suggestionContainer.querySelector(
+                '.command-suggestion[data-index="' + activeSuggestionIndex + '"]'
+              );
+
+              if (activeEl && activeEl.classList.contains('has-children') && !activeEl.classList.contains('expanded')) {
+                // 하위 명령어가 있고 접혀있는 경우 펼치기
+                activeEl.classList.add('expanded');
+              } else {
+                // 그 외의 경우 명령어 선택
+                selectSuggestion(activeSuggestionIndex);
+              }
+            }
+          }
+          else if (e.key === 'Escape') {
+            e.preventDefault();
+            hideSuggestions();
+          }
           }
         });
         
@@ -1371,9 +1553,72 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ type: 'showModelSelector' });
     }
     
-    // Smart prompting toggle handler
+    // 스마트 프롬프팅 토글 및 팝오버 처리
     function handleSmartPromptingToggle() {
-      vscode.postMessage({ type: 'toggleSmartPrompting' });
+      const popover = document.getElementById('smart-prompting-popover');
+      if (popover) {
+        // 팝오버 표시 상태 토글
+        if (popover.style.display === 'block') {
+          popover.style.display = 'none';
+        } else {
+          popover.style.display = 'block';
+
+          // 모드 옵션에 클릭 이벤트 추가
+          document.querySelectorAll('.prompting-mode-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+              const modeElement = e.currentTarget as HTMLElement;
+              const mode = modeElement.dataset.mode;
+
+              // 활성 클래스 업데이트
+              document.querySelectorAll('.prompting-mode-option').forEach(opt => {
+                opt.classList.remove('active');
+              });
+              modeElement.classList.add('active');
+
+              // LLM 서비스에 모드 변경 알림
+              vscode.postMessage({
+                type: 'setSmartPromptingMode',
+                mode: mode
+              });
+
+              // 스마트 프롬프팅 활성화
+              vscode.postMessage({ type: 'toggleSmartPrompting' });
+            });
+          });
+
+          // 전문 프롬프트 옵션에 클릭 이벤트 추가
+          document.querySelectorAll('.specialized-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+              const promptElement = e.currentTarget as HTMLElement;
+              const promptType = promptElement.dataset.prompt;
+
+              // LLM 서비스에 전문 프롬프트 타입 전송
+              vscode.postMessage({
+                type: 'applySpecializedPrompt',
+                promptType: promptType
+              });
+
+              // 팝오버 닫기
+              popover.style.display = 'none';
+
+              // 스마트 프롬프팅 활성화
+              vscode.postMessage({ type: 'toggleSmartPrompting' });
+            });
+          });
+
+          // 닫기 버튼 이벤트
+          const closeButton = document.querySelector('.prompting-popover-close');
+          if (closeButton) {
+            closeButton.addEventListener('click', (e) => {
+              e.stopPropagation(); // 토글 버튼 이벤트 전파 방지
+              popover.style.display = 'none';
+            });
+          }
+        }
+      } else {
+        // 팝오버가 없으면 기본 토글 동작
+        vscode.postMessage({ type: 'toggleSmartPrompting' });
+      }
     }
     
     // Handle clicks within message area (for file attachments, etc.)
@@ -1395,35 +1640,64 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     // Handle messages from the extension
     function handleExtensionMessages(event) {
       const message = event.data;
-      
+
       switch (message.type) {
         case 'updateMessages':
           updateMessages(message.messages, message.isStreaming);
           break;
-          
+
         case 'editorContent':
           handleEditorContent(message.content);
           break;
-          
+
         case 'commandSuggestions':
           updateCommandSuggestions(message.suggestions);
           break;
-          
+
         case 'insertCommandToInput':
           insertCommandFromHelp(message.command);
           break;
-          
+
         case 'updateModelIndicator':
           updateModelName(message.modelName);
           break;
-          
+
         case 'fileAttached':
           handleFileAttachment(message.file);
           break;
-          
+
         case 'updateSmartPrompting':
           updateSmartPromptingUI(message.enabled, message.mode);
           break;
+
+        case 'messageContextToggled':
+          // 메시지 컨텍스트 토글 상태 업데이트
+          updateMessageContextState(message.messageId, message.excludeFromContext);
+          break;
+      }
+    }
+
+    // 메시지 컨텍스트 토글 상태 업데이트
+    function updateMessageContextState(messageId, excludeFromContext) {
+      const messageElement = document.getElementById('msg-' + messageId);
+      if (!messageElement) return;
+
+      // 클래스 토글
+      if (excludeFromContext) {
+        messageElement.classList.add('excluded-from-context');
+      } else {
+        messageElement.classList.remove('excluded-from-context');
+      }
+
+      // 버튼 아이콘 및 툴팁 업데이트
+      const toggleButton = messageElement.querySelector('.context-toggle-button');
+      if (toggleButton) {
+        toggleButton.title = excludeFromContext ? '맥락에 포함' : '맥락에서 제외';
+
+        const toggleIcon = toggleButton.querySelector('.context-toggle-icon');
+        if (toggleIcon) {
+          toggleIcon.textContent = excludeFromContext ? '⊕' : '⊖';
+        }
       }
     }
     
@@ -1567,15 +1841,68 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     function createMessageElement(message, isStreaming) {
       const element = document.createElement('div');
       element.id = \`msg-\${message.id}\`;
-      element.className = \`message \${message.role}\`;
-      if (isStreaming) element.classList.add('streaming');
+
+      // 기본 클래스 설정
+      let messageClasses = 'message ' + message.role;
+      if (isStreaming) {
+        messageClasses += ' streaming';
+      }
+
+      // 명령어 및 컨텍스트 제외 관련 클래스 추가
+      if (message.metadata?.isSlashCommand) {
+        messageClasses += ' slash-command';
+      }
+
+      if (message.metadata?.commandResult) {
+        messageClasses += ' command-result';
+      }
+
+      if (message.metadata?.excludeFromContext) {
+        messageClasses += ' excluded-from-context';
+      }
+
+      element.className = messageClasses;
       element.setAttribute('data-message-id', message.id);
-      
+
+      // 헤더 영역 생성 (컨텍스트 토글 버튼 포함)
+      if (message.role !== 'system' || !message.metadata?.uiOnly) {
+        const headerElement = document.createElement('div');
+        headerElement.className = 'message-header';
+
+        // 컨텍스트 토글 버튼 추가
+        if (message.role !== 'system' || message.metadata?.isSlashCommand) {
+          const contextToggleButton = document.createElement('button');
+          contextToggleButton.className = 'context-toggle-button';
+          contextToggleButton.setAttribute('data-message-id', message.id);
+          contextToggleButton.title = message.metadata?.excludeFromContext ?
+            '맥락에 포함' : '맥락에서 제외';
+
+          const toggleIcon = document.createElement('span');
+          toggleIcon.className = 'context-toggle-icon';
+          toggleIcon.textContent = message.metadata?.excludeFromContext ? '⊕' : '⊖';
+          contextToggleButton.appendChild(toggleIcon);
+
+          // 토글 버튼 클릭 이벤트 처리
+          contextToggleButton.addEventListener('click', function() {
+            // 메시지 컨텍스트 제외 상태 토글
+            vscode.postMessage({
+              type: 'toggleMessageContext',
+              messageId: message.id
+            });
+          });
+
+          headerElement.appendChild(contextToggleButton);
+        }
+
+        element.appendChild(headerElement);
+      }
+
+      // 컨텐츠 영역 생성
       const contentElement = document.createElement('div');
       contentElement.className = 'message-content';
       contentElement.innerHTML = formatMessageContent(message.content);
       element.appendChild(contentElement);
-      
+
       return element;
     }
     
@@ -2082,6 +2409,54 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       <div id="chat-container">
         <div id="chat-messages"></div>
         <div id="chat-input-container">
+          <div id="input-actions">
+            <div id="smart-prompting-toggle" title="Toggle Smart Prompting">
+              <span class="toggle-icon">⚙</span>
+              <span id="smart-prompting-label">Smart Prompting</span>
+
+              <!-- 스마트 프롬프팅 팝오버 -->
+              <div id="smart-prompting-popover">
+                <div class="prompting-popover-header">
+                  <span class="prompting-popover-title">Smart Prompting</span>
+                  <button class="prompting-popover-close">✕</button>
+                </div>
+
+                <div class="prompting-modes">
+                  <div class="prompting-mode-option" data-mode="basic">
+                    <span class="prompting-mode-icon">◆</span>
+                    <span class="prompting-mode-label">디버깅</span>
+                  </div>
+                  <div class="prompting-mode-option" data-mode="advanced">
+                    <span class="prompting-mode-icon">◎</span>
+                    <span class="prompting-mode-label">글쓰기</span>
+                  </div>
+                  <div class="prompting-mode-option" data-mode="expert">
+                    <span class="prompting-mode-icon">⬡</span>
+                    <span class="prompting-mode-label">코드 분석</span>
+                  </div>
+                  <div class="prompting-mode-option" data-mode="custom">
+                    <span class="prompting-mode-icon">⬢</span>
+                    <span class="prompting-mode-label">리팩토링</span>
+                  </div>
+                </div>
+
+                <div class="specialized-prompting">
+                  <div class="specialized-title">자주 사용하는 전문 프롬프트</div>
+                  <div class="specialized-options">
+                    <div class="specialized-option" data-prompt="코드 리뷰">코드 리뷰</div>
+                    <div class="specialized-option" data-prompt="성능 최적화">성능 최적화</div>
+                    <div class="specialized-option" data-prompt="문서화">문서화</div>
+                    <div class="specialized-option" data-prompt="보고서">보고서</div>
+                    <div class="specialized-option" data-prompt="디자인 패턴">디자인 패턴</div>
+                    <div class="specialized-option" data-prompt="테스트 작성">테스트 작성</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button id="search-button" title="Advanced Search" class="input-top-button">
+              <span class="emoji-icon">⌕</span>
+            </button>
+          </div>
           <div id="input-wrapper">
             <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
             <div id="input-buttons">
