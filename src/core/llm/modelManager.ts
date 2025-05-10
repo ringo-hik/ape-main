@@ -109,12 +109,26 @@ export class ModelManager implements vscode.Disposable {
   private _isValidModel(modelId: string): boolean {
     // 표준 모델 확인
     const isStandardModel = Object.values(LLMModel).includes(modelId as LLMModel);
-    
-    // 테스트 모델 확인
-    const testModels = ['NARRNAS', 'LLAMA4-MAVERICK', 'LLAMA4-SCOUT'];
-    const isTestModel = testModels.includes(modelId);
-    
-    return isStandardModel || isTestModel;
+
+    console.log(`[ModelManager] 모델 검증: ${modelId}, 표준 모델 여부: ${isStandardModel}`);
+
+    // 내부망 모델 별칭인지 확인
+    const isNarransAlias = modelId === 'NARRANS' || modelId === 'NARRNAS';
+    const isLlama4ScoutAlias = modelId === 'LLAMA4-SCOUT' || modelId === 'LLAMA4_SCOUT';
+    const isLlama4MaverickAlias = modelId === 'LLAMA4-MAVERICK' || modelId === 'LLAMA4_MAVERICK';
+
+    // 내부망 모델 확인 (LLMModel 열거형 값과 문자열 별칭 모두 지원)
+    const isInternalModel =
+      modelId === LLMModel.NARRANS ||
+      modelId === LLMModel.LLAMA4_SCOUT ||
+      modelId === LLMModel.LLAMA4_MAVERICK ||
+      isNarransAlias ||
+      isLlama4ScoutAlias ||
+      isLlama4MaverickAlias;
+
+    console.log(`[ModelManager] 내부망 모델 여부: ${isInternalModel}`);
+
+    return isStandardModel || isInternalModel;
   }
   
   /**
@@ -131,46 +145,77 @@ export class ModelManager implements vscode.Disposable {
    * @returns 성공 여부를 나타내는 Promise
    */
   public async setActiveModel(model: LLMModel): Promise<boolean> {
+    console.log(`[ModelManager] 모델 전환 요청: ${this._activeModel} → ${model}`);
+
     // 현재 모델과 동일하거나 이미 설정 업데이트 중이면 무시
-    if (this._activeModel === model || this._isUpdatingConfig) {
+    if (this._activeModel === model) {
+      console.log(`[ModelManager] 이미 ${model} 모델을 사용 중입니다.`);
       return false;
     }
-    
+
+    if (this._isUpdatingConfig) {
+      console.log(`[ModelManager] 다른 모델 전환이 진행 중입니다. 요청 무시.`);
+      return false;
+    }
+
     // 유효한 모델인지 확인
     if (!this._isValidModel(model)) {
-      console.warn(`유효하지 않은 모델: ${model}, 현재 모델 유지: ${this._activeModel}`);
+      console.warn(`[ModelManager] 유효하지 않은 모델: ${model}, 현재 모델 유지: ${this._activeModel}`);
+
+      // 내부망 모델인 경우 정확한 enum 값 매핑 시도
+      const modelStr = String(model);
+      if (modelStr === 'NARRANS' || modelStr === 'NARRNAS') {
+        console.log(`[ModelManager] '${modelStr}'를 '${LLMModel.NARRANS}'로 자동 매핑`);
+        return this.setActiveModel(LLMModel.NARRANS);
+      } else if (modelStr === 'LLAMA4-SCOUT' || modelStr === 'LLAMA4_SCOUT') {
+        console.log(`[ModelManager] '${modelStr}'를 '${LLMModel.LLAMA4_SCOUT}'로 자동 매핑`);
+        return this.setActiveModel(LLMModel.LLAMA4_SCOUT);
+      } else if (modelStr === 'LLAMA4-MAVERICK' || modelStr === 'LLAMA4_MAVERICK') {
+        console.log(`[ModelManager] '${modelStr}'를 '${LLMModel.LLAMA4_MAVERICK}'로 자동 매핑`);
+        return this.setActiveModel(LLMModel.LLAMA4_MAVERICK);
+      }
+
       return false;
     }
-    
+
     try {
       // 설정 업데이트 플래그 설정
       this._isUpdatingConfig = true;
-      
+      console.log(`[ModelManager] 설정 업데이트 시작`);
+
       // 이전 모델 저장
       const oldModel = this._activeModel;
-      
+
       // 활성 모델 업데이트
       this._activeModel = model;
-      
+      console.log(`[ModelManager] 내부 활성 모델 업데이트: ${oldModel} → ${model}`);
+
       // 설정에 변경 사항 저장
       const config = vscode.workspace.getConfiguration('ape.llm');
+      console.log(`[ModelManager] VSCode 설정 업데이트 'ape.llm.defaultModel' = ${model}`);
       await config.update('defaultModel', model, vscode.ConfigurationTarget.Global);
-      
+
       // 모델 변경 이벤트 발생
+      console.log(`[ModelManager] 모델 변경 이벤트 발생`);
       this._onDidChangeModel.fire({
         oldModel,
         newModel: model
       });
-      
-      console.log(`모델이 변경됨: ${oldModel} -> ${model}`);
+
+      console.log(`[ModelManager] 모델이 변경됨: ${oldModel} → ${model} (성공)`);
       return true;
     } catch (error) {
-      console.error('모델 설정 업데이트 실패:', error);
+      console.error('[ModelManager] 모델 설정 업데이트 실패:', error);
+      if (error instanceof Error) {
+        console.error('[ModelManager] 오류 세부 정보:', error.message);
+        console.error('[ModelManager] 오류 스택 트레이스:', error.stack);
+      }
       return false;
     } finally {
       // 설정 업데이트 플래그 해제 (지연 설정)
       setTimeout(() => {
         this._isUpdatingConfig = false;
+        console.log(`[ModelManager] 설정 업데이트 플래그 해제됨`);
       }, 100);
     }
   }
@@ -181,28 +226,37 @@ export class ModelManager implements vscode.Disposable {
    */
   public getAvailableModels(): LLMModel[] {
     try {
+      console.log(`[ModelManager] 사용 가능한 모델 목록 가져오기`);
+
       // 설정에 정의된 모델 목록 확인
       const config = vscode.workspace.getConfiguration('ape.llm');
       // inspect 결과가 다양한 형태일 수 있으므로 안전하게 처리
       const inspection = config.inspect('defaultModel');
-      const configModels = inspection && typeof inspection === 'object' ? 
+      const configModels = inspection && typeof inspection === 'object' ?
         (inspection as any).properties?.enum : undefined;
-      
+
       // 설정에 정의된 모델 배열이 있으면 사용
       if (configModels && Array.isArray(configModels)) {
+        console.log(`[ModelManager] 설정에서 ${configModels.length}개 모델 발견`);
         return configModels as LLMModel[];
       }
-      
+
       // 설정에서 가져올 수 없으면 기본 정의 사용
+      console.log(`[ModelManager] 설정에서 모델을 가져올 수 없음, 기본 정의 사용`);
       const standardModels = Object.values(LLMModel);
-      
-      // 내부 테스트 모델 추가 (package.json에 정의되어 있어야 함)
-      const testModels = ['NARRNAS', 'LLAMA4-MAVERICK', 'LLAMA4-SCOUT'] as any[];
-      
-      return [...standardModels, ...testModels];
+
+      // 내부망 모델이 이미 LLMModel enum에 포함되어 있으므로 중복 추가하지 않음
+      const availableModels = standardModels;
+
+      console.log(`[ModelManager] 총 ${availableModels.length}개 모델 사용 가능, 내부망 모델 포함: ${[LLMModel.NARRANS, LLMModel.LLAMA4_SCOUT, LLMModel.LLAMA4_MAVERICK].join(', ')}`);
+      return availableModels;
     } catch (error) {
       // 오류 발생 시 기본 모델 목록만 반환
-      console.error('사용 가능한 모델 가져오기 오류:', error);
+      console.error('[ModelManager] 사용 가능한 모델 가져오기 오류:', error);
+      if (error instanceof Error) {
+        console.error('[ModelManager] 오류 세부 정보:', error.message);
+        console.error('[ModelManager] 오류 스택 트레이스:', error.stack);
+      }
       return Object.values(LLMModel);
     }
   }
