@@ -55,10 +55,10 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
         </div>
         
         <div class="welcome-quick-actions">
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">Help</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">Change Model</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/settings'})">Settings</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">Reset Conversation</button>
+          <button class="quick-action" onclick="sendCommand('/help')">Help</button>
+          <button class="quick-action" onclick="sendCommand('/model')">Change Model</button>
+          <button class="quick-action" onclick="sendCommand('/settings')">Settings</button>
+          <button class="quick-action" onclick="sendCommand('/clear')">Reset Conversation</button>
         </div>
       </div>
     `;
@@ -145,18 +145,22 @@ Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
         </div>
         
         <script>
+          // Define vscode API globally for use in onclick handlers
           const vscode = acquireVsCodeApi();
-          
+
+          // Define global sendCommand function for quick action buttons
+          window.sendCommand = function(command) {
+            console.log('Quick action command sent:', command);
+            vscode.postMessage({ type: 'insertCommand', command });
+          };
+
           document.querySelectorAll('.example-card').forEach(card => {
             card.addEventListener('click', event => {
               const command = card.querySelector('.example-text').textContent;
               vscode.postMessage({ type: 'command', command });
             });
           });
-          
-          // Quick actions are now handled via onclick attributes directly in HTML
-          // This is more reliable than event delegation in this environment
-          
+
           // Add subtle hover animations
           document.querySelectorAll('.example-card').forEach(element => {
             element.addEventListener('mouseover', () => {

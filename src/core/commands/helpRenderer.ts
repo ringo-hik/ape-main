@@ -155,11 +155,13 @@ export async function getCommandsByCategory(categoryId?: string): Promise<any[]>
 export async function generateHelpHtml(categoryId?: string): Promise<string> {
   try {
     const categories = await getCommandsByCategory(categoryId);
-    
+
     let content = `
-      <h1>APE 도움말</h1>
-      <p>사용 가능한 명령어 목록입니다. 각 명령어에 대한 자세한 정보를 보려면 명령어를 클릭하세요.</p>
-      
+      <header class="help-header">
+        <h1>APE 도움말</h1>
+        <p class="help-description">사용 가능한 명령어 목록입니다. 명령어를 클릭하면 자세한 정보를 볼 수 있습니다.</p>
+      </header>
+
       <div class="quick-actions">
         <h2>자주 사용하는 명령어</h2>
         <div class="quick-buttons">
@@ -192,8 +194,8 @@ export async function generateHelpHtml(categoryId?: string): Promise<string> {
       for (const command of category.commands) {
         // 명령어 아이콘 선택
         const iconName = getCategoryIcon(category.id);
-        
-        // 명령어 요약 카드
+
+        // 명령어 요약 카드 - 미니멀 버전
         content += `
           <div class="command-card" onclick="sendCommandToVSCode('${command.name}')">
             <div class="command-name">
@@ -201,10 +203,12 @@ export async function generateHelpHtml(categoryId?: string): Promise<string> {
               <span class="command-text">/${command.name}</span>
             </div>
             <div class="command-description">${command.description}</div>
-            ${command.examples && command.examples.length > 0 ? 
-              `<div class="command-examples">예시: ${command.examples[0]}</div>` : ''}
-            ${command.aliases && command.aliases.length > 0 ? 
-              `<div class="command-aliases">별칭: ${command.aliases.map((a: string) => `/${a}`).join(', ')}</div>` : ''}
+            <div class="command-card-footer">
+              ${command.examples && command.examples.length > 0 ?
+                `<div class="command-examples">예시: ${command.examples[0]}</div>` : ''}
+              ${command.aliases && command.aliases.length > 0 ?
+                `<div class="command-aliases">/${command.aliases[0]}${command.aliases.length > 1 ? ' +' + (command.aliases.length - 1) : ''}</div>` : ''}
+            </div>
           </div>
         `;
       }
@@ -244,55 +248,69 @@ export async function generateCommandDetailHtml(commandName: string): Promise<st
     }
     
     let content = `
-      <div class="command-detail">
+      <header class="help-header">
         <h1>/${commandData.name}</h1>
-        <div class="command-description">${commandData.description}</div>
-        
-        <h2>상세 정보</h2>
-        <p>${commandData.longDescription || commandData.description}</p>
-        
-        <h2>사용법</h2>
-        <div class="command-usage">
-          <code>${commandData.usage || `/${commandData.name}`}</code>
+        <p class="help-description">${commandData.description}</p>
+      </header>
+
+      <div class="command-detail">
+        <div class="detail-section">
+          <h2>상세 정보</h2>
+          <p>${commandData.longDescription || commandData.description}</p>
+        </div>
+
+        <div class="detail-section">
+          <h2>사용법</h2>
+          <div class="command-usage">
+            <code>${commandData.usage || `/${commandData.name}`}</code>
+          </div>
         </div>
     `;
     
     // 예시
     if (commandData.examples && commandData.examples.length > 0) {
       content += `
-        <h2>예시</h2>
-        <ul class="command-examples-list">
-          ${commandData.examples.map((example: string) => `<li><code>${example}</code></li>`).join('')}
-        </ul>
+        <div class="detail-section">
+          <h2>예시</h2>
+          <ul class="command-examples-list">
+            ${commandData.examples.map((example: string) => `<li><code>${example}</code></li>`).join('')}
+          </ul>
+        </div>
       `;
     }
-    
+
     // 별칭
     if (commandData.aliases && commandData.aliases.length > 0) {
       content += `
-        <h2>별칭</h2>
-        <div class="command-aliases">
-          ${commandData.aliases.map((alias: string) => `<code>/${alias}</code>`).join(', ')}
+        <div class="detail-section">
+          <h2>별칭</h2>
+          <div class="command-aliases-list">
+            ${commandData.aliases.map((alias: string) => `<span class="detail-alias">/${alias}</span>`).join('')}
+          </div>
         </div>
       `;
     }
-    
+
     // 관련 명령어
     if (commandData.related && commandData.related.length > 0) {
       content += `
-        <h2>관련 명령어</h2>
-        <div class="related-commands">
-          ${commandData.related.map((cmd: string) => 
-            `<a href="#" class="related-command" onclick="sendCommandToVSCode('${cmd}')">${cmd}</a>`
-          ).join(', ')}
+        <div class="detail-section">
+          <h2>관련 명령어</h2>
+          <div class="related-commands">
+            ${commandData.related.map((cmd: string) =>
+              `<a href="#" class="related-command" onclick="sendCommandToVSCode('${cmd}')">${cmd}</a>`
+            ).join('')}
+          </div>
         </div>
       `;
     }
-    
+
     content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 모든 명령어 보기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 모든 명령어 보기
+        </a>
       </div>
     `;
     
@@ -316,23 +334,32 @@ export async function generateFaqHtml(): Promise<string> {
     const faqs = helpData.faq || [];
     
     let content = `
-      <h1>APE 자주 묻는 질문 (FAQ)</h1>
+      <header class="help-header">
+        <h1>자주 묻는 질문 (FAQ)</h1>
+        <p class="help-description">APE 사용 시 자주 묻는 질문들과 그에 대한 답변입니다.</p>
+      </header>
+
       <div class="faq-list">
     `;
-    
+
     for (const faq of faqs) {
       content += `
         <div class="faq-item">
-          <div class="faq-question">${faq.question}</div>
+          <div class="faq-question">
+            <span class="faq-icon codicon codicon-question"></span>
+            ${faq.question}
+          </div>
           <div class="faq-answer">${faq.answer}</div>
         </div>
       `;
     }
-    
+
     content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 도움말로 돌아가기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 도움말로 돌아가기
+        </a>
       </div>
     `;
     
@@ -365,13 +392,20 @@ export async function generateGuideHtml(guideId: string): Promise<string> {
       `);
     }
     
-    // 마크다운 형식 그대로 표시
+    // 마크다운 형식 표시 개선
     const content = `
+      <header class="help-header">
+        <h1>${guide.title}</h1>
+      </header>
+
       <div class="guide-content markdown-body">
         ${guide.content}
       </div>
+
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help guides')">← 모든 가이드 보기</a>
+        <a href="#" onclick="sendCommandToVSCode('help guides')">
+          <span class="codicon codicon-arrow-left"></span> 모든 가이드 보기
+        </a>
       </div>
     `;
     
@@ -395,28 +429,39 @@ export async function generateGuidesListHtml(): Promise<string> {
     const guides = helpData.guides || [];
     
     let content = `
-      <h1>APE 가이드 문서</h1>
-      <p>사용 가능한 가이드 문서 목록입니다. 각 가이드에 대한 자세한 정보를 보려면 제목을 클릭하세요.</p>
+      <header class="help-header">
+        <h1>APE 가이드 문서</h1>
+        <p class="help-description">사용 가능한 가이드 문서 목록입니다. 제목을 클릭하면 해당 가이드의 자세한 내용을 볼 수 있습니다.</p>
+      </header>
+
       <div class="guides-list">
     `;
-    
+
     for (const guide of guides) {
       content += `
         <div class="guide-item">
           <h2 class="guide-title">
+            <span class="guide-icon codicon codicon-book"></span>
             <a href="#" onclick="sendCommandToVSCode('help guide ${guide.id}')">${guide.title}</a>
           </h2>
           <div class="guide-description">
             ${guide.content.split('\n')[0].replace(/^#+\s+.*$/, '')}
           </div>
+          <div class="guide-action">
+            <a href="#" class="read-more-link" onclick="sendCommandToVSCode('help guide ${guide.id}')">
+              자세히 읽기 <span class="codicon codicon-arrow-right"></span>
+            </a>
+          </div>
         </div>
       `;
     }
-    
+
     content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 도움말로 돌아가기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 도움말로 돌아가기
+        </a>
       </div>
     `;
     
@@ -491,348 +536,720 @@ function getHelpPageHtml(content: string): string {
       <title>APE 도움말</title>
       <link rel="stylesheet" href="${getCodiconCssUri().toString()}" />
       <style>
+        /* 핵심 변수 - Claude.ai 스타일 */
         :root {
-          --bg-color: var(--vscode-editor-background, #ffffff);
-          --text-color: var(--vscode-editor-foreground, #333333);
-          --link-color: var(--vscode-textLink-foreground, #3794ff);
-          --heading-color: var(--vscode-editor-foreground, #333333);
-          --border-color: var(--vscode-panel-border, #e7e7e7);
-          --accent-color: var(--vscode-button-background, #0e639c);
-          --accent-hover-color: var(--vscode-button-hoverBackground, #1177bb);
-          --card-bg-color: var(--vscode-editor-inactiveSelectionBackground, #f5f5f5);
-          --code-bg-color: var(--vscode-textBlockQuote-background, #f1f1f1);
+          /* 레이아웃 변수 */
+          --ape-container-max-width: 960px;
+          --ape-content-padding: 1.5rem;
+          --ape-mobile-padding: 1rem;
+
+          /* 색상 변수 - VS Code 테마 통합 */
+          --ape-bg-primary: var(--vscode-editor-background, #1e1e1e);
+          --ape-bg-secondary: var(--vscode-sideBar-background, #252526);
+          --ape-bg-tertiary: var(--vscode-dropdown-background, #3c3c3c);
+          --ape-bg-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+          --ape-bg-active: var(--vscode-list-activeSelectionBackground, #094771);
+
+          /* 경계선 강조 색상 */
+          --ape-border-highlight: var(--vscode-button-background, #0e639c);
+          --ape-highlight-light: var(--vscode-button-hoverBackground, #1177bb);
+          --ape-highlight-dark: #094771;
+          --ape-highlight-accent: var(--vscode-textLink-foreground, #3794ff);
+
+          /* 텍스트 색상 */
+          --ape-text-primary: var(--vscode-foreground, #cccccc);
+          --ape-text-secondary: var(--vscode-descriptionForeground, #8a8a8a);
+          --ape-text-accent: var(--vscode-textLink-foreground, #3794ff);
+          --ape-text-error: var(--vscode-errorForeground, #f48771);
+
+          /* 강조 색상 */
+          --ape-accent-primary: var(--vscode-button-background, #0e639c);
+          --ape-accent-secondary: var(--vscode-button-hoverBackground, #1177bb);
+          --ape-accent-tertiary: rgba(55, 148, 255, 0.1);
+
+          /* 테두리 및 구분선 */
+          --ape-border-subtle: var(--vscode-widget-border, #454545);
+          --ape-border-strong: var(--vscode-input-border, #6b6b6b);
+
+          /* 그림자 효과 */
+          --ape-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+          --ape-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+          --ape-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
+
+          /* 타이포그래피 */
+          --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+          --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Menlo, Consolas, 'Ubuntu Mono', monospace);
+
+          /* 레이아웃 값 */
+          --ape-border-radius-sm: 4px;
+          --ape-border-radius-md: 8px;
+          --ape-border-radius-lg: 12px;
+          --ape-border-radius-full: 9999px;
+
+          /* 애니메이션 */
+          --ape-transition-fast: 150ms ease;
+          --ape-transition-normal: 250ms ease;
+          --ape-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
+        /* 기본 레이아웃 - 미니멀 스타일 */
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          font-family: var(--ape-font-sans);
           line-height: 1.6;
-          color: var(--text-color);
-          background-color: var(--bg-color);
+          color: var(--ape-text-primary);
+          background-color: var(--ape-bg-primary);
           margin: 0;
-          padding: 20px;
-          max-width: 1000px;
+          padding: 0;
+          max-width: var(--ape-container-max-width);
           margin: 0 auto;
+          overflow-x: hidden;
+          font-size: 14px;
+          letter-spacing: -0.011em;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          box-sizing: border-box;
         }
-        
+
+        /* 도움말 콘텐츠 래퍼 */
+        .help-content {
+          max-width: var(--ape-container-max-width);
+          margin: 0 auto;
+          padding: 2rem;
+        }
+
+        /* 헤더 스타일 - 미니멀 */
+        .help-header {
+          margin-bottom: 2rem;
+          animation: fade-in 0.5s ease-out;
+        }
+
+        .help-description {
+          color: var(--ape-text-secondary);
+          font-size: 15px;
+          max-width: 600px;
+          margin-bottom: 1.5rem;
+        }
+
+        /* 타이포그래피 - 미니멀 */
         h1, h2, h3, h4, h5, h6 {
-          color: var(--heading-color);
-          margin-top: 24px;
-          margin-bottom: 16px;
+          color: var(--ape-text-primary);
+          margin-top: 2rem;
+          margin-bottom: 1rem;
           font-weight: 600;
-          line-height: 1.25;
+          line-height: 1.3;
+          letter-spacing: -0.02em;
         }
-        
+
         h1 {
-          font-size: 2em;
-          padding-bottom: 0.3em;
-          border-bottom: 1px solid var(--border-color);
-        }
-        
-        h2 {
-          font-size: 1.5em;
-          padding-bottom: 0.3em;
-        }
-        
-        a {
-          color: var(--link-color);
-          text-decoration: none;
-        }
-        
-        a:hover {
-          text-decoration: underline;
-        }
-        
-        p {
+          font-size: 2rem;
           margin-top: 0;
-          margin-bottom: 16px;
+          margin-bottom: 1.5rem;
+          font-weight: 700;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
         }
-        
+
+        h2 {
+          font-size: 1.4rem;
+          padding-bottom: 0.2rem;
+          margin-top: 2rem;
+        }
+
+        a {
+          color: var(--ape-text-accent);
+          text-decoration: none;
+          transition: color var(--ape-transition-fast);
+          border-radius: var(--ape-border-radius-sm);
+        }
+
+        a:hover {
+          color: var(--ape-accent-secondary);
+          background-color: var(--ape-accent-tertiary);
+        }
+
+        p {
+          margin: 0 0 1rem 0;
+          line-height: 1.6;
+        }
+
+        /* 코드 스타일 - 미니멀 */
         code {
-          font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+          font-family: var(--ape-font-mono);
           padding: 0.2em 0.4em;
           margin: 0;
-          font-size: 85%;
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
+          font-size: 90%;
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-sm);
+          color: var(--ape-text-primary);
         }
-        
+
         pre {
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
-          padding: 16px;
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1rem;
           overflow: auto;
+          margin-bottom: 1.5rem;
         }
-        
+
         pre code {
           background-color: transparent;
           padding: 0;
           margin: 0;
-          font-size: 100%;
-          word-break: normal;
+          font-size: 13px;
           white-space: pre;
         }
-        
+
+        /* 목록 스타일 */
         ul, ol {
-          margin-top: 0;
-          margin-bottom: 16px;
-          padding-left: 2em;
+          margin: 0 0 1.5rem 0;
+          padding-left: 1.5rem;
         }
-        
+
         li {
-          margin-top: 0.25em;
+          margin-bottom: 0.5rem;
         }
-        
+
+        /* 명령어 카테고리 - 미니멀 스타일 */
         .help-category {
-          margin-bottom: 30px;
+          margin-bottom: 2.5rem;
+          animation: fade-in 0.4s ease-out;
         }
-        
+
+        /* 명령어 그리드 - 미니멀 카드 */
         .command-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 12px;
-          margin-bottom: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
-        
+
+        /* 명령어 카드 - 미니멀 */
         .command-card {
-          background-color: var(--card-bg-color);
-          border-radius: 8px;
-          padding: 16px;
+          background-color: var(--ape-bg-secondary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1.2rem;
           cursor: pointer;
-          transition: all 0.2s ease;
-          border: 1px solid var(--border-color);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all var(--ape-transition-normal);
+          border: 1px solid var(--ape-border-subtle);
+          box-shadow: var(--ape-shadow-sm);
           position: relative;
           overflow: hidden;
         }
-        
+
         .command-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border-color: var(--accent-color);
+          transform: translateY(-3px);
+          box-shadow: var(--ape-shadow-md);
+          border-color: var(--ape-border-highlight);
+          background-color: var(--ape-bg-secondary);
         }
-        
+
         .command-card::before {
           content: '';
           position: absolute;
           top: 0;
           left: 0;
-          width: 4px;
+          width: 3px;
           height: 100%;
-          background-color: var(--accent-color);
+          background-color: var(--ape-border-highlight);
           opacity: 0;
-          transition: opacity 0.2s ease;
+          transition: opacity var(--ape-transition-fast);
         }
-        
+
         .command-card:hover::before {
           opacity: 1;
         }
-        
-        .clickable-command {
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        
-        .clickable-command:hover {
-          color: var(--accent-color);
-          text-decoration: underline;
-        }
-        
+
+        /* 명령어 이름 - 미니멀 */
         .command-name {
-          font-weight: bold;
-          margin-bottom: 10px;
-          color: var(--accent-color);
-          font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-          font-size: 1.1em;
+          font-weight: 600;
+          margin-bottom: 0.6rem;
+          color: var(--ape-text-accent);
+          font-family: var(--ape-font-mono);
+          font-size: 15px;
           display: flex;
           align-items: center;
         }
-        
-        .command-description {
-          margin-bottom: 10px;
-          color: var(--text-color);
-          line-height: 1.4;
-        }
-        
-        .command-examples {
-          font-size: 0.85em;
-          color: var(--vscode-descriptionForeground, #747474);
-          font-style: italic;
-          padding: 4px 0;
-        }
-        
-        .command-aliases {
-          font-size: 0.85em;
-          color: var(--vscode-descriptionForeground, #747474);
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
-          padding: 2px 6px;
-          display: inline-block;
-          margin-top: 4px;
-        }
-        
+
         .command-icon {
-          font-size: 1em;
-          margin-right: 6px;
+          font-size: 16px;
+          margin-right: 0.5rem;
           position: relative;
           top: 1px;
+          color: var(--ape-text-accent);
         }
-        
+
         .command-text {
-          font-weight: bold;
-        }
-        
-        .command-usage {
-          margin-bottom: 16px;
-        }
-        
-        .command-aliases, .related-commands {
-          margin-bottom: 16px;
-        }
-        
-        .related-command {
-          margin-right: 8px;
-        }
-        
-        .back-link {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid var(--border-color);
-        }
-        
-        .faq-list {
-          margin-top: 24px;
-        }
-        
-        .faq-item {
-          margin-bottom: 24px;
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 16px;
-        }
-        
-        .faq-question {
           font-weight: 600;
-          font-size: 1.2em;
-          margin-bottom: 8px;
-          color: var(--accent-color);
         }
-        
-        .guides-list {
-          margin-top: 24px;
+
+        .command-description {
+          margin-bottom: 0.7rem;
+          color: var(--ape-text-primary);
+          line-height: 1.5;
+          font-size: 13px;
         }
-        
-        .guide-item {
-          margin-bottom: 24px;
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 16px;
+
+        /* 명령어 카드 푸터 - 미니멀 */
+        .command-card-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-top: 0.8rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          padding-top: 0.8rem;
+          font-size: 12px;
         }
-        
-        .guide-title {
-          margin-bottom: 8px;
+
+        /* 명령어 별칭 및 예시 - 미니멀 */
+        .command-examples {
+          font-size: 12px;
+          color: var(--ape-text-secondary);
+          font-style: italic;
+          flex: 1;
         }
-        
-        .guide-description {
-          margin-bottom: 8px;
+
+        .command-aliases {
+          font-size: 11px;
+          color: var(--ape-text-accent);
+          background-color: rgba(55, 148, 255, 0.1);
+          border-radius: var(--ape-border-radius-full);
+          padding: 0.1rem 0.6rem;
+          margin-left: 0.5rem;
+          white-space: nowrap;
         }
-        
-        .markdown-body {
+
+        /* 클릭 가능한 명령어 */
+        .clickable-command {
+          cursor: pointer;
+          transition: all var(--ape-transition-fast);
+        }
+
+        .clickable-command:hover {
+          color: var(--ape-text-accent);
+          background-color: var(--ape-accent-tertiary);
+          padding: 0.2em 0.4em;
+          border-radius: var(--ape-border-radius-sm);
+        }
+
+        /* 명령어 상세 페이지 */
+        .command-detail {
+          max-width: 800px;
+          margin: 0 auto;
+          animation: fade-in 0.4s ease-out;
+        }
+
+        .detail-section {
+          margin-bottom: 1.8rem;
+          padding-bottom: 1.2rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
+        }
+
+        .detail-section h2 {
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+          color: var(--ape-text-accent);
+        }
+
+        .detail-section p {
+          font-size: 14px;
           line-height: 1.6;
+          margin-bottom: 1rem;
         }
-        
-        .markdown-body img {
-          max-width: 100%;
-          box-sizing: content-box;
+
+        .command-usage {
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1rem;
+          margin-bottom: 0.5rem;
+          font-family: var(--ape-font-mono);
+          font-size: 14px;
+          color: var(--ape-text-primary);
         }
-        
-        .markdown-body blockquote {
-          padding: 0 1em;
-          color: var(--vscode-editor-foreground, #6a737d);
-          border-left: 0.25em solid var(--vscode-panel-border, #dfe2e5);
-          margin: 0 0 16px 0;
+
+        .command-examples-list {
+          margin: 0;
+          padding-left: 1.5rem;
         }
-        
-        .markdown-body table {
-          display: block;
-          width: 100%;
-          overflow: auto;
-          border-collapse: collapse;
-          margin-bottom: 16px;
+
+        .command-examples-list li {
+          margin-bottom: 0.6rem;
         }
-        
-        .markdown-body table th,
-        .markdown-body table td {
-          padding: 6px 13px;
-          border: 1px solid var(--vscode-panel-border, #dfe2e5);
+
+        .command-examples-list code {
+          font-size: 13px;
+          color: var(--ape-text-primary);
         }
-        
-        .markdown-body table tr {
-          background-color: var(--bg-color);
-          border-top: 1px solid var(--vscode-panel-border, #c6cbd1);
+
+        .command-aliases-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.6rem;
         }
-        
-        .markdown-body table tr:nth-child(2n) {
-          background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
+
+        .detail-alias {
+          font-family: var(--ape-font-mono);
+          font-size: 13px;
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--ape-border-radius-full);
         }
-        
-        /* 퀵 액션 스타일 */
+
+        .related-commands {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .related-command {
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--ape-border-radius-full);
+          font-size: 13px;
+          transition: all var(--ape-transition-fast);
+        }
+
+        .related-command:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+        }
+
+        /* 퀵 액션 섹션 - 미니멀 디자인 */
         .quick-actions {
-          margin: 20px 0 30px;
-          background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
-          border-radius: 8px;
-          padding: 16px;
-          border: 1px solid var(--border-color);
+          margin: 1.5rem 0 2.5rem;
+          background-color: rgba(55, 148, 255, 0.05);
+          border-radius: var(--ape-border-radius-lg);
+          padding: 1.5rem;
+          border: 1px solid var(--ape-border-subtle);
+          animation: fade-in 0.4s ease-out;
         }
-        
+
         .quick-actions h2 {
           margin-top: 0;
-          font-size: 1.3em;
-          color: var(--accent-color);
-          padding-left: 4px;
+          margin-bottom: 1rem;
+          font-size: 16px;
+          color: var(--ape-text-primary);
+          font-weight: 600;
+          letter-spacing: -0.01em;
         }
-        
+
         .quick-buttons {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 0.6rem;
         }
-        
+
+        /* 퀵 버튼 - 미니멀 디자인 */
         .quick-button {
           display: flex;
           align-items: center;
-          padding: 8px 16px;
-          border-radius: 4px;
+          padding: 0.6rem 1.2rem;
+          border-radius: var(--ape-border-radius-md);
           cursor: pointer;
           font-weight: 500;
           border: none;
-          min-width: 120px;
-          font-size: 0.95em;
-          transition: all 0.2s ease;
+          font-size: 13px;
+          transition: all var(--ape-transition-normal);
           color: white;
+          box-shadow: var(--ape-shadow-sm);
         }
-        
+
         .quick-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--ape-shadow-md);
+          filter: brightness(1.1);
         }
-        
+
         .quick-button .codicon {
-          margin-right: 8px;
-          font-size: 1.2em;
+          margin-right: 0.5rem;
+          font-size: 16px;
         }
-        
+
+        /* 퀵 버튼 색상 */
         .quick-button.git {
           background-color: #F05033;
         }
-        
+
         .quick-button.code {
           background-color: #007ACC;
         }
-        
+
         .quick-button.utility {
           background-color: #6C757D;
         }
-        
+
         .quick-button.model {
           background-color: #28A745;
+        }
+
+        /* 돌아가기 링크 */
+        .back-link {
+          margin-top: 2rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--ape-border-subtle);
+          font-size: 14px;
+        }
+
+        .back-link a {
+          display: inline-flex;
+          align-items: center;
+          color: var(--ape-text-accent);
+          padding: 0.5rem 0.8rem;
+          background-color: var(--ape-accent-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          transition: all var(--ape-transition-fast);
+        }
+
+        .back-link a:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+          text-decoration: none;
+        }
+
+        /* FAQ 스타일 - 미니멀 */
+        .faq-list {
+          margin-top: 2rem;
+          animation: fade-in 0.4s ease-out;
+        }
+
+        .faq-item {
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
+          padding-bottom: 1.5rem;
+        }
+
+        .faq-question {
+          font-weight: 600;
+          font-size: 16px;
+          margin-bottom: 0.8rem;
+          color: var(--ape-text-accent);
+          display: flex;
+          align-items: center;
+        }
+
+        .faq-icon {
+          margin-right: 0.5rem;
+          font-size: 14px;
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          width: 22px;
+          height: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--ape-border-radius-full);
+        }
+
+        .faq-answer {
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        /* 가이드 목록 - 미니멀 */
+        .guides-list {
+          margin-top: 2rem;
+          animation: fade-in 0.4s ease-out;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .guide-item {
+          margin-bottom: 0;
+          background-color: var(--ape-bg-secondary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1.5rem;
+          border: 1px solid var(--ape-border-subtle);
+          box-shadow: var(--ape-shadow-sm);
+          transition: all var(--ape-transition-normal);
+        }
+
+        .guide-item:hover {
+          transform: translateY(-3px);
+          border-color: var(--ape-border-highlight);
+          box-shadow: var(--ape-shadow-md);
+        }
+
+        .guide-title {
+          font-size: 18px;
+          margin-bottom: 0.8rem;
+          margin-top: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .guide-icon {
+          margin-right: 0.6rem;
+          font-size: 16px;
+          color: var(--ape-text-accent);
+          background-color: var(--ape-accent-tertiary);
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--ape-border-radius-md);
+        }
+
+        .guide-title a {
+          color: var(--ape-text-accent);
+        }
+
+        .guide-description {
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--ape-text-secondary);
+          margin-bottom: 1.2rem;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          position: relative;
+          max-height: 4.8em;
+        }
+
+        .guide-action {
+          text-align: right;
+          margin-top: 1.2rem;
+          border-top: 1px solid var(--ape-border-subtle);
+          padding-top: 1rem;
+        }
+
+        .read-more-link {
+          font-size: 13px;
+          color: var(--ape-text-accent);
+          display: inline-flex;
+          align-items: center;
+          transition: all var(--ape-transition-fast);
+          padding: 0.4rem 0.8rem;
+          border-radius: var(--ape-border-radius-md);
+          background-color: var(--ape-accent-tertiary);
+        }
+
+        .read-more-link .codicon {
+          margin-left: 0.4rem;
+          font-size: 12px;
+          transition: transform var(--ape-transition-fast);
+        }
+
+        .read-more-link:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+          text-decoration: none;
+        }
+
+        .read-more-link:hover .codicon {
+          transform: translateX(3px);
+        }
+
+        /* 마크다운 콘텐츠 스타일 */
+        .markdown-body {
+          line-height: 1.6;
+          font-size: 14px;
+        }
+
+        .markdown-body img {
+          max-width: 100%;
+          border-radius: var(--ape-border-radius-md);
+          margin: 1.5rem 0;
+        }
+
+        .markdown-body blockquote {
+          padding: 0.8rem 1.2rem;
+          color: var(--ape-text-secondary);
+          border-left: 4px solid var(--ape-border-highlight);
+          margin: 1.2rem 0;
+          background-color: rgba(55, 148, 255, 0.05);
+          border-radius: 0 var(--ape-border-radius-md) var(--ape-border-radius-md) 0;
+        }
+
+        .markdown-body table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1.5rem 0;
+          overflow-x: auto;
+          display: block;
+        }
+
+        .markdown-body table th,
+        .markdown-body table td {
+          padding: 0.6rem 1rem;
+          border: 1px solid var(--ape-border-subtle);
+        }
+
+        .markdown-body table th {
+          background-color: var(--ape-bg-tertiary);
+          font-weight: 600;
+        }
+
+        .markdown-body table tr:nth-child(2n) {
+          background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* 애니메이션 */
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+          .help-content {
+            padding: 1.2rem;
+          }
+
+          .command-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .quick-buttons {
+            flex-direction: column;
+          }
+
+          .quick-button {
+            width: 100%;
+          }
+
+          .guides-list {
+            grid-template-columns: 1fr;
+          }
+
+          .guide-action {
+            text-align: center;
+          }
+
+          .command-detail {
+            padding: 0 0.5rem;
+          }
+
+          .related-commands {
+            flex-direction: column;
+          }
+
+          .related-command {
+            margin-bottom: 0.5rem;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .help-content {
+            padding: 1rem;
+          }
+
+          h1 {
+            font-size: 1.8rem;
+          }
+
+          .command-card-footer {
+            flex-direction: column;
+          }
+
+          .command-aliases {
+            margin: 0.5rem 0 0 0;
+          }
         }
       </style>
     </head>

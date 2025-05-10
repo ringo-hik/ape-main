@@ -178,7 +178,7 @@ export class ConflictSolver {
   /**
    * 충돌 정보 파싱
    */
-  private parseConflicts(filePath: string, content: string): ConflictInfo {
+  public parseConflicts(filePath: string, content: string): ConflictInfo {
     const result: ConflictInfo = {
       filePath,
       conflicts: []
@@ -246,7 +246,7 @@ export class ConflictSolver {
   /**
    * 충돌에 가장 적합한 전략 결정
    */
-  private determineStrategy(
+  public determineStrategy(
     conflict: ConflictInfo['conflicts'][0],
     fileType: string
   ): ConflictStrategy {
@@ -287,7 +287,7 @@ export class ConflictSolver {
   /**
    * 충돌 해결 전략 적용
    */
-  private async applyStrategy(
+  public async applyStrategy(
     conflict: ConflictInfo['conflicts'][0],
     strategy: ConflictStrategy,
     fileType: string

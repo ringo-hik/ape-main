@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import axios, { CancelTokenSource } from 'axios';
 import { WebSocket } from 'ws';
-import { 
-  Message, 
-  MessageRole, 
-  LLMRequest, 
-  LLMResponse, 
+import {
+  Message,
+  MessageRole,
+  LLMRequest,
+  LLMResponse,
   LLMRequestOptions,
   StreamCallback,
   LLMModel
@@ -13,18 +13,117 @@ import {
 import { ModelManager } from './modelManager';
 import { VaultService } from '../services/vaultService';
 import { RulesService } from '../services/rulesService';
-import { 
-  LLMRequestOptionsWithVault, 
-  VaultContextOptions, 
-  applyVaultContext 
+import {
+  LLMRequestOptionsWithVault,
+  VaultContextOptions,
+  applyVaultContext
 } from './vaultIntegration';
 import {
   LLMRequestOptionsWithRules,
   applyRulesContext
 } from './rulesIntegration';
 
+/**
+ * 내부망 모델 API 엔드포인트 정의
+ */
+const INTERNAL_API_ENDPOINTS: Record<string, string> = {
+  [LLMModel.NARRANS]: 'https://api-se-dev.narrans.samsungds.net/v1/chat/completions',
+  [LLMModel.LLAMA4_SCOUT]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions',
+  [LLMModel.LLAMA4_MAVERICK]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions'
+};
+
 // Define constants for WebSocket states
 const WS_OPEN = 1;
+
+/**
+ * 내부망 모델 여부 확인
+ * @param model 모델 ID
+ * @returns 내부망 모델 여부
+ */
+function isInternalModel(model: string): boolean {
+  return Object.keys(INTERNAL_API_ENDPOINTS).includes(model);
+}
+
+/**
+ * 내부망 모델용 요청 헤더 생성
+ * @param apiKey API 키 (내부망에서는 x-dep-ticket으로 사용)
+ * @param isStreaming 스트리밍 요청 여부
+ * @returns 헤더 객체
+ */
+function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming: boolean = false, model: LLMModel = '' as LLMModel): Record<string, string> {
+  // 기본 헤더
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': isStreaming ? 'text/event-stream' : 'application/json',
+    'Send-System-Name': 'swdp',
+    'user-id': 'ape_ext',
+    'user-type': 'ape_ext',
+    'Prompt-Msg-Id': requestId,
+    'Completion-msg-Id': requestId,
+  };
+
+  // Narrans 모델은 Bearer 인증 방식 사용
+  if (model === LLMModel.NARRANS) {
+    return {
+      ...headers,
+      'Authorization': `Bearer dummy_key` // 임시 API 키
+    };
+  }
+  // 기타 내부망 모델은 x-dep-ticket 사용
+  else {
+    return {
+      ...headers,
+      'x-dep-ticket': apiKey
+    };
+  }
+}
+
+/**
+ * 내부망 모델용 요청 본문 생성
+ * @param model 모델 ID
+ * @param messages 메시지 배열
+ * @param options 요청 옵션
+ * @returns 모델에 맞는 요청 본문 객체
+ */
+function createInternalApiRequestBody(model: string, messages: any[], options?: LLMRequestOptions): any {
+  const baseRequest = {
+    model: model,
+    messages: messages,
+    temperature: options?.temperature || 0.7,
+    stream: !!options?.stream
+  };
+
+  if (model === LLMModel.NARRANS) {
+    return {
+      ...baseRequest,
+      max_tokens: options?.maxTokens || 16000
+    };
+  } else if (model === LLMModel.LLAMA4_SCOUT || model === LLMModel.LLAMA4_MAVERICK) {
+    return {
+      ...baseRequest,
+      system_name: 'swdp',
+      user_id: 'ape_ext',
+      user_type: 'ape_ext',
+      max_tokens: options?.maxTokens || 50000
+    };
+  }
+
+  // 기본 요청 본문 반환 (내부망 모델이 아닌 경우)
+  return baseRequest;
+}
+
+/**
+ * API 엔드포인트 선택
+ * @param model 모델 ID
+ * @param defaultEndpoint 기본 엔드포인트
+ * @returns 사용할 API 엔드포인트
+ */
+function selectApiEndpoint(model: string, defaultEndpoint: string): string {
+  if (isInternalModel(model) && INTERNAL_API_ENDPOINTS[model]) {
+    return INTERNAL_API_ENDPOINTS[model];
+  }
+  return defaultEndpoint;
+}
 
 /**
  * LLM connection type
@@ -272,33 +371,50 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResponse> {
     const formattedMessages = this._formatMessagesForAPI(messages, options);
-    
-    // OpenRouter API 요청 형식으로 변환
-    const openRouterMessages = formattedMessages.map(msg => ({
+    const model = options?.model || this.getActiveModel();
+    const requestId = `req_${Date.now()}`;
+
+    // 메시지 형식을 표준화 (모든 API가 동일한 기본 구조 사용)
+    const standardMessages = formattedMessages.map(msg => ({
       role: msg.role,
       content: msg.content
     }));
-    
-    const request = {
-      model: options?.model || this.getActiveModel(),
-      messages: openRouterMessages,
-      temperature: options?.temperature || 0.7,
-      max_tokens: options?.maxTokens || 1000,
-      stream: false
-    };
-    
-    // OpenRouter API 요청에 필요한 헤더 추가
-    const headers: any = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this._apiKey}`,
-      'HTTP-Referer': 'APE-Extension',
-      'X-Title': 'APE (Agentic Pipeline Engine)'
-    };
-    
+
+    let headers: Record<string, string>;
+    let request: any;
+    let endpoint: string;
+
+    // 내부망 모델인지 확인하고 적절한 설정 적용
+    if (isInternalModel(model)) {
+      // 내부망 모델 API 설정 적용
+      endpoint = selectApiEndpoint(model, this._endpoint);
+      headers = createInternalApiHeaders(this._apiKey, requestId, false, model as LLMModel);
+      request = createInternalApiRequestBody(model, standardMessages, options);
+    } else {
+      // 기본 API 설정 (OpenRouter 등)
+      endpoint = this._endpoint;
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this._apiKey}`,
+        'HTTP-Referer': 'APE-Extension',
+        'X-Title': 'APE (Agentic Pipeline Engine)'
+      };
+
+      request = {
+        model: model,
+        messages: standardMessages,
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 1000,
+        stream: false
+      };
+    }
+
     console.log("LLM 요청:", JSON.stringify(request, null, 2));
-    const response = await axios.post(this._endpoint, request, { headers });
+    console.log("요청 엔드포인트:", endpoint);
+
+    const response = await axios.post(endpoint, request, { headers });
     console.log("LLM 응답:", JSON.stringify(response.data, null, 2));
-    
+
     return this._processHttpResponse(response.data);
   }
   
@@ -399,44 +515,63 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<void> {
     const formattedMessages = this._formatMessagesForAPI(messages, options);
-    
-    // OpenRouter API 요청 형식으로 변환
-    const openRouterMessages = formattedMessages.map(msg => ({
+    const model = options?.model || this.getActiveModel();
+    const requestId = `req_${Date.now()}`;
+
+    // 메시지 형식을 표준화
+    const standardMessages = formattedMessages.map(msg => ({
       role: msg.role,
       content: msg.content
     }));
-    
-    const request = {
-      model: options?.model || this.getActiveModel(),
-      messages: openRouterMessages,
-      temperature: options?.temperature || 0.7,
-      max_tokens: options?.maxTokens || 1000,
-      stream: true
-    };
-    
-    // OpenRouter API 요청에 필요한 헤더 추가
-    const headers: any = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this._apiKey}`,
-      'HTTP-Referer': 'APE-Extension',
-      'X-Title': 'APE (Agentic Pipeline Engine)'
-    };
-    
+
+    let headers: Record<string, string>;
+    let request: any;
+    let endpoint: string;
+
+    // 내부망 모델인지 확인하고 적절한 설정 적용
+    if (isInternalModel(model)) {
+      // 내부망 모델 API 설정 적용
+      endpoint = selectApiEndpoint(model, this._endpoint);
+      headers = createInternalApiHeaders(this._apiKey, requestId, true, model as LLMModel);  // 스트리밍 요청
+
+      // 내부망 모델 요청 본문 (스트리밍 활성화)
+      const internalOptions = { ...options, stream: true };
+      request = createInternalApiRequestBody(model, standardMessages, internalOptions);
+    } else {
+      // 기본 API 설정 (OpenRouter 등)
+      endpoint = this._endpoint;
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this._apiKey}`,
+        'HTTP-Referer': 'APE-Extension',
+        'X-Title': 'APE (Agentic Pipeline Engine)'
+      };
+
+      request = {
+        model: model,
+        messages: standardMessages,
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 1000,
+        stream: true
+      };
+    }
+
     // Create a cancellation token
     this._cancelTokenSource = axios.CancelToken.source();
-    
+
     try {
-      // 누적 텍스트는 디버깅 목적으로 사용될 수 있음
-      
-      const response = await axios.post(this._endpoint, request, {
+      console.log("스트리밍 요청:", JSON.stringify(request, null, 2));
+      console.log("스트리밍 엔드포인트:", endpoint);
+
+      const response = await axios.post(endpoint, request, {
         responseType: 'stream',
         cancelToken: this._cancelTokenSource.token,
         headers: headers
       });
-      
+
       response.data.on('data', (chunk: Buffer) => {
         const lines = chunk.toString().split('\n').filter(Boolean);
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.substring('data: '.length);
@@ -444,31 +579,63 @@ export class LLMService implements vscode.Disposable {
               streamCallback('', true); // 스트림 완료 신호
             } else {
               try {
-                const parsed = JSON.parse(data);
-                if (parsed.choices && parsed.choices.length > 0) {
-                  const content = parsed.choices[0].delta?.content || 
-                                 parsed.choices[0].message?.content || '';
+                // 데이터 유효성 검사 및 잘린 JSON 처리
+                let validData = data;
+                try {
+                  // JSON 파싱 시도
+                  JSON.parse(validData);
+                } catch (jsonError) {
+                  // 잘린 JSON 문자열 처리 - 마지막 괄호 닫기 추가
+                  if (jsonError instanceof SyntaxError && jsonError.message.includes('Unterminated string')) {
+                    console.warn('잘린 JSON 문자열 감지, 복구 시도 중');
+                    // 닫는 큰따옴표와 괄호들 추가
+                    validData = validData + '"}}}';
+                  }
+                }
+
+                const parsed = JSON.parse(validData);
+
+                // 내부망 API의 응답 형식은 표준 OpenAI와 다를 수 있으므로 분기 처리
+                if (isInternalModel(model)) {
+                  // 내부망 모델의 스트리밍 응답 처리
+                  const content = parsed.choices?.[0]?.delta?.content ||
+                                 parsed.choices?.[0]?.message?.content ||
+                                 parsed.delta?.content ||
+                                 parsed.content ||
+                                 '';
                   if (content) {
                     streamCallback(content, false);
+                  }
+                } else {
+                  // 표준 OpenAI 형식의 스트리밍 응답 처리
+                  if (parsed.choices && parsed.choices.length > 0) {
+                    const content = parsed.choices[0].delta?.content ||
+                                  parsed.choices[0].message?.content || '';
+                    if (content) {
+                      streamCallback(content, false);
+                    }
                   }
                 }
               } catch (err) {
                 console.error('Stream parsing error:', err);
+                console.error('문제가 된 데이터:', data);
               }
             }
           }
         }
       });
-      
+
       response.data.on('end', () => {
         this._cancelTokenSource = null;
+        console.log('스트림 데이터 수신 완료');
         streamCallback('', true); // 스트림 완료 신호
       });
-      
+
       response.data.on('error', (err: Error) => {
         this._cancelTokenSource = null;
-        console.error('Stream error:', err);
-        streamCallback('', true);
+        console.error('스트림 오류:', err);
+        // 오류가 발생해도 클라이언트에게 스트림 완료 신호 전송
+        streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true);
       });
     } catch (error) {
       this._cancelTokenSource = null;
@@ -661,10 +828,23 @@ export class LLMService implements vscode.Disposable {
    * @returns Processed LLM response
    */
   private _processHttpResponse(responseData: any): LLMResponse {
-    // OpenRouter/OpenAI 형식 응답 처리 (choices 배열 사용)
-    if (responseData.choices && Array.isArray(responseData.choices)) {
-      const content = responseData.choices[0]?.message?.content || '';
-      
+    const model = responseData.model || this.getActiveModel();
+
+    // 내부망 모델 응답 처리
+    if (isInternalModel(model)) {
+      // 내부망 모델은 다양한 응답 형식을 가질 수 있음
+      // choices, content, message 등 다양한 필드 확인
+      let content = '';
+
+      if (responseData.choices && Array.isArray(responseData.choices)) {
+        content = responseData.choices[0]?.message?.content ||
+                 responseData.choices[0]?.content || '';
+      } else if (responseData.message && responseData.message.content) {
+        content = responseData.message.content;
+      } else if (responseData.content) {
+        content = responseData.content;
+      }
+
       return {
         message: {
           id: responseData.id || `msg_${Date.now()}`,
@@ -672,7 +852,7 @@ export class LLMService implements vscode.Disposable {
           content: content,
           timestamp: new Date(),
           metadata: {
-            model: responseData.model || this.getActiveModel()
+            model: model
           }
         },
         usage: responseData.usage || {
@@ -683,7 +863,30 @@ export class LLMService implements vscode.Disposable {
         metadata: responseData.metadata || {},
         content: content // 호환성을 위해 추가
       };
-    } 
+    }
+    // OpenRouter/OpenAI 형식 응답 처리 (choices 배열 사용)
+    else if (responseData.choices && Array.isArray(responseData.choices)) {
+      const content = responseData.choices[0]?.message?.content || '';
+
+      return {
+        message: {
+          id: responseData.id || `msg_${Date.now()}`,
+          role: MessageRole.Assistant,
+          content: content,
+          timestamp: new Date(),
+          metadata: {
+            model: model
+          }
+        },
+        usage: responseData.usage || {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        },
+        metadata: responseData.metadata || {},
+        content: content // 호환성을 위해 추가
+      };
+    }
     // 기존 응답 형식 처리
     else {
       return {
@@ -693,7 +896,7 @@ export class LLMService implements vscode.Disposable {
           content: responseData.content || responseData.message?.content || '',
           timestamp: new Date(),
           metadata: responseData.message?.metadata || {
-            model: responseData.model || this.getActiveModel()
+            model: model
           }
         },
         usage: responseData.usage || {
