@@ -12,9 +12,9 @@ export enum MessageRole {
  */
 export enum LLMModel {
   // 내부 테스트 모델 (internal test models)
-  NARRANS = 'internal/narrans',                    // Ferrari 내부망 모델
-  LLAMA4_MAVERICK = 'internal/llama4-maverick',    // Gucci 내부망 모델
-  LLAMA4_SCOUT = 'internal/llama4-scout',          // Hermès 내부망 모델
+  NARRANS = 'NARRNAS',                             // Ferrari 내부망 모델
+  LLAMA4_MAVERICK = 'LLAMA4-MAVERICK',             // Gucci 내부망 모델
+  LLAMA4_SCOUT = 'LLAMA4-SCOUT',                   // Hermès 내부망 모델
 
   // OpenAI models (최신 모델들)
   GPT_4_1_MINI = 'openai/gpt-4.1-mini',            // 기본 모델
