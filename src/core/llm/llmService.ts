@@ -74,7 +74,7 @@ function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming
       'User-Type': 'ringo',
       'Prompt-Msg-Id': requestId,
       'Completion-Msg-Id': requestId,
-      'x-dep-ticket': 'TICKET-440ea61b-4691-427a-a248-67dce1e839a7:be36c69d-70c7-4453-a8c1-6fbc9ede5f6d:fd95297d-bc8e-4a9e-9279-159a05dd65f8_8223307b-9b7e-4957-95f8-bb0404370a67:-1:VmyKrVeastm47m242e3mmlkbUEptgvvozKe+8qDoyVH4vG49kh0f4cx5k2AT/oquE4G14Ov56iadf4Szrjtp5A==:signature=13OBqywSvP+YAQOMCrosjVsjlFZH5n3M584XMhpA07tXhp/HD5503Dq0DHkVm9XxpYAy5NJYo6VkaD7hfK2KAw=='  // 실제 x-dep-ticket
+      'x-dep-ticket': 'credential:TICKET-440ea61b-4691-427a-a248-67dce1e839a7:be36c69d-70c7-4453-a8c1-6fbc9ede5f6d:fd95297d-bc8e-4a9e-9279-159a05dd65f8_8223307b-9b7e-4957-95f8-bb0404370a67:-1:VmyKrVeastm47m242e3mmlkbUEptgvvozKe+8qDoyVH4vG49kh0f4cx5k2AT/oquE4G14Ov56iadf4Szrjtp5A==:signature=13OBqywSvP+YAQOMCrosjVsjlFZH5n3M584XMhpA07tXhp/HD5503Dq0DHkVm9XxpYAy5NJYo6VkaD7hfK2KAw=='  // 실제 x-dep-ticket
     };
   }
 }
