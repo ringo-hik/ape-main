@@ -363,10 +363,7 @@ export class ChatViewService {
         const escapedCode = escapeHtml(code);
         const lang = language || 'plaintext';
 
-        // Generate line numbers
-        const lines = code.split('\\n');
-        const lineNumbers = lines.map((_, i) => (i + 1)).join('\\n');
-        const showLineNumbers = lines.length > 1;
+        // 라인 번호 제거됨 - 공간 효율성 개선
 
         // Built with concatenation to avoid template literal issues
         return '<div class="code-block-container code-block-popup">' +
@@ -387,8 +384,7 @@ export class ChatViewService {
               '</button>' +
             '</div>' +
           '</div>' +
-          '<div class="code-content ' + (showLineNumbers ? 'with-line-numbers' : '') + '">' +
-            (showLineNumbers ? '<div class="line-numbers">' + lineNumbers + '</div>' : '') +
+          '<div class="code-content">' +
             '<div class="code-area">' +
               '<code class="language-' + lang + '" id="code-' + codeId + '">' + escapedCode + '</code>' +
             '</div>' +
@@ -1571,7 +1567,7 @@ export class ChatViewService {
     // 기본 옵션
     const defaultOptions: FormatOptions = {
       enableModernCodeBlocks: true,
-      enableLineNumbers: true,
+      enableLineNumbers: false, // 라인 번호 비활성화 - 공간 효율성 개선
       enableSyntaxHighlighting: true
     };
 
@@ -1776,12 +1772,9 @@ export class ChatViewService {
   ): string {
     const codeId = `code_${++this.codeBlockCounter}`;
     const escapedCode = this.escapeHtml(codeContent);
-    
-    // 라인 번호 생성
-    const showLineNumbers = options.enableLineNumbers;
-    const lineNumbers = showLineNumbers ? 
-      codeContent.split('\n').map((_, i) => `${i + 1}`).join('\n') : '';
-    
+
+    // 라인 번호 제거됨 - 공간 효율성 개선
+
     // 코드 블록 템플릿 사용
     const template = `<div class="code-block-container code-block-popup">
   <div class="code-block-header">
@@ -1801,8 +1794,7 @@ export class ChatViewService {
       </button>
     </div>
   </div>
-  <div class="code-content ${showLineNumbers ? 'with-line-numbers' : ''}">
-    ${showLineNumbers ? `<div class="line-numbers">${lineNumbers}</div>` : ''}
+  <div class="code-content">
     <div class="code-area">
       <code class="language-${language}" id="code-${codeId}">${escapedCode}</code>
     </div>
