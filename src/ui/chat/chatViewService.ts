@@ -320,13 +320,13 @@ export class ChatViewService {
     // Format message content with code blocks
     function formatMessageContent(content) {
       if (!content) return '';
-      
+
       // HTML 감지 - 더 다양한 태그 인식
       const trimmedContent = content.trim();
       if (trimmedContent.startsWith('<') && (
-        trimmedContent.includes('</div>') || 
-        trimmedContent.includes('</p>') || 
-        trimmedContent.includes('</h') || 
+        trimmedContent.includes('</div>') ||
+        trimmedContent.includes('</p>') ||
+        trimmedContent.includes('</h') ||
         trimmedContent.includes('</span>') ||
         trimmedContent.includes('</ul>') ||
         trimmedContent.includes('</li>') ||
@@ -335,21 +335,22 @@ export class ChatViewService {
       )) {
         return content;
       }
-      
-      // Simple markdown-like formatting
-      let formatted = content;
-      
-      // Replace code blocks with modern UI
-      formatted = formatted.replace(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g, function(match, language, code) {
+
+      // 마크다운 컨테이너로 시작
+      let formatted = '<div class="markdown-content">';
+      let processedContent = content;
+
+      // 코드 블록 처리 (먼저 처리하여 다른 마크다운 변환에 영향을 주지 않도록)
+      processedContent = processedContent.replace(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g, function(match, language, code) {
         const codeId = 'code_' + (++codeBlockCounter);
         const escapedCode = escapeHtml(code);
         const lang = language || 'plaintext';
-        
+
         // Generate line numbers
         const lines = code.split('\\n');
         const lineNumbers = lines.map((_, i) => (i + 1)).join('\\n');
         const showLineNumbers = lines.length > 1;
-        
+
         // Built with concatenation to avoid template literal issues
         return '<div class="code-block-container code-block-popup">' +
           '<div class="code-block-header">' +
@@ -377,14 +378,102 @@ export class ChatViewService {
           '</div>' +
         '</div>';
       });
-      
-      // Replace inline code
-      formatted = formatted.replace(/\`([^\`]+)\`/g, function(match, code) {
+
+      // 헤더 변환 (h1-h6)
+      processedContent = processedContent
+        .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+        .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+        .replace(/^#### (.*?)$/gm, '<h4>$1</h4>')
+        .replace(/^##### (.*?)$/gm, '<h5>$1</h5>')
+        .replace(/^###### (.*?)$/gm, '<h6>$1</h6>');
+
+      // 볼드, 이탤릭 및 취소선
+      processedContent = processedContent
+        .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/~~(.*?)~~/g, '<del>$1</del>');
+
+      // 인라인 코드 변환
+      processedContent = processedContent.replace(/\`([^\`]+)\`/g, function(match, code) {
         return '<code class="inline-code">' + escapeHtml(code) + '</code>';
       });
-      
+
+      // 수평선
+      processedContent = processedContent.replace(/^---$/gm, '<hr>');
+
+      // 링크 [텍스트](URL)
+      processedContent = processedContent.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
+      // 이미지 ![대체텍스트](URL)
+      processedContent = processedContent.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1">');
+
+      // 인용구 (blockquote)
+      let inQuote = false;
+      let quoteContent = '';
+
+      processedContent = processedContent.replace(/^> (.*?)$/gm, function(match, content) {
+        if (!inQuote) {
+          inQuote = true;
+          quoteContent = '<blockquote>\n<p>' + content + '</p>\n';
+          return '';
+        } else {
+          quoteContent += '<p>' + content + '</p>\n';
+          return '';
+        }
+      });
+
+      if (inQuote) {
+        quoteContent += '</blockquote>';
+        processedContent += quoteContent;
+        inQuote = false;
+      }
+
+      // 순서 없는 목록 변환 (ul, li)
+      let inList = false;
+      let listContent = '';
+
+      processedContent = processedContent.replace(/^[\*\-\+] (.*?)$/gm, function(match, item) {
+        if (!inList) {
+          inList = true;
+          listContent = '<ul>\n<li>' + item + '</li>\n';
+          return '';
+        } else {
+          listContent += '<li>' + item + '</li>\n';
+          return '';
+        }
+      });
+
+      if (inList) {
+        listContent += '</ul>';
+        processedContent += listContent;
+        inList = false;
+      }
+
+      // 순서 있는 목록 변환 (ol, li)
+      let inOrderedList = false;
+      let orderedListContent = '';
+
+      processedContent = processedContent.replace(/^(\d+)\. (.*?)$/gm, function(match, number, item) {
+        if (!inOrderedList) {
+          inOrderedList = true;
+          orderedListContent = '<ol>\n<li>' + item + '</li>\n';
+          return '';
+        } else {
+          orderedListContent += '<li>' + item + '</li>\n';
+          return '';
+        }
+      });
+
+      if (inOrderedList) {
+        orderedListContent += '</ol>';
+        processedContent += orderedListContent;
+        inOrderedList = false;
+      }
+
       // 첨부 파일 표시 개선 (파일명: 파일경로)
-      formatted = formatted.replace(/첨부된 파일: ([^\\n]+)/g, function(match, fileName) {
+      processedContent = processedContent.replace(/첨부된 파일: ([^\\n]+)/g, function(match, fileName) {
         return '<div class="attached-file">' +
           '<span class="attachment-icon">📎</span> ' +
           '<span class="attachment-name">' + fileName + '</span>' +
@@ -395,10 +484,37 @@ export class ChatViewService {
           '</div>' +
         '</div>';
       });
-      
-      // Replace newlines with <br>
-      formatted = formatted.replace(/\\n/g, '<br>');
-      
+
+      // 남은 줄바꿈 처리 - 단락으로 변환
+      const paragraphs = processedContent.split(/\n\n+/);
+      if (paragraphs.length > 1) {
+        processedContent = paragraphs
+          .map(p => p.trim())
+          .filter(p => p.length > 0)
+          .map(p => {
+            // 이미 HTML 태그로 시작하는 경우 그대로 유지
+            if (p.startsWith('<') &&
+                (p.startsWith('<h') ||
+                 p.startsWith('<ul') ||
+                 p.startsWith('<ol') ||
+                 p.startsWith('<blockquote') ||
+                 p.startsWith('<pre') ||
+                 p.startsWith('<div'))) {
+              return p;
+            } else {
+              // 일반 텍스트는 p 태그로 감싸고 내부 줄바꿈은 <br>로 변환
+              return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+            }
+          })
+          .join('\n');
+      } else {
+        // 단락이 하나면 단순히 줄바꿈만 처리
+        processedContent = processedContent.replace(/\n/g, '<br>');
+      }
+
+      // 마크다운 컨테이너 닫기
+      formatted += processedContent + '</div>';
+
       return formatted;
     }
     
@@ -426,7 +542,7 @@ export class ChatViewService {
       chatInput.style.height = (chatInput.scrollHeight) + 'px';
     }
     
-    // Update command suggestions - Claude Code style popover
+    // Update command suggestions - Minimal style popover
     function updateCommandSuggestions(newSuggestions) {
       suggestions = newSuggestions || [];
       activeSuggestionIndex = -1;
@@ -446,69 +562,130 @@ export class ChatViewService {
       // Show the container
       commandSuggestionsContainer.style.display = 'block';
 
-      // Group suggestions by category
-      const categorizedSuggestions = {};
-      suggestions.forEach(suggestion => {
-        if (!categorizedSuggestions[suggestion.category]) {
-          categorizedSuggestions[suggestion.category] = [];
-        }
-        categorizedSuggestions[suggestion.category].push(suggestion);
+      // 미니멀 UI를 위한 처리 - 먼저 정렬
+      const sortedSuggestions = [...suggestions].sort((a, b) => {
+        // 우선 카테고리별로 정렬
+        const categoryOrder = {
+          'general': 1,
+          'git': 2,
+          'code': 3,
+          'utility': 4,
+          'advanced': 5
+        };
+
+        const catA = categoryOrder[a.category] || 99;
+        const catB = categoryOrder[b.category] || 99;
+
+        if (catA !== catB) return catA - catB;
+
+        // 그 다음 레이블로 정렬
+        return a.label.localeCompare(b.label);
       });
 
-      // Add each category group
-      Object.keys(categorizedSuggestions).forEach(category => {
-        // Create category header
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'suggestion-category';
-        categoryHeader.textContent = getCategoryTitle(category);
-        commandSuggestionsContainer.appendChild(categoryHeader);
+      // 최대 5개만 바로 표시
+      const visibleSuggestions = sortedSuggestions.slice(0, 5);
+      const remainingCount = sortedSuggestions.length > 5 ? sortedSuggestions.length - 5 : 0;
 
-        // Add suggestions for this category
-        categorizedSuggestions[category].forEach((suggestion, index) => {
+      // 그룹핑하지 않고 카테고리별 아이콘으로 구분
+      visibleSuggestions.forEach((suggestion, index) => {
+        const suggestionElement = document.createElement('div');
+        suggestionElement.className = 'command-suggestion';
+        suggestionElement.dataset.index = String(index);
+
+        // 카테고리 아이콘 추가
+        const iconElement = document.createElement('span');
+        iconElement.className = 'suggestion-icon';
+        iconElement.textContent = getSvgIconForCategory(suggestion.category);
+        suggestionElement.appendChild(iconElement);
+
+        // 레이블
+        const labelElement = document.createElement('span');
+        labelElement.className = 'suggestion-label';
+        labelElement.textContent = suggestion.label;
+        suggestionElement.appendChild(labelElement);
+
+        // 설명
+        const descriptionElement = document.createElement('span');
+        descriptionElement.className = 'suggestion-description';
+        descriptionElement.textContent = suggestion.description;
+        suggestionElement.appendChild(descriptionElement);
+
+        // 단축키 힌트 추가
+        let shortcutHint = '';
+        if (index >= 0 && index < 9) {
+          shortcutHint = 'Tab+' + (index + 1);
+        } else if (index === 9) {
+          shortcutHint = 'Tab+0';
+        }
+        suggestionElement.dataset.shortcut = shortcutHint;
+
+        // 클릭 핸들러
+        suggestionElement.addEventListener('click', () => {
+          insertSuggestion(suggestion);
+        });
+
+        // 마우스오버 핸들러
+        suggestionElement.addEventListener('mouseover', () => {
+          activeSuggestionIndex = index;
+          highlightActiveSuggestion();
+        });
+
+        commandSuggestionsContainer.appendChild(suggestionElement);
+      });
+
+      // 더 많은 제안이 있는 경우 페이지 번호 표시
+      if (remainingCount > 0) {
+        const moreElement = document.createElement('div');
+        moreElement.className = 'command-more-indicator';
+        moreElement.textContent = `+ ${remainingCount}개 더 보기... (스크롤)`;
+        moreElement.style.textAlign = 'center';
+        moreElement.style.padding = '4px';
+        moreElement.style.fontSize = '11px';
+        moreElement.style.color = 'var(--ape-text-secondary)';
+        moreElement.style.borderTop = '1px solid var(--ape-border-subtle)';
+        commandSuggestionsContainer.appendChild(moreElement);
+
+        // 나머지 항목도 추가 (스크롤 가능)
+        sortedSuggestions.slice(5).forEach((suggestion, idx) => {
+          const globalIndex = idx + 5;
           const suggestionElement = document.createElement('div');
           suggestionElement.className = 'command-suggestion';
-          const suggestionIndex = suggestions.findIndex(s => s.label === suggestion.label);
-          suggestionElement.dataset.index = String(suggestionIndex);
+          suggestionElement.dataset.index = String(globalIndex);
 
-          // Add keyboard shortcut hint (Tab+index number)
-          let shortcutHint = '';
-          if (suggestionIndex >= 0 && suggestionIndex < 9) {
-            shortcutHint = 'Tab+' + (suggestionIndex + 1);
-          } else if (suggestionIndex === 9) {
-            shortcutHint = 'Tab+0';
-          } else {
-            shortcutHint = '';
-          }
-          suggestionElement.dataset.shortcut = shortcutHint;
+          // 카테고리 아이콘 추가
+          const iconElement = document.createElement('span');
+          iconElement.className = 'suggestion-icon';
+          iconElement.textContent = getSvgIconForCategory(suggestion.category);
+          suggestionElement.appendChild(iconElement);
 
-          // Label
+          // 레이블
           const labelElement = document.createElement('span');
           labelElement.className = 'suggestion-label';
           labelElement.textContent = suggestion.label;
           suggestionElement.appendChild(labelElement);
 
-          // Description
+          // 설명
           const descriptionElement = document.createElement('span');
           descriptionElement.className = 'suggestion-description';
           descriptionElement.textContent = suggestion.description;
           suggestionElement.appendChild(descriptionElement);
 
-          // Click handler
+          // 클릭 핸들러
           suggestionElement.addEventListener('click', () => {
             insertSuggestion(suggestion);
           });
 
-          // Mouseover handler
+          // 마우스오버 핸들러
           suggestionElement.addEventListener('mouseover', () => {
-            activeSuggestionIndex = Number(suggestionElement.dataset.index);
+            activeSuggestionIndex = globalIndex;
             highlightActiveSuggestion();
           });
 
           commandSuggestionsContainer.appendChild(suggestionElement);
         });
-      });
+      }
 
-      // Scroll to top
+      // 시작점으로 스크롤
       commandSuggestionsContainer.scrollTop = 0;
     }
     
@@ -1238,7 +1415,7 @@ export class ChatViewService {
     // HTML 감지 - 더 다양한 태그 인식
     const trimmedContent = content.trim();
     if (
-      trimmedContent.startsWith('<') && 
+      trimmedContent.startsWith('<') &&
       (
         trimmedContent.includes('</div>') ||
         trimmedContent.includes('</p>') ||
@@ -1253,26 +1430,117 @@ export class ChatViewService {
       return content; // HTML 콘텐츠는 그대로 반환
     }
 
-    // Simple markdown-like formatting
-    let formatted = content;
+    // 마크다운 컨텐츠 래핑
+    let formatted = '<div class="markdown-content">';
 
-    // 코드 블록 변환
+    // 마크다운 요소 변환
+    let processedContent = content;
+
+    // 코드 블록 처리 (먼저 처리하여 다른 마크다운 변환에 영향을 주지 않도록)
     if (finalOptions.enableModernCodeBlocks) {
-      formatted = this.replaceCodeBlocks(formatted, finalOptions);
+      processedContent = this.replaceCodeBlocks(processedContent, finalOptions);
     } else {
       // 기본 코드 블록
-      formatted = formatted.replace(/```([a-zA-Z0-9_]*)\n([\s\S]*?)\n```/g, (match, language, code) => {
+      processedContent = processedContent.replace(/```([a-zA-Z0-9_]*)\n([\s\S]*?)\n```/g, (match, language, code) => {
         return `<pre class="code-block"><code class="language-${language}">${this.escapeHtml(code)}</code></pre>`;
       });
     }
 
+    // 헤더 변환 (h1-h6)
+    processedContent = processedContent
+      .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+      .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+      .replace(/^#### (.*?)$/gm, '<h4>$1</h4>')
+      .replace(/^##### (.*?)$/gm, '<h5>$1</h5>')
+      .replace(/^###### (.*?)$/gm, '<h6>$1</h6>');
+
+    // 볼드, 이탤릭 및 취소선
+    processedContent = processedContent
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/~~(.*?)~~/g, '<del>$1</del>');
+
     // 인라인 코드 변환
-    formatted = formatted.replace(/`([^`]+)`/g, (match, code) => {
+    processedContent = processedContent.replace(/`([^`]+)`/g, (match, code) => {
       return `<code class="inline-code">${this.escapeHtml(code)}</code>`;
     });
-    
+
+    // 수평선
+    processedContent = processedContent.replace(/^---$/gm, '<hr>');
+
+    // 링크 [텍스트](URL)
+    processedContent = processedContent.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
+    // 이미지 ![대체텍스트](URL)
+    processedContent = processedContent.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1">');
+
+    // 순서 없는 목록 (ul, li)
+    let inList = false;
+    let listContent = '';
+
+    processedContent = processedContent.replace(/^[\*\-\+] (.*?)$/gm, (match, item) => {
+      if (!inList) {
+        inList = true;
+        listContent = '<ul>\n<li>' + item + '</li>\n';
+        return '';
+      } else {
+        listContent += '<li>' + item + '</li>\n';
+        return '';
+      }
+    });
+
+    if (inList) {
+      listContent += '</ul>';
+      processedContent += listContent;
+      inList = false;
+    }
+
+    // 순서 있는 목록 (ol, li)
+    let inOrderedList = false;
+    let orderedListContent = '';
+
+    processedContent = processedContent.replace(/^(\d+)\. (.*?)$/gm, (match, number, item) => {
+      if (!inOrderedList) {
+        inOrderedList = true;
+        orderedListContent = '<ol>\n<li>' + item + '</li>\n';
+        return '';
+      } else {
+        orderedListContent += '<li>' + item + '</li>\n';
+        return '';
+      }
+    });
+
+    if (inOrderedList) {
+      orderedListContent += '</ol>';
+      processedContent += orderedListContent;
+      inOrderedList = false;
+    }
+
+    // 인용구 (blockquote)
+    let inQuote = false;
+    let quoteContent = '';
+
+    processedContent = processedContent.replace(/^> (.*?)$/gm, (match, content) => {
+      if (!inQuote) {
+        inQuote = true;
+        quoteContent = '<blockquote>\n<p>' + content + '</p>\n';
+        return '';
+      } else {
+        quoteContent += '<p>' + content + '</p>\n';
+        return '';
+      }
+    });
+
+    if (inQuote) {
+      quoteContent += '</blockquote>';
+      processedContent += quoteContent;
+      inQuote = false;
+    }
+
     // 첨부 파일 표시 개선 (파일명: 파일경로)
-    formatted = formatted.replace(/첨부된 파일: ([^\n]+)/g, (match, fileName) => {
+    processedContent = processedContent.replace(/첨부된 파일: ([^\n]+)/g, (match, fileName) => {
       return `<div class="attached-file">
         <span class="attachment-icon">📎</span>
         <span class="attachment-name">${fileName}</span>
@@ -1284,8 +1552,35 @@ export class ChatViewService {
       </div>`;
     });
 
-    // 줄바꿈 처리
-    formatted = formatted.replace(/\n/g, '<br>');
+    // 남은 줄바꿈 처리 - 단락으로 변환
+    const paragraphs = processedContent.split(/\n\n+/);
+    if (paragraphs.length > 1) {
+      processedContent = paragraphs
+        .map(p => p.trim())
+        .filter(p => p.length > 0)
+        .map(p => {
+          // 이미 HTML 태그로 시작하는 경우 그대로 유지
+          if (p.startsWith('<') &&
+              (p.startsWith('<h') ||
+               p.startsWith('<ul') ||
+               p.startsWith('<ol') ||
+               p.startsWith('<blockquote') ||
+               p.startsWith('<pre') ||
+               p.startsWith('<div'))) {
+            return p;
+          } else {
+            // 일반 텍스트는 p 태그로 감싸고 내부 줄바꿈은 <br>로 변환
+            return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+          }
+        })
+        .join('\n');
+    } else {
+      // 단락이 하나면 단순히 줄바꿈만 처리
+      processedContent = processedContent.replace(/\n/g, '<br>');
+    }
+
+    // 마무리 div 태그 닫기
+    formatted += processedContent + '</div>';
 
     return formatted;
   }

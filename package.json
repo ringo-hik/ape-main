@@ -225,7 +225,7 @@
           "command": "ape.rules.create",
           "when": "viewItem == rulesRoot || viewItem == rulesActive || viewItem == rulesInactive || viewItem == rulesEmpty",
           "group": "1_operation"
-        }
+        },
       ]
     },
     "keybindings": [
@@ -346,6 +346,11 @@
           "items": {
             "type": "string"
           }
+        },
+        "ape.vault.directory": {
+          "type": "string",
+          "default": ".ape-vault",
+          "description": "VAULT 문서 저장 디렉토리 경로 (상대 경로는 홈 디렉토리 기준)"
         }
       }
     }

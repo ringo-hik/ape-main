@@ -395,10 +395,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
    */
   public clearChat(): void {
     console.log('채팅 초기화 중');
-
+    
     // 메모리 서비스에서 메시지 삭제
     this._memoryService.clearMessages();
-
+    
     // 새로운 어시스턴트 메시지만 표시
     const assistantId = `assistant_welcome_${Date.now()}`;
 
@@ -410,41 +410,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       {
         id: assistantId,
         role: MessageRole.Assistant,
-          content: welcomeHTML,
-          timestamp: new Date(),
-          metadata: {
-            uiOnly: true, // Flag to indicate this shouldn't be sent to LLM
-            type: 'welcome' // Mark as welcome message
-          }
-        },
-        // This is the actual conversation starter from the assistant
-        {
-          id: assistantId,
-          role: MessageRole.Assistant,
-          content: greeting,
-          timestamp: new Date()
-        }
-      ];
-      
-      // 즉시 UI 업데이트
-      this._updateChatView();
-    } catch (error) {
-      console.error('웰컴 메시지 생성 중 오류:', error);
-      this._messages = [{
-        id: `error_${Date.now()}`,
-        role: MessageRole.System,
-        content: 'Error loading welcome screen.',
+        content: greeting,
         timestamp: new Date()
-      }];
+      }
+    ];
       
-      this._updateChatView();
-    }
+    // 즉시 UI 업데이트
+    this._updateChatView();
   }
-
-  /**
-   * Loads messages from memory service
-   */
-  private async _loadMessages(): Promise<void> {
     console.log('메시지 로드 중 - 기존 메시지 확인');
     const result = await this._memoryService.getMessages();
     if (result.success && result.data && result.data.length > 0) {
@@ -654,6 +627,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         if (message.messageId) {
           this._toggleMessageContext(message.messageId);
         }
+        break;
+
+      case 'formatText':
+        // 텍스트 포맷 기능
+        this._formatInputText();
         break;
     }
   }
@@ -2909,5 +2887,85 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
     return text;
+  }
+
+  /**
+   * 입력 텍스트 포맷팅 기능
+   * - 코드 블록을 정리하고 구문 강조 지원
+   * - 마크다운 텍스트 포맷팅
+   */
+  private _formatInputText(): void {
+    if (!this._view) {
+      return;
+    }
+
+    vscode.window.showQuickPick([
+      { label: '코드 블록 추가', detail: '코드 블록으로 텍스트를 감싸기', value: 'code' },
+      { label: '마크다운 정리', detail: '들여쓰기와 줄바꿈 정리', value: 'markdown' },
+      { label: '인용문 추가', detail: '인용문으로 텍스트 포맷', value: 'quote' },
+      { label: '리스트 포맷', detail: '번호 또는 글머리 기호 리스트로 변환', value: 'list' }
+    ], {
+      placeHolder: '적용할 포맷 스타일을 선택하세요',
+      matchOnDetail: true
+    }).then(selection => {
+      if (selection) {
+        // 에디터에서 선택된 텍스트 가져오기
+        this._getEditorContent().then(content => {
+          let formattedText = '';
+
+          switch (selection.value) {
+            case 'code':
+              if (content) {
+                formattedText = '```\n' + content + '\n```';
+              } else {
+                formattedText = '```\n\n```';
+              }
+              break;
+
+            case 'markdown':
+              if (content) {
+                // 마크다운 텍스트 정리: 여러 줄바꿈을 한 줄로, 들여쓰기 정리
+                formattedText = content
+                  .replace(/\n{3,}/g, '\n\n')  // 3개 이상의 줄바꿈을 2개로
+                  .replace(/^ {4,}/gm, '  ');  // 4개 이상 들여쓰기를 2개로
+              }
+              break;
+
+            case 'quote':
+              if (content) {
+                // 각 줄 앞에 인용문 표시 추가
+                formattedText = content
+                  .split('\n')
+                  .map(line => line.trim() ? `> ${line}` : '>')
+                  .join('\n');
+              } else {
+                formattedText = '> ';
+              }
+              break;
+
+            case 'list':
+              if (content) {
+                // 리스트 형식으로 변환
+                formattedText = content
+                  .split('\n')
+                  .filter(line => line.trim())
+                  .map((line, index) => `- ${line}`)
+                  .join('\n');
+              } else {
+                formattedText = '- ';
+              }
+              break;
+          }
+
+          // 포맷된 텍스트 웹뷰로 전송
+          if (this._view) {
+            this._view.webview.postMessage({
+              type: 'formatResponse',
+              formattedText
+            });
+          }
+        });
+      }
+    });
   }
 }

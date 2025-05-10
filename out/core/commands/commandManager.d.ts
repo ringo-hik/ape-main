@@ -29,7 +29,7 @@ export declare class CommandManager {
      */
     registerCommands(): void;
     /**
-     * Registers a single command
+     * Registers a single command with safety check for duplicates
      */
     private _registerCommand;
     /**

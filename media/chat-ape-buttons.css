@@ -333,6 +333,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-top: 1px solid var(--ape-border-subtle);
+  display: none; /* 카테고리 숨김 - 미니멀 UI */
 }
 
 .suggestion-category:first-child {

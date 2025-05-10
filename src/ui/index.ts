@@ -7,6 +7,4 @@ export * from './chatViewProvider';
 export * from './mainChatViewProvider';
 export * from './welcomeView';
 export * from './tree/apeTreeDataProvider';
-export * from './tree/vaultTreeProvider';
-export * from './tree/vaultCommands';
 export * from './chatViewProviderFactory';
