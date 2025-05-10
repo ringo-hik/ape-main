@@ -142,10 +142,9 @@ async function initializeServices(context: vscode.ExtensionContext): Promise<Ser
   
   // Initialize tree view data provider
   const treeDataProvider = new ApeTreeDataProvider(
-    context, 
-    llmService, 
+    context,
+    llmService,
     memoryService,
-    undefined, // todoService
     vaultService,
     rulesService,
     jiraService
@@ -332,26 +331,60 @@ async function registerComponents(context: vscode.ExtensionContext, services: Se
   // Register version manager
   services.versionManager.registerCommands();
   
+  // Help command is handled by SlashCommandManager in defaultCommands.ts
+
   // Register navigator commands
   context.subscriptions.push(
     vscode.commands.registerCommand('ape.refreshNavigator', () => {
       services.treeDataProvider.refresh();
     }),
-    
+
     vscode.commands.registerCommand('ape.refreshTreeView', () => {
       services.treeDataProvider.refresh();
     }),
-    
+
+    vscode.commands.registerCommand('ape.vaultShowItem', async (metadata) => {
+      if (!metadata) {
+        vscode.window.showErrorMessage('VAULT 아이템 정보가 올바르지 않습니다.');
+        return;
+      }
+
+      try {
+        // 컨텍스트 및 아이템 가져오기
+        const vaultContext = services.vaultService.getContextById(metadata.contextId);
+        if (!vaultContext) {
+          vscode.window.showErrorMessage('VAULT 컨텍스트를 찾을 수 없습니다.');
+          return;
+        }
+
+        // 아이템 찾기
+        const item = vaultContext.items.find((i: any) => i.id === metadata.itemId);
+        if (!item) {
+          vscode.window.showErrorMessage('VAULT 아이템을 찾을 수 없습니다.');
+          return;
+        }
+
+        // 결과를 채팅창에 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+          role: 'assistant',
+          content: `## ${item.name}\n\n${item.content}`
+        });
+      } catch (error) {
+        console.error('VAULT 아이템 표시 오류:', error);
+        vscode.window.showErrorMessage(`VAULT 아이템을 표시할 수 없습니다: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }),
+
     vscode.commands.registerCommand('ape.executeCommand', (commandInfo) => {
       if (!commandInfo || !commandInfo.name) {
         vscode.window.showErrorMessage('명령어 정보가 올바르지 않습니다');
         return;
       }
-      
-      const commandText = commandInfo.args 
-        ? `/${commandInfo.name} ${commandInfo.args.join(' ')}` 
+
+      const commandText = commandInfo.args
+        ? `/${commandInfo.name} ${commandInfo.args.join(' ')}`
         : `/${commandInfo.name}`;
-      
+
       // 직접 SlashCommandManager로 명령 실행
       services.commandManager.slashCommandManager.executeCommand(commandText);
     }),
@@ -375,7 +408,9 @@ async function registerComponents(context: vscode.ExtensionContext, services: Se
     vscode.commands.registerCommand('ape.sendChatMessage', () => {
       vscode.commands.executeCommand('ape.sendMessage');
     }),
-    
+
+    // Help command is already handled by SlashCommandManager in defaultCommands.ts
+
   );
   
   // Register Rules commands

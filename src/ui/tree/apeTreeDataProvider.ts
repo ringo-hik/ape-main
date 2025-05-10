@@ -11,7 +11,6 @@ import { existsSync } from 'fs';
 import { ApeTreeItem, TreeNodeType } from './treeNodeTypes';
 import { LLMService } from '../../core/llm/llmService';
 import { MemoryService } from '../../core/memory/memoryService';
-import { TodoService } from '../../core/services/todoService';
 import { VaultService, VaultContextType } from '../../core/services/vaultService';
 import { RulesService } from '../../core/services/rulesService';
 import { JiraService } from '../../core/services/jiraService';
@@ -37,7 +36,6 @@ export class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeTreeItem>
     private readonly context: vscode.ExtensionContext,
     private readonly llmService: LLMService,
     private readonly memoryService: MemoryService,
-    private readonly todoService?: TodoService,
     private readonly vaultService?: VaultService,
     private readonly rulesService?: RulesService,
     private readonly jiraService?: JiraService
