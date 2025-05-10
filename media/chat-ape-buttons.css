@@ -1,0 +1,486 @@
+/* 
+ * APE 버튼 스타일 (Claude.ai 스타일)
+ * 현대적이고 미니멀한 채팅 인터페이스 버튼 디자인
+ */
+
+/* Hide scrollbar in message area */
+#chat-messages::-webkit-scrollbar {
+  width: 6px;
+  background-color: transparent;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+  background-color: var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-full);
+}
+
+#chat-messages {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ape-border-strong) transparent;
+}
+
+/* Input container - improved spacing */
+#chat-input-container {
+  padding: var(--ape-spacing-md) var(--ape-spacing-lg);
+}
+
+/* Input wrapper - better positioning */
+#input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+  max-width: 90%;
+}
+
+/* Input field improvements */
+#chat-input {
+  width: 100%;
+  min-height: 44px;
+  max-height: 220px;
+  padding: var(--ape-spacing-sm) var(--ape-spacing-lg);
+  padding-right: 140px;
+  background-color: var(--ape-bg-tertiary);
+  color: var(--ape-text-primary);
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: 24px;
+  resize: none;
+  outline: none;
+  font-family: var(--ape-font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  transition: border-color var(--ape-transition-fast), box-shadow var(--ape-transition-fast);
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+#chat-input:focus {
+  border-color: var(--ape-border-highlight);
+  box-shadow: 0 0 0 1px rgba(29, 109, 79, 0.2);
+}
+
+/* Input buttons container - improved positioning */
+#input-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  padding: 2px 4px;
+  border-radius: 12px;
+}
+
+/* 기본 버튼 스타일 */
+.input-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--ape-border-radius-full);
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  padding: 0;
+  margin: 0 2px;
+  position: relative;
+}
+
+.input-action-button:hover {
+  background-color: rgba(55, 148, 255, 0.1);
+  color: var(--ape-accent-primary);
+}
+
+.input-action-button:active {
+  background-color: rgba(55, 148, 255, 0.2);
+  transform: scale(0.95);
+}
+
+.input-action-button img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+  transition: all var(--ape-transition-fast);
+}
+
+.input-action-button:hover img {
+  opacity: 1;
+}
+
+/* 전송 버튼 특별 스타일 */
+#send-button {
+  width: 36px;
+  height: 36px;
+  background-color: var(--ape-accent-primary);
+  color: white;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--ape-border-radius-full);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  font-size: 16px;
+}
+
+#send-button:hover {
+  background-color: var(--ape-accent-secondary);
+  transform: translateY(-1px);
+}
+
+#send-button:active {
+  transform: translateY(0px);
+}
+
+#send-button .emoji-icon {
+  font-size: 16px;
+}
+
+/* 모델 선택기 스타일 */
+#model-selector {
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  color: var(--ape-text-secondary);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: var(--ape-border-radius-full);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#model-selector:hover {
+  border-color: var(--ape-border-strong);
+  color: var(--ape-text-primary);
+  background-color: var(--ape-bg-hover);
+}
+
+#model-selector .emoji-icon {
+  font-size: 12px;
+}
+
+/* 스마트 프롬프팅 토글 스타일 (Claude 스타일 버튼) */
+#smart-prompting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  color: var(--ape-text-secondary);
+  padding: 4px 8px;
+  border-radius: var(--ape-border-radius-full);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  font-size: 12px;
+}
+
+#smart-prompting-toggle.active {
+  border-color: var(--ape-accent-primary);
+  color: var(--ape-accent-primary);
+  background-color: var(--ape-accent-tertiary);
+}
+
+#smart-prompting-toggle:hover {
+  border-color: var(--ape-border-strong);
+  color: var(--ape-text-primary);
+  background-color: var(--ape-bg-hover);
+}
+
+#smart-prompting-toggle.active:hover {
+  border-color: var(--ape-accent-secondary);
+  background-color: rgba(55, 148, 255, 0.15);
+}
+
+#smart-prompting-toggle .toggle-icon {
+  font-size: 12px;
+}
+
+/* 스타일 모달 */
+.style-modal {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 240px;
+  background-color: var(--ape-bg-secondary);
+  border: 1px solid var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-md);
+  box-shadow: var(--ape-shadow-lg);
+  z-index: 100;
+  margin-bottom: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.style-modal.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.style-modal-header {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ape-text-secondary);
+  border-bottom: 1px solid var(--ape-border-subtle);
+}
+
+.style-modal-content {
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.style-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: var(--ape-border-radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.style-option:hover {
+  background-color: var(--ape-bg-hover);
+}
+
+.style-option.active {
+  background-color: var(--ape-accent-tertiary);
+  color: var(--ape-accent-primary);
+}
+
+.style-icon {
+  margin-right: 10px;
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.style-label {
+  flex-grow: 1;
+  font-size: 13px;
+}
+
+/* 스타일 선택 표시 */
+.selected-style {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--ape-accent-tertiary);
+  color: var(--ape-accent-primary);
+  border-radius: var(--ape-border-radius-full);
+  padding: 2px 8px 2px 6px;
+  font-size: 12px;
+  margin-left: 6px;
+  position: relative;
+}
+
+.selected-style-close {
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.selected-style-close:hover {
+  background-color: rgba(55, 148, 255, 0.2);
+  opacity: 1;
+}
+
+.selected-style-label {
+  margin-left: 3px;
+}
+
+/* 슬래시 명령어 제안 스타일 (Claude.ai 스타일) */
+#command-suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  background-color: var(--ape-bg-secondary);
+  border: 1px solid var(--ape-border-strong);
+  border-radius: var(--ape-border-radius-md);
+  box-shadow: var(--ape-shadow-lg);
+  min-width: 280px;
+  max-width: 320px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  margin-bottom: 8px;
+  display: none;
+}
+
+.suggestion-category {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ape-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-top: 1px solid var(--ape-border-subtle);
+}
+
+.suggestion-category:first-child {
+  border-top: none;
+}
+
+.command-suggestion {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.command-suggestion:hover {
+  background-color: var(--ape-bg-hover);
+}
+
+.command-suggestion.active {
+  background-color: var(--ape-accent-tertiary);
+}
+
+.suggestion-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.suggestion-icon {
+  margin-right: 8px;
+  font-size: 14px;
+  color: var(--ape-accent-primary);
+  width: 16px;
+  text-align: center;
+}
+
+.suggestion-label {
+  flex-grow: 1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+.suggestion-description {
+  font-size: 12px;
+  color: var(--ape-text-secondary);
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.command-suggestion[data-shortcut]:after {
+  content: attr(data-shortcut);
+  position: absolute;
+  right: 8px;
+  font-size: 10px;
+  color: var(--ape-text-secondary);
+  background-color: var(--ape-bg-tertiary);
+  padding: 1px 4px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.command-suggestion:hover[data-shortcut]:after {
+  opacity: 0.7;
+}
+
+/* 명령어 하위 메뉴 스타일 */
+.command-children {
+  padding-left: 16px;
+  margin-left: 8px;
+  border-left: 1px solid var(--ape-border-subtle);
+  display: none;
+}
+
+.command-suggestion.expanded + .command-children {
+  display: block;
+}
+
+.command-suggestion.has-children:after {
+  content: '▸';
+  position: absolute;
+  right: 8px;
+  font-size: 10px;
+  color: var(--ape-text-secondary);
+}
+
+.command-suggestion.has-children.expanded:after {
+  content: '▾';
+}
+
+/* 채팅 입력 컨테이너 입력 동작 스타일 */
+#input-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.input-top-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: var(--ape-border-radius-full);
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  transition: all var(--ape-transition-fast);
+  padding: 0;
+  font-size: 14px;
+}
+
+.input-top-button:hover {
+  border-color: var(--ape-border-strong);
+  background-color: var(--ape-bg-hover);
+  color: var(--ape-text-primary);
+}
+
+/* Model indicator improvements */
+#model-indicator {
+  padding: var(--ape-spacing-sm) var(--ape-spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--ape-border-subtle);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #input-wrapper {
+    max-width: 100%;
+  }
+  
+  #chat-input-container {
+    padding: var(--ape-spacing-sm) var(--ape-spacing-md);
+  }
+  
+  #chat-input {
+    padding: var(--ape-spacing-sm) var(--ape-spacing-md);
+    padding-right: 120px;
+  }
+}

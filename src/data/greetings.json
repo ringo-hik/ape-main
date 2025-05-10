@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-05-12",
+  "greetings": [
+    {
+      "text": "안녕하세요! 개발을 도와드릴 APE입니다. 어떤 도움이 필요하신가요?",
+      "style": "casual"
+    },
+    {
+      "text": "환영합니다. APE 개발 도우미입니다. 무엇을 도와드릴까요?",
+      "style": "formal"
+    },
+    {
+      "text": "APE 개발 어시스턴트가 당신의 코딩을 돕기 위해 여기 있습니다. 오늘은 어떤 작업을 하고 계신가요?",
+      "style": "casual"
+    },
+    {
+      "text": "반갑습니다. APE 개발 파트너입니다. 어떤 개발 작업을 진행 중이신가요?",
+      "style": "formal"
+    },
+    {
+      "text": "APE가 준비되었습니다. 코드 분석, 새 기능 개발, 디버깅 중 어떤 도움이 필요하신가요?",
+      "style": "technical"
+    },
+    {
+      "text": "안녕하세요! 개발 모드 활성화. APE가 서비스를 시작합니다. 무엇을 도와드릴까요?",
+      "style": "technical"
+    },
+    {
+      "text": "코딩 어시스턴트 APE가 대기 중입니다. 어떤 개발 작업을 지원해 드릴까요?",
+      "style": "professional"
+    },
+    {
+      "text": "APE 프로그래밍 파트너입니다. 오늘의 코딩 작업을 공유해 주세요.",
+      "style": "professional"
+    },
+    {
+      "text": "개발을 돕는 APE입니다. 새로운 프로젝트를 시작하시나요, 아니면 기존 코드의 도움이 필요하신가요?",
+      "style": "casual"
+    },
+    {
+      "text": "APE 개발 어시스턴트가 당신의 코드에 기여할 준비가 되었습니다. 무엇을 도와드릴까요?",
+      "style": "formal"
+    }
+  ],
+  "featuredGreetings": [
+    {
+      "text": "APE의 새로운 기능: Git 통합과 자동 커밋 기능을 사용해 보세요. '/git auto' 명령어로 시작할 수 있습니다.",
+      "style": "feature"
+    },
+    {
+      "text": "개선된 코드 분석 기능이 추가되었습니다. 코드를 선택한 후 '/analyze' 명령어를 사용해 보세요.",
+      "style": "feature"
+    },
+    {
+      "text": "APE 도움말을 확인하시려면 '/help' 명령어를 입력해주세요.",
+      "style": "feature"
+    }
+  ]
+}

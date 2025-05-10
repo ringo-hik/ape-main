@@ -8,7 +8,6 @@ import { CommandSuggestion } from '../core/commands/slashCommand';
 import { CodeService } from './chat/codeService';
 import { ModelManager } from '../core/llm/modelManager';
 import { SmartPromptingService, SmartPromptingState } from '../core/services/smartPromptingService';
-import { WelcomeViewProvider } from './welcomeView';
 
 /**
  * ChatViewProvider manages the WebView that displays the luxurious chat interface
@@ -395,38 +394,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
    * Clears all messages from the chat and shows welcome screen
    */
   public clearChat(): void {
-    console.log('채팅 초기화 중 - 새 웰컴 메시지 생성');
-    
+    console.log('채팅 초기화 중');
+
     // 메모리 서비스에서 메시지 삭제
     this._memoryService.clearMessages();
-    
-    try {
-      // Get welcome message HTML with error handling
-      let welcomeHTML = '';
-      try {
-        welcomeHTML = WelcomeViewProvider.getWelcomeMessageHTML();
-        console.log('Welcome HTML generated successfully');
-      } catch (welcomeError) {
-        console.error('Error getting welcome HTML from provider:', welcomeError);
-        welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
-      }
 
-      // Ensure welcome HTML is not empty
-      if (!welcomeHTML || welcomeHTML.trim() === '') {
-        welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
-        console.warn('Empty welcome HTML detected, using fallback');
-      }
+    // 새로운 어시스턴트 메시지만 표시
+    const assistantId = `assistant_welcome_${Date.now()}`;
 
-      // Create a UI-only welcome message and conversation starter
-      const welcomeId = `welcome_ui_${Date.now()}`;
-      const assistantId = `assistant_welcome_${Date.now()}`;
+    // 랜덤 인사말 가져오기
+    const greeting = this._getRandomGreeting();
 
-      // Create display messages - the welcome HTML message is UI-only and will not be sent to LLM
-      this._messages = [
-        // This is a UI-only message that won't be sent to LLM
-        {
-          id: welcomeId,
-          role: MessageRole.System,
+    // 간단한 인사말만 포함한 메시지 설정
+    this._messages = [
+      {
+        id: assistantId,
+        role: MessageRole.Assistant,
           content: welcomeHTML,
           timestamp: new Date(),
           metadata: {
@@ -438,7 +421,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         {
           id: assistantId,
           role: MessageRole.Assistant,
-          content: 'Welcome to APE. How can I assist with your development today?',
+          content: greeting,
           timestamp: new Date()
         }
       ];
@@ -491,6 +474,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         const welcomeId = `welcome_ui_${Date.now()}`;
         const assistantId = `assistant_welcome_${Date.now()}`;
 
+        // 랜덤 인사말 가져오기
+        const greeting = this._getRandomGreeting();
+
         // Create display messages with UI-only flag for welcome HTML
         this._messages = [
           // This is a UI-only message that won't be sent to LLM
@@ -508,7 +494,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           {
             id: assistantId,
             role: MessageRole.Assistant,
-            content: 'Welcome to APE. How can I assist with your development today?',
+            content: greeting,
             timestamp: new Date()
           }
         ];
@@ -846,6 +832,30 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     return null;
+  }
+
+  /**
+   * 랜덤 인사말 메시지 가져오기
+   * @returns 랜덤 인사말 문자열
+   */
+  private _getRandomGreeting(): string {
+    const defaultGreeting = 'Welcome to APE. How can I assist with your development today?';
+
+    try {
+      const greetingsPath = vscode.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
+      const greetingsContent = fs.readFileSync(greetingsPath.fsPath, 'utf-8');
+      const greetingsData = JSON.parse(greetingsContent);
+
+      if (greetingsData && greetingsData.greetings && greetingsData.greetings.length > 0) {
+        // 랜덤 인사말 선택
+        const randomIndex = Math.floor(Math.random() * greetingsData.greetings.length);
+        return greetingsData.greetings[randomIndex].text;
+      }
+    } catch (error) {
+      console.warn('인사말을 불러오는 데 실패했습니다:', error);
+    }
+
+    return defaultGreeting;
   }
 
   /**
