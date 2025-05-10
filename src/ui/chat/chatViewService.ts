@@ -1137,20 +1137,34 @@ export class ChatViewService {
       }, 2000);
     }
 
-    // 메시지 복사 기능
+    // 메시지 복사 기능 - 요소 확인 및 예외 처리 강화
     function copyMessageToClipboard(messageId) {
+      if (!messageId) {
+        console.error('복사할 메시지 ID가 제공되지 않았습니다');
+        return;
+      }
+
       const messageDomId = getMessageDomId(messageId);
       const messageElement = document.getElementById(messageDomId);
 
-      if (!messageElement) return;
+      if (!messageElement) {
+        console.error(`메시지 요소를 찾을 수 없습니다: ${messageDomId}`);
+        return;
+      }
 
       // 메시지 내용 요소
       const contentElement = messageElement.querySelector('.message-content');
-      if (!contentElement) return;
+      if (!contentElement) {
+        console.error('메시지 내용 요소를 찾을 수 없습니다');
+        return;
+      }
 
       try {
         // HTML 내용 가져오기
         const htmlContent = contentElement.innerHTML;
+        if (!htmlContent) {
+          console.warn('메시지 내용이 비어 있습니다');
+        }
 
         // HTML에서 텍스트 추출 (코드 블록 형식 유지)
         const tempDiv = document.createElement('div');
@@ -1158,6 +1172,10 @@ export class ChatViewService {
 
         // 코드 블록 내용 가져오기
         let textContent = extractTextContent(tempDiv);
+        if (!textContent) {
+          console.warn('추출된 텍스트가 비어 있습니다');
+          textContent = ''; // 빈 문자열로 기본값 설정
+        }
 
         // 클립보드에 복사
         navigator.clipboard.writeText(textContent).then(() => {
@@ -1165,10 +1183,16 @@ export class ChatViewService {
           const copyButton = messageElement.querySelector('.copy-message-button');
           if (copyButton) {
             copyButton.classList.add('copy-success');
-            copyButton.querySelector('i').className = 'codicon codicon-check';
+            const iconElement = copyButton.querySelector('i');
+            if (iconElement) {
+              iconElement.className = 'codicon codicon-check';
+            }
+
             setTimeout(() => {
               copyButton.classList.remove('copy-success');
-              copyButton.querySelector('i').className = 'codicon codicon-copy';
+              if (iconElement) {
+                iconElement.className = 'codicon codicon-copy';
+              }
             }, 2000);
           }
 
@@ -1184,74 +1208,107 @@ export class ChatViewService {
       }
     }
 
-    // HTML에서 텍스트 추출 (코드 블록 형식 유지)
+    // HTML에서 텍스트 추출 (코드 블록 형식 유지) - 안전성 강화
     function extractTextContent(element) {
+      if (!element) {
+        console.error('텍스트 추출할 요소가 없습니다');
+        return '';
+      }
+
       let text = '';
 
-      // 자식 노드 순회
-      for (const node of element.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          // 텍스트 노드는 그대로 추가
-          text += node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          // 코드 블록 특별 처리
-          if (node.classList && node.classList.contains('code-block-container')) {
-            // 코드 블록 헤더에서 언어 이름 가져오기
-            const languageElement = node.querySelector('.code-block-language');
-            const language = languageElement ? languageElement.textContent.trim() : '';
+      try {
+        // 자식 노드 순회 (노드가 없으면 오류 방지)
+        const childNodes = element.childNodes || [];
+        for (const node of childNodes) {
+          if (!node) continue;
 
-            // 코드 내용 가져오기
-            const codeElement = node.querySelector('code');
-            if (codeElement) {
-              const code = codeElement.textContent;
-              // 마크다운 코드 블록 형식으로 추가
-              text += '```' + language + '\n' + code + '\n```\n\n';
+          if (node.nodeType === Node.TEXT_NODE) {
+            // 텍스트 노드는 그대로 추가
+            text += node.textContent || '';
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // 코드 블록 특별 처리
+            if (node.classList && node.classList.contains('code-block-container')) {
+              // 코드 블록 헤더에서 언어 이름 가져오기
+              const languageElement = node.querySelector('.code-block-language');
+              const language = languageElement ? (languageElement.textContent || '').trim() : '';
+
+              // 코드 내용 가져오기
+              const codeElement = node.querySelector('code');
+              if (codeElement) {
+                const code = codeElement.textContent || '';
+                // 마크다운 코드 블록 형식으로 추가
+                text += '```' + language + '\n' + code + '\n```\n\n';
+              }
             }
-          }
-          // 목록 항목 처리
-          else if (node.tagName === 'UL' || node.tagName === 'OL') {
-            // 목록 아이템을 순회하며 처리
-            const listItems = node.querySelectorAll('li');
-            listItems.forEach(item => {
-              const prefix = node.tagName === 'UL' ? '- ' : '1. ';
-              text += prefix + item.textContent.trim() + '\n';
-            });
-            text += '\n';
-          }
-          // 그 외 일반 요소들
-          else {
-            // 제목 요소 처리
-            if (node.tagName === 'H1') text += '# ' + node.textContent + '\n\n';
-            else if (node.tagName === 'H2') text += '## ' + node.textContent + '\n\n';
-            else if (node.tagName === 'H3') text += '### ' + node.textContent + '\n\n';
-            else if (node.tagName === 'H4') text += '#### ' + node.textContent + '\n\n';
-            else if (node.tagName === 'H5') text += '##### ' + node.textContent + '\n\n';
-            else if (node.tagName === 'H6') text += '###### ' + node.textContent + '\n\n';
-            // 단락 처리
-            else if (node.tagName === 'P') text += node.textContent + '\n\n';
-            // 인용구 처리
-            else if (node.tagName === 'BLOCKQUOTE') {
-              const lines = node.textContent.split('\n');
-              lines.forEach(line => {
-                text += '> ' + line + '\n';
-              });
-              text += '\n';
+            // 목록 항목 처리
+            else if (node.tagName === 'UL' || node.tagName === 'OL') {
+              try {
+                // 목록 아이템을 순회하며 처리
+                const listItems = node.querySelectorAll('li') || [];
+                if (listItems.length === 0) {
+                  text += node.textContent + '\n\n'; // 내용이라도 보존
+                } else {
+                  Array.from(listItems).forEach(item => {
+                    if (!item) return;
+                    const prefix = node.tagName === 'UL' ? '- ' : '1. ';
+                    const itemText = item.textContent || '';
+                    text += prefix + itemText.trim() + '\n';
+                  });
+                  text += '\n';
+                }
+              } catch (listErr) {
+                console.error('목록 처리 중 오류:', listErr);
+                text += node.textContent + '\n\n'; // 폴백: 일반 텍스트로 추가
+              }
             }
-            // 인라인 코드 처리
-            else if (node.tagName === 'CODE' && !node.closest('.code-block-container')) {
-              text += '`' + node.textContent + '`';
-            }
-            // 첨부 파일 처리
-            else if (node.classList && node.classList.contains('attached-file')) {
-              const fileName = node.querySelector('.attachment-name')?.textContent || 'attached file';
-              text += '첨부된 파일: ' + fileName + '\n\n';
-            }
-            // 그 외 요소는 재귀적으로 처리 (중첩 요소)
+            // 그 외 일반 요소들
             else {
-              text += extractTextContent(node);
+              try {
+                const nodeContent = node.textContent || '';
+                // 제목 요소 처리
+                if (node.tagName === 'H1') text += '# ' + nodeContent + '\n\n';
+                else if (node.tagName === 'H2') text += '## ' + nodeContent + '\n\n';
+                else if (node.tagName === 'H3') text += '### ' + nodeContent + '\n\n';
+                else if (node.tagName === 'H4') text += '#### ' + nodeContent + '\n\n';
+                else if (node.tagName === 'H5') text += '##### ' + nodeContent + '\n\n';
+                else if (node.tagName === 'H6') text += '###### ' + nodeContent + '\n\n';
+                // 단락 처리
+                else if (node.tagName === 'P') text += nodeContent + '\n\n';
+                // 인용구 처리
+                else if (node.tagName === 'BLOCKQUOTE') {
+                  const lines = nodeContent.split('\n');
+                  lines.forEach(line => {
+                    text += '> ' + line + '\n';
+                  });
+                  text += '\n';
+                }
+                // 인라인 코드 처리
+                else if (node.tagName === 'CODE' && !node.closest('.code-block-container')) {
+                  text += '`' + nodeContent + '`';
+                }
+                // 첨부 파일 처리
+                else if (node.classList && node.classList.contains('attached-file')) {
+                  const nameElement = node.querySelector('.attachment-name');
+                  const fileName = nameElement ? (nameElement.textContent || '') : 'attached file';
+                  text += '첨부된 파일: ' + fileName + '\n\n';
+                }
+                // 그 외 요소는 재귀적으로 처리 (중첩 요소)
+                else {
+                  text += extractTextContent(node);
+                }
+              } catch (elemErr) {
+                console.error('요소 처리 중 오류:', elemErr, node);
+                // 오류 발생 시 기본 텍스트라도 보존
+                if (node.textContent) {
+                  text += node.textContent + '\n';
+                }
+              }
             }
           }
         }
+      } catch (err) {
+        console.error('텍스트 추출 중 오류 발생:', err);
       }
 
       return text;
@@ -1302,13 +1359,27 @@ export class ChatViewService {
         return;
       }
       
-      // 첨부 파일 뷰 버튼 클릭 이벤트 리스너 추가
+      // 첨부 파일 뷰 버튼 클릭 이벤트 리스너 추가 - null 및 요소 체크 강화
       chatMessages.addEventListener('click', function(event) {
+        // 이벤트 대상이 존재하는지 확인
+        if (!event || !event.target) return;
+
         // 파일 뷰 버튼 클릭 처리
         if (event.target.closest('.attachment-action.view-file')) {
           const attachedFile = event.target.closest('.attached-file');
           if (attachedFile) {
-            const fileName = attachedFile.querySelector('.attachment-name').textContent;
+            const nameElement = attachedFile.querySelector('.attachment-name');
+            if (!nameElement) {
+              console.error('첨부 파일 이름 요소를 찾을 수 없습니다');
+              return;
+            }
+
+            const fileName = nameElement.textContent;
+            if (!fileName) {
+              console.error('첨부 파일 이름이 비어 있습니다');
+              return;
+            }
+
             // VS Code에 파일 열기 요청
             vscode.postMessage({
               type: 'openFile',
@@ -1362,23 +1433,27 @@ export class ChatViewService {
         vscode.postMessage({ type: 'attachFile' });
       });
 
-      // 텍스트 포맷 버튼 이벤트 핸들러
+      // 텍스트 포맷 버튼 이벤트 핸들러 - 요소 존재 여부 확인
       const formatButton = document.getElementById('format-button');
       if (formatButton) {
         formatButton.addEventListener('click', () => {
           vscode.postMessage({ type: 'formatText' });
         });
+      } else {
+        console.log('텍스트 포맷 버튼을 찾을 수 없습니다');
       }
       
-      // 스마트 프롬프팅 관련 요소
+      // 스마트 프롬프팅 관련 요소 - null 체크 강화
       const smartPromptingToggle = document.getElementById('smart-prompting-toggle');
       const smartPromptingLabel = document.getElementById('smart-prompting-label');
-      
-      // 스마트 프롬프팅 토글 버튼 이벤트 핸들러
+
+      // 스마트 프롬프팅 토글 버튼 이벤트 핸들러 - 요소 존재 여부 확인
       if (smartPromptingToggle && smartPromptingLabel) {
         smartPromptingToggle.addEventListener('click', () => {
           vscode.postMessage({ type: 'toggleSmartPrompting' });
         });
+      } else {
+        console.log('스마트 프롬프팅 UI 요소를 찾을 수 없습니다');
       }
       
       // 스마트 프롬프팅 UI 업데이트 함수
