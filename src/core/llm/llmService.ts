@@ -56,7 +56,7 @@ function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming
     return {
       'Content-Type': 'application/json',
       'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
-      'Send-System-Name': 'ringo',
+      'Send-System-Name': 'hik',
       'User-Id': 'ringo',
       'User-Type': 'ringo',
       'Prompt-Msg-Id': requestId,
@@ -69,7 +69,7 @@ function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming
     return {
       'Content-Type': 'application/json',
       'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
-      'Send-System-Name': 'ringo',
+      'Send-System-Name': 'hik',
       'User-Id': 'ringo',
       'User-Type': 'ringo',
       'Prompt-Msg-Id': requestId,
@@ -100,7 +100,7 @@ function createInternalApiRequestBody(model: string, messages: any[], options?: 
       messages: messages,
       temperature: options?.temperature || 0.7,
       stream: !!options?.stream,
-      system_name: 'ringo',
+      system_name: 'hik',
       user_id: 'ringo',
       user_type: 'ringo',
       max_tokens: 50000
@@ -113,7 +113,7 @@ function createInternalApiRequestBody(model: string, messages: any[], options?: 
       messages: messages,
       temperature: options?.temperature || 0.7,
       stream: !!options?.stream,
-      system_name: 'ringo',
+      system_name: 'hik',
       user_id: 'ringo',
       user_type: 'ringo',
       max_tokens: 50000
