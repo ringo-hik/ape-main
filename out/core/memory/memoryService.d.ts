@@ -162,6 +162,10 @@ export declare class MemoryService implements vscode.Disposable {
      */
     private _saveSession;
     /**
+     * 세션을 워크스페이스의 .ape/vault/chat-history 디렉토리에 저장
+     */
+    private _saveSessionToWorkspace;
+    /**
      * Loads all sessions from storage
      * @returns Promise that resolves when all sessions are loaded
      */

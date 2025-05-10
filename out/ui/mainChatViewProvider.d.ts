@@ -4,6 +4,7 @@ import { MemoryService } from '../core/memory/memoryService';
 import { CommandManager } from '../core/commands/commandManager';
 import { CommandSuggestion } from '../core/commands/slashCommand';
 import { ModelManager } from '../core/llm/modelManager';
+import { SmartPromptingState } from '../core/services/smartPromptingService';
 /**
  * MainChatViewProvider manages the primary chat interface WebView
  * with a clean, modern, and user-friendly design
@@ -21,6 +22,8 @@ export declare class MainChatViewProvider implements vscode.WebviewViewProvider 
     private _currentStreamMessageId;
     private _streamUpdateTimeout;
     private _modelChangeListener?;
+    private _smartPromptingService?;
+    private _smartPromptingStateListener?;
     private readonly _onDidSuggestCommands;
     readonly onDidSuggestCommands: vscode.Event<CommandSuggestion[]>;
     constructor(_context: vscode.ExtensionContext, _llmService: LLMService, _memoryService: MemoryService, _commandManager: CommandManager, _modelManager?: ModelManager | undefined);
@@ -41,6 +44,10 @@ export declare class MainChatViewProvider implements vscode.WebviewViewProvider 
      * @deprecated Use the ModelManager.getModelDisplayName method instead
      */
     private getModelDisplayName;
+    /**
+     * 랜덤 인사말 생성 - 유저 컨텍스트에 맞는 인사말과 팁 제공
+     */
+    private getRandomGreeting;
     /**
      * Sends a user message to the LLM and processes the response
      */
@@ -98,10 +105,10 @@ export declare class MainChatViewProvider implements vscode.WebviewViewProvider 
      */
     private _getNonce;
     /**
-     * Smart Prompting UI update - required for interface compatibility
-     * No-op in this implementation as we don't need this feature for the iPhone style
+     * Updates the Smart Prompting UI with the current state
+     * @param state The current SmartPromptingState
      */
-    _updateSmartPromptingUI(enabled: boolean): void;
+    _updateSmartPromptingUI(state: SmartPromptingState): void;
     /**
      * Open attached file - required for interface compatibility
      * No-op in this implementation as we don't need this feature for the iPhone style
