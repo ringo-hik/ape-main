@@ -334,6 +334,41 @@ export class LLMService implements vscode.Disposable {
       if (error instanceof Error) {
         console.error('[LLMService] 오류 메시지:', error.message);
         console.error('[LLMService] 스택 트레이스:', error.stack);
+
+        // 추가 진단 정보
+        if ('response' in error && error.response) {
+          // axios 오류인 경우
+          const axiosError = error as any;
+          console.error(`[LLMService] 상위 오류 상태 코드: ${axiosError.response.status}`);
+          console.error(`[LLMService] 상위 오류 응답 데이터:`, axiosError.response.data);
+
+          // 422 에러 특수 처리
+          if (axiosError.response.status === 422) {
+            console.error('[LLMService] 상위 핸들러에서 422 에러 감지 - 최상위 스택 로그');
+            console.error('[LLMService] 사용 모델:', options?.model || this.getActiveModel());
+
+            // 메시지 요약 정보
+            const messagesSummary = messages.map(m => ({
+              role: m.role,
+              contentLength: m.content.length,
+              contentPreview: m.content.length > 100 ? `${m.content.substring(0, 100)}...` : m.content
+            }));
+            console.error('[LLMService] 메시지 요약:', JSON.stringify(messagesSummary, null, 2));
+
+            // 요청 옵션 요약
+            if (options) {
+              console.error('[LLMService] 요청 옵션:', JSON.stringify({
+                model: options.model,
+                temperature: options.temperature,
+                maxTokens: options.maxTokens,
+                hasSystemPrompt: !!options.systemPrompt,
+                systemPromptLength: options.systemPrompt?.length || 0,
+                hasContextMessages: !!options.contextMessages && options.contextMessages.length > 0,
+                contextMessagesCount: options.contextMessages?.length || 0
+              }, null, 2));
+            }
+          }
+        }
       }
       return {
         success: false,
@@ -387,6 +422,28 @@ export class LLMService implements vscode.Disposable {
       if (error instanceof Error) {
         console.error('[LLMService] 스트리밍 오류 메시지:', error.message);
         console.error('[LLMService] 스트리밍 스택 트레이스:', error.stack);
+
+        // 추가 진단 정보
+        if ('response' in error && error.response) {
+          // axios 오류인 경우
+          const axiosError = error as any;
+          console.error(`[LLMService] 스트리밍 상위 오류 상태 코드: ${axiosError.response.status}`);
+          console.error(`[LLMService] 스트리밍 상위 오류 응답 데이터:`, axiosError.response.data);
+
+          // 422 에러 특수 처리
+          if (axiosError.response.status === 422) {
+            console.error('[LLMService] 스트리밍 상위 핸들러에서 422 에러 감지 - 최상위 스택 로그');
+            console.error('[LLMService] 모델:', model);
+
+            // 메시지 요약 정보
+            const messagesSummary = messages.map(m => ({
+              role: m.role,
+              contentLength: m.content.length,
+              contentPreview: m.content.length > 100 ? `${m.content.substring(0, 100)}...` : m.content
+            }));
+            console.error('[LLMService] 메시지 요약:', JSON.stringify(messagesSummary, null, 2));
+          }
+        }
       }
       return {
         success: false,
@@ -459,8 +516,79 @@ export class LLMService implements vscode.Disposable {
       };
     }
 
-    console.log("LLM 요청:", JSON.stringify(request, null, 2));
-    console.log("요청 엔드포인트:", endpoint);
+    console.log("[LLMService] LLM 요청 본문:", JSON.stringify(request, null, 2));
+    console.log("[LLMService] 요청 엔드포인트:", endpoint);
+
+    // 메시지 내용 상세 로깅
+    if (request.messages && Array.isArray(request.messages)) {
+      const messageCount = request.messages.length;
+      console.log(`[LLMService] 메시지 개수: ${messageCount}`);
+
+      // 메시지 메모리 사용량 추정을 위한 변수
+      let totalChars = 0;
+      let totalTokens = 0;
+      let largeMessagesCount = 0;
+
+      // 각 메시지 내용 로그
+      request.messages.forEach((msg, index) => {
+        const role = msg.role || 'unknown';
+        const content = msg.content || '';
+        const contentLength = content.length;
+        totalChars += contentLength;
+
+        // 대략적인 토큰 추정 (4자당 1토큰으로 가정)
+        const estimatedTokens = Math.ceil(contentLength / 4);
+        totalTokens += estimatedTokens;
+
+        console.log(`[LLMService] 메시지 #${index} 역할: ${role}`);
+
+        if (contentLength > 500) {
+          // 큰 메시지는 앞부분만 로깅
+          largeMessagesCount++;
+          console.log(`[LLMService] 메시지 #${index} 내용(일부): ${content.substring(0, 500)}...`);
+          console.log(`[LLMService] 메시지 #${index} 총 길이: ${contentLength} 자 (추정 토큰: ${estimatedTokens})`);
+
+          // 매우 큰 메시지에 대한 추가 진단
+          if (contentLength > 10000) {
+            console.log(`[LLMService] 경고: 메시지 #${index}는 매우 큼 (${contentLength} 자) - 토큰 제한 초과 가능성 있음`);
+
+            // 코드 블록 개수 세기 (마크다운 코드 블록은 추가 토큰 소모)
+            const codeBlockMatches = content.match(/```[\s\S]*?```/g);
+            if (codeBlockMatches && codeBlockMatches.length > 0) {
+              console.log(`[LLMService] 메시지 #${index}에 ${codeBlockMatches.length}개의 코드 블록이 포함됨`);
+
+              // 코드 블록 총 길이 계산
+              const codeBlocksTotalLength = codeBlockMatches.reduce((total, block) => total + block.length, 0);
+              console.log(`[LLMService] 코드 블록 총 길이: ${codeBlocksTotalLength} 자 (전체 메시지의 ${Math.round(codeBlocksTotalLength / contentLength * 100)}%)`);
+            }
+          }
+        } else {
+          // 작은 메시지는 전체 내용 로깅
+          console.log(`[LLMService] 메시지 #${index} 내용: ${content}`);
+          console.log(`[LLMService] 메시지 #${index} 총 길이: ${contentLength} 자 (추정 토큰: ${estimatedTokens})`);
+        }
+      });
+
+      // 메시지 통계 요약
+      console.log(`[LLMService] 메시지 통계 요약:`);
+      console.log(`[LLMService] - 총 메시지 수: ${messageCount}`);
+      console.log(`[LLMService] - 큰 메시지(500자 초과) 수: ${largeMessagesCount}`);
+      console.log(`[LLMService] - 총 문자 수: ${totalChars} 자`);
+      console.log(`[LLMService] - 추정 총 토큰 수: ${totalTokens} 토큰`);
+
+      // 토큰 한도 경고
+      const modelName = model || this.getActiveModel();
+      if (totalTokens > 15000) {
+        console.warn(`[LLMService] 경고: 추정 총 토큰 수(${totalTokens})가 많습니다. 모델(${modelName})의 토큰 제한을 초과할 수 있습니다.`);
+      }
+
+      // 요청 JSON 크기
+      const requestSize = JSON.stringify(request).length;
+      console.log(`[LLMService] 전체 요청 JSON 크기: ${requestSize} 바이트`);
+      if (requestSize > 1000000) {
+        console.warn(`[LLMService] 경고: 요청 크기가 1MB를 초과합니다 (${Math.round(requestSize/1024/1024*100)/100}MB)`);
+      }
+    }
 
     // 요청 설정
     const axiosConfig: any = { headers };
@@ -513,10 +641,71 @@ export class LLMService implements vscode.Disposable {
         console.error(`[LLMService] 상태 코드: ${error.response.status}`);
         console.error(`[LLMService] 응답 데이터:`, error.response.data);
         console.error(`[LLMService] 응답 헤더:`, error.response.headers);
+
+        // 422 에러 특수 처리 (Unprocessable Entity)
+        if (error.response.status === 422) {
+          console.error('[LLMService] 422 에러 감지 (Unprocessable Entity) - 잘못된 요청 형식 또는 유효성 검사 실패');
+
+          // 요청 내용 자세히 로깅
+          console.error('[LLMService] 422 에러 발생한 요청 본문:', JSON.stringify(request, null, 2));
+
+          // 모델별 특화 진단 정보
+          if (isInternalModel(model)) {
+            if (model === LLMModel.NARRANS) {
+              console.error('[LLMService] Narrans 모델 422 오류 - 가능한 원인:');
+              console.error('  1. 메시지 형식 오류 (누락된 필드 또는 잘못된 타입)');
+              console.error('  2. 메시지 내용이 너무 긺 (메시지당 최대 토큰 수 초과)');
+              console.error('  3. 요청 헤더 인증 오류 (Authorization 토큰 문제)');
+
+              // 메시지 길이 분석
+              if (request.messages && Array.isArray(request.messages)) {
+                let totalChars = 0;
+                request.messages.forEach((msg, idx) => {
+                  const contentLength = msg.content ? msg.content.length : 0;
+                  totalChars += contentLength;
+                  if (contentLength > 10000) {
+                    console.error(`[LLMService] 메시지 #${idx}의 길이가 매우 깁니다: ${contentLength} 자 (10,000자 초과)`);
+                  }
+                });
+                console.error(`[LLMService] 총 메시지 길이: ${totalChars} 자 (대략 ${Math.round(totalChars/4)} 토큰)`);
+              }
+            } else if (model === LLMModel.LLAMA4_SCOUT || model === LLMModel.LLAMA4_MAVERICK) {
+              console.error('[LLMService] LLAMA4 모델 422 오류 - 가능한 원인:');
+              console.error('  1. x-dep-ticket 인증 오류');
+              console.error('  2. 요청 본문 형식 불일치');
+              console.error('  3. 모델 이름 형식 오류 (전체 모델 경로가 필요할 수 있음)');
+              console.error('  4. 메시지 토큰 수 초과');
+
+              // 메시지 내용 분석
+              if (request.messages && Array.isArray(request.messages)) {
+                const systemMessages = request.messages.filter(m => m.role === 'system');
+                console.error(`[LLMService] 시스템 메시지 수: ${systemMessages.length}`);
+
+                // 시스템 메시지가 여러 개인 경우 문제가 될 수 있음
+                if (systemMessages.length > 1) {
+                  console.error('[LLMService] 경고: 여러 개의 시스템 메시지가 있습니다. LLAMA4 모델은 하나의 시스템 메시지만 지원할 수 있습니다.');
+                }
+              }
+            }
+          } else {
+            console.error('[LLMService] 외부 API 422 오류 - 가능한 원인:');
+            console.error('  1. 모델 이름 오류 또는 지원되지 않는 모델');
+            console.error('  2. 메시지 형식 오류');
+            console.error('  3. 인증 오류 (API 키)');
+          }
+        }
       } else if (error.request) {
         // 요청이 전송되었지만 응답이 없음
         console.error('[LLMService] 응답이 수신되지 않음. 네트워크나 CORS 이슈 가능성');
         console.error('[LLMService] 요청 세부 정보:', error.request);
+
+        if (isInternalModel(model)) {
+          console.error('[LLMService] 내부망 모델 연결 실패 - 가능한 원인:');
+          console.error('  1. 내부망 연결 문제 - 프록시 설정 확인 필요');
+          console.error('  2. API 엔드포인트 URL 오류');
+          console.error('  3. SSL 인증 오류 - 인증서 검증 문제');
+          console.error('  4. 네트워크 타임아웃 - 서버 접근성 문제');
+        }
       } else {
         // 요청 설정 중 오류 발생
         console.error('[LLMService] 요청 설정 오류:', error.message);
@@ -675,6 +864,87 @@ export class LLMService implements vscode.Disposable {
       console.log(`[LLMService] - 요청 본문:`, JSON.stringify(request, null, 2));
       console.log(`[LLMService] - 엔드포인트: ${endpoint}`);
 
+      // 메시지 내용 상세 로깅
+      if (request.messages && Array.isArray(request.messages)) {
+        const messageCount = request.messages.length;
+        console.log(`[LLMService] 스트리밍 메시지 개수: ${messageCount}`);
+
+        // 메시지 메모리 사용량 추정을 위한 변수
+        let totalChars = 0;
+        let totalTokens = 0;
+        let largeMessagesCount = 0;
+
+        // 각 메시지 내용 로그
+        request.messages.forEach((msg, index) => {
+          const role = msg.role || 'unknown';
+          const content = msg.content || '';
+          const contentLength = content.length;
+          totalChars += contentLength;
+
+          // 대략적인 토큰 추정 (4자당 1토큰으로 가정)
+          const estimatedTokens = Math.ceil(contentLength / 4);
+          totalTokens += estimatedTokens;
+
+          console.log(`[LLMService] 스트리밍 메시지 #${index} 역할: ${role}`);
+
+          if (contentLength > 500) {
+            // 큰 메시지는 앞부분만 로깅
+            largeMessagesCount++;
+            console.log(`[LLMService] 스트리밍 메시지 #${index} 내용(일부): ${content.substring(0, 500)}...`);
+            console.log(`[LLMService] 스트리밍 메시지 #${index} 총 길이: ${contentLength} 자 (추정 토큰: ${estimatedTokens})`);
+
+            // 매우 큰 메시지에 대한 추가 진단
+            if (contentLength > 10000) {
+              console.log(`[LLMService] 경고: 스트리밍 메시지 #${index}는 매우 큼 (${contentLength} 자) - 토큰 제한 초과 가능성 있음`);
+
+              // 코드 블록 개수 세기 (마크다운 코드 블록은 추가 토큰 소모)
+              const codeBlockMatches = content.match(/```[\s\S]*?```/g);
+              if (codeBlockMatches && codeBlockMatches.length > 0) {
+                console.log(`[LLMService] 스트리밍 메시지 #${index}에 ${codeBlockMatches.length}개의 코드 블록이 포함됨`);
+
+                // 코드 블록 총 길이 계산
+                const codeBlocksTotalLength = codeBlockMatches.reduce((total, block) => total + block.length, 0);
+                console.log(`[LLMService] 코드 블록 총 길이: ${codeBlocksTotalLength} 자 (전체 메시지의 ${Math.round(codeBlocksTotalLength / contentLength * 100)}%)`);
+              }
+            }
+          } else {
+            // 작은 메시지는 전체 내용 로깅
+            console.log(`[LLMService] 스트리밍 메시지 #${index} 내용: ${content}`);
+            console.log(`[LLMService] 스트리밍 메시지 #${index} 총 길이: ${contentLength} 자 (추정 토큰: ${estimatedTokens})`);
+          }
+        });
+
+        // 메시지 통계 요약
+        console.log(`[LLMService] 스트리밍 메시지 통계 요약:`);
+        console.log(`[LLMService] - 총 메시지 수: ${messageCount}`);
+        console.log(`[LLMService] - 큰 메시지(500자 초과) 수: ${largeMessagesCount}`);
+        console.log(`[LLMService] - 총 문자 수: ${totalChars} 자`);
+        console.log(`[LLMService] - 추정 총 토큰 수: ${totalTokens} 토큰`);
+
+        // 토큰 한도 경고
+        const modelName = model || this.getActiveModel();
+        if (totalTokens > 15000) {
+          console.warn(`[LLMService] 경고: 스트리밍 추정 총 토큰 수(${totalTokens})가 많습니다. 모델(${modelName})의 토큰 제한을 초과할 수 있습니다.`);
+        }
+
+        // 요청 JSON 크기
+        const requestSize = JSON.stringify(request).length;
+        console.log(`[LLMService] 전체 스트리밍 요청 JSON 크기: ${requestSize} 바이트`);
+        if (requestSize > 1000000) {
+          console.warn(`[LLMService] 경고: 스트리밍 요청 크기가 1MB를 초과합니다 (${Math.round(requestSize/1024/1024*100)/100}MB)`);
+        }
+      }
+
+      // 내부망 모델의 경우 요청 분석 추가
+      if (isInternalModel(model)) {
+        const modelType = model === LLMModel.NARRANS ? 'Narrans' :
+                          model === LLMModel.LLAMA4_SCOUT ? 'LLAMA4_SCOUT' : 'LLAMA4_MAVERICK';
+        console.log(`[LLMService] 내부망 모델 ${modelType} 스트리밍 요청 분석:`);
+        console.log(`[LLMService] - 현재 타임스탬프: ${new Date().toISOString()}`);
+        console.log(`[LLMService] - 요청 ID: ${requestId}`);
+        console.log(`[LLMService] - 총 메시지 토큰 수 추정: ${JSON.stringify(request).length / 4} 토큰`);
+      }
+
       // 스트리밍 요청 설정
       const axiosConfig: any = {
         responseType: 'stream',
@@ -813,14 +1083,100 @@ export class LLMService implements vscode.Disposable {
         // 오류가 발생해도 클라이언트에게 스트림 완료 신호 전송
         streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true);
       });
-    } catch (error) {
+    } catch (error: any) {
       this._cancelTokenSource = null;
       if (axios.isCancel(error)) {
         // Request was canceled intentionally
+        console.log('[LLMService] 스트리밍 요청이 취소되었습니다.');
         streamCallback('', true); // Signal completion with empty chunk and done=true
       } else {
-        // Real error
-        throw error;
+        // 스트리밍 오류 상세 로깅
+        console.error("[LLMService] 스트리밍 HTTP 요청 실패:");
+        if (error.response) {
+          // 서버가 응답을 반환했지만 상태 코드가 2xx 범위를 벗어남
+          console.error(`[LLMService] 스트리밍 상태 코드: ${error.response.status}`);
+          console.error(`[LLMService] 스트리밍 응답 데이터:`, error.response.data);
+          console.error(`[LLMService] 스트리밍 응답 헤더:`, error.response.headers);
+
+          // 422 에러 특수 처리 (Unprocessable Entity)
+          if (error.response.status === 422) {
+            console.error('[LLMService] 스트리밍 422 에러 감지 (Unprocessable Entity) - 잘못된 요청 형식 또는 유효성 검사 실패');
+
+            // 요청 내용 자세히 로깅
+            console.error('[LLMService] 스트리밍 422 에러 발생한 요청 본문:', JSON.stringify(request, null, 2));
+
+            // 모델별 특화 진단 정보
+            if (isInternalModel(model)) {
+              if (model === LLMModel.NARRANS) {
+                console.error('[LLMService] Narrans 스트리밍 422 오류 - 가능한 원인:');
+                console.error('  1. 스트리밍 메시지 형식 오류 (누락된 필드 또는 잘못된 타입)');
+                console.error('  2. 메시지 내용이 너무 긺 (메시지당 최대 토큰 수 초과)');
+                console.error('  3. Accept 헤더 형식 오류 (text/event-stream 누락)');
+                console.error('  4. 요청 헤더 인증 오류 (Authorization 토큰 문제)');
+
+                // 메시지 길이 분석
+                if (request.messages && Array.isArray(request.messages)) {
+                  let totalChars = 0;
+                  request.messages.forEach((msg, idx) => {
+                    const contentLength = msg.content ? msg.content.length : 0;
+                    totalChars += contentLength;
+                    if (contentLength > 10000) {
+                      console.error(`[LLMService] 스트리밍 메시지 #${idx}의 길이가 매우 깁니다: ${contentLength} 자 (10,000자 초과)`);
+                    }
+                  });
+                  console.error(`[LLMService] 스트리밍 총 메시지 길이: ${totalChars} 자 (대략 ${Math.round(totalChars/4)} 토큰)`);
+                }
+              } else if (model === LLMModel.LLAMA4_SCOUT || model === LLMModel.LLAMA4_MAVERICK) {
+                console.error('[LLMService] LLAMA4 스트리밍 422 오류 - 가능한 원인:');
+                console.error('  1. x-dep-ticket 인증 오류');
+                console.error('  2. Accept 헤더 형식 오류 (text/event-stream 누락)');
+                console.error('  3. 요청 본문 형식 불일치');
+                console.error('  4. 모델 이름 형식 오류 (전체 모델 경로가 필요할 수 있음)');
+                console.error('  5. 메시지 토큰 수 초과');
+
+                // 메시지 내용 분석
+                if (request.messages && Array.isArray(request.messages)) {
+                  const systemMessages = request.messages.filter(m => m.role === 'system');
+                  console.error(`[LLMService] 스트리밍 시스템 메시지 수: ${systemMessages.length}`);
+
+                  // 시스템 메시지가 여러 개인 경우 문제가 될 수 있음
+                  if (systemMessages.length > 1) {
+                    console.error('[LLMService] 경고: 여러 개의 시스템 메시지가 있습니다. LLAMA4 모델은 하나의 시스템 메시지만 지원할 수 있습니다.');
+                  }
+                }
+              }
+            } else {
+              console.error('[LLMService] 외부 API 스트리밍 422 오류 - 가능한 원인:');
+              console.error('  1. 모델 이름 오류 또는 지원되지 않는 모델');
+              console.error('  2. 메시지 형식 오류');
+              console.error('  3. 인증 오류 (API 키)');
+              console.error('  4. Accept 헤더 형식 오류');
+            }
+          }
+        } else if (error.request) {
+          // 요청이 전송되었지만 응답이 없음
+          console.error('[LLMService] 스트리밍 응답이 수신되지 않음. 네트워크나 CORS 이슈 가능성');
+          console.error('[LLMService] 스트리밍 요청 세부 정보:', error.request);
+
+          if (isInternalModel(model)) {
+            console.error('[LLMService] 내부망 모델 스트리밍 연결 실패 - 가능한 원인:');
+            console.error('  1. 내부망 연결 문제 - 프록시 설정 확인 필요');
+            console.error('  2. API 엔드포인트 URL 오류');
+            console.error('  3. SSL 인증 오류 - 인증서 검증 문제');
+            console.error('  4. 네트워크 타임아웃 - 서버 접근성 문제');
+          }
+        } else {
+          // 요청 설정 중 오류 발생
+          console.error('[LLMService] 스트리밍 요청 설정 오류:', error.message);
+        }
+        // 오류 스택 트레이스 출력
+        if (error.stack) {
+          console.error('[LLMService] 스트리밍 스택 트레이스:', error.stack);
+        }
+
+        // 사용자에게 오류 메시지 전송
+        streamCallback('\n\n[API 연결 오류: 서버 응답 오류가 발생했습니다. 메시지 형식이나 크기를 확인해주세요.]', true);
+        throw error; // 오류를 다시 던져서 상위 핸들러에서 처리
       }
     }
   }
