@@ -11,23 +11,28 @@ export enum MessageRole {
  * Supported LLM models
  */
 export enum LLMModel {
+  // 내부 테스트 모델 (internal test models)
+  NARRANS = 'internal/narrans',                    // Ferrari 내부망 모델
+  LLAMA4_MAVERICK = 'internal/llama4-maverick',    // Gucci 내부망 모델
+  LLAMA4_SCOUT = 'internal/llama4-scout',          // Hermès 내부망 모델
+
   // OpenAI models (최신 모델들)
   GPT_4_1_MINI = 'openai/gpt-4.1-mini',            // 기본 모델
   GPT_4_1_PREVIEW = 'openai/gpt-4.1-preview',      // 최신 고성능
   GPT_4O = 'openai/gpt-4o',                        // 고성능
   GPT_3_5_TURBO = 'openai/gpt-3.5-turbo',          // 경제적인 모델
-  
+
   // Anthropic models (Claude 모델들)
   CLAUDE_3_OPUS = 'anthropic/claude-3-opus-20240229',     // 최고 성능 모델
   CLAUDE_3_SONNET = 'anthropic/claude-3-sonnet-20240229', // 균형잡힌 성능
   CLAUDE_3_HAIKU = 'anthropic/claude-3-haiku-20240307',   // 빠른 응답 모델
-  
+
   // 추가 모델들
   GEMINI_PRO = 'google/gemini-pro',                // Google의 최신 모델
   GEMMA_7B = 'google/gemma-7b-it',                 // 소형 오픈소스 모델
   QWEN_72B = 'qwen/qwen-72b-chat',                 // Alibaba의 고성능 모델
   DEEPSEEK = 'deepseek/deepseek-coder',            // 코딩 특화 모델
-  
+
   // 무료 모델들
   MISTRAL_7B = 'mistralai/mistral-7b-instruct',    // 무료 오픈소스 모델
   LLAMA3_8B = 'meta-llama/llama-3-8b-instruct'     // 무료 오픈소스 모델
