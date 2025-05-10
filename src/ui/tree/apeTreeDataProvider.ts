@@ -125,7 +125,7 @@ export class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeTreeItem>
       // VAULT 섹션
       {
         id: 'vault',
-        label: 'VAULT 컨텍스트',
+        label: 'VAULT',
         type: TreeNodeType.VAULT_ROOT,
         iconPath: this.getIconPath('brain-ai', 'library'),
         contextValue: 'vaultRoot',

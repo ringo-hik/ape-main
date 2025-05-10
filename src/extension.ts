@@ -376,23 +376,6 @@ async function registerComponents(context: vscode.ExtensionContext, services: Se
       vscode.commands.executeCommand('ape.sendMessage');
     }),
     
-    // VAULT 관련 명령어
-    vscode.commands.registerCommand('ape.vaultShowItem', (item) => {
-      if (!item || !item.metadata) {
-        vscode.window.showErrorMessage('VAULT 아이템 정보가 올바르지 않습니다');
-        return;
-      }
-      
-      // 아이템 내용 표시
-      const content = item.metadata.content;
-      const title = `VAULT 아이템: ${item.label}`;
-      
-      // 채팅창에 내용 표시
-      vscode.commands.executeCommand('ape.sendLlmResponse', {
-        role: 'assistant',
-        content: `## ${title}\n\n${content}`
-      });
-    })
   );
   
   // Register Rules commands

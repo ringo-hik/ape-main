@@ -225,7 +225,7 @@
           "command": "ape.rules.create",
           "when": "viewItem == rulesRoot || viewItem == rulesActive || viewItem == rulesInactive || viewItem == rulesEmpty",
           "group": "1_operation"
-        },
+        }
       ]
     },
     "keybindings": [
