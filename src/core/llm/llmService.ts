@@ -412,7 +412,17 @@ export class LLMService implements vscode.Disposable {
     console.log("LLM 요청:", JSON.stringify(request, null, 2));
     console.log("요청 엔드포인트:", endpoint);
 
-    const response = await axios.post(endpoint, request, { headers });
+    // 요청 설정
+    const axiosConfig: any = { headers };
+
+    // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+    if (model === LLMModel.NARRANS) {
+      console.log("Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
+      axiosConfig.proxy = false;
+      axiosConfig.httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+    }
+
+    const response = await axios.post(endpoint, request, axiosConfig);
     console.log("LLM 응답:", JSON.stringify(response.data, null, 2));
 
     return this._processHttpResponse(response.data);
@@ -563,11 +573,21 @@ export class LLMService implements vscode.Disposable {
       console.log("스트리밍 요청:", JSON.stringify(request, null, 2));
       console.log("스트리밍 엔드포인트:", endpoint);
 
-      const response = await axios.post(endpoint, request, {
+      // 스트리밍 요청 설정
+      const axiosConfig: any = {
         responseType: 'stream',
         cancelToken: this._cancelTokenSource.token,
         headers: headers
-      });
+      };
+
+      // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+      if (model === LLMModel.NARRANS) {
+        console.log("Narrans 모델 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화");
+        axiosConfig.proxy = false;
+        axiosConfig.httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+      }
+
+      const response = await axios.post(endpoint, request, axiosConfig);
 
       response.data.on('data', (chunk: Buffer) => {
         const lines = chunk.toString().split('\n').filter(Boolean);
