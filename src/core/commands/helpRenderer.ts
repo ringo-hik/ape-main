@@ -492,7 +492,6 @@ function getHelpPageHtml(content: string): string {
       <link rel="stylesheet" href="${getCodiconCssUri().toString()}" />
       <style>
         :root {
-          /* 기본 색상 변수 */
           --bg-color: var(--vscode-editor-background, #ffffff);
           --text-color: var(--vscode-editor-foreground, #333333);
           --link-color: var(--vscode-textLink-foreground, #3794ff);
@@ -502,29 +501,8 @@ function getHelpPageHtml(content: string): string {
           --accent-hover-color: var(--vscode-button-hoverBackground, #1177bb);
           --card-bg-color: var(--vscode-editor-inactiveSelectionBackground, #f5f5f5);
           --code-bg-color: var(--vscode-textBlockQuote-background, #f1f1f1);
-
-          /* 구찌 & 에르메스 럭셔리 테마 색상 */
-          --gucci-green: #006837;
-          --gucci-green-light: #007f45;
-          --gucci-green-dark: #004d27;
-          --hermes-orange: #ff6600;
-          --hermes-orange-light: #ff8533;
-          --hermes-orange-dark: #cc5200;
-          --luxury-gold: #d4af37;
-          --luxury-silver: #c0c0c0;
-          --luxury-bg-dark: #1a1a1a;
-          --luxury-bg-light: #f5f5f5;
-
-          /* 섬세한 박스 그림자 */
-          --luxury-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-          --luxury-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.1);
-          --luxury-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-          --luxury-glow: 0 0 20px rgba(0, 104, 55, 0.08);
-
-          /* 우아한 전환 효과 */
-          --luxury-transition: 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-
+        
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
           line-height: 1.6;
@@ -534,58 +512,41 @@ function getHelpPageHtml(content: string): string {
           padding: 20px;
           max-width: 1000px;
           margin: 0 auto;
-          letter-spacing: -0.01em;
         }
-
+        
         h1, h2, h3, h4, h5, h6 {
           color: var(--heading-color);
           margin-top: 24px;
           margin-bottom: 16px;
           font-weight: 600;
           line-height: 1.25;
-          letter-spacing: -0.02em;
         }
-
+        
         h1 {
           font-size: 2em;
           padding-bottom: 0.3em;
-          border-bottom: 1px solid var(--gucci-green);
-          position: relative;
+          border-bottom: 1px solid var(--border-color);
         }
-
-        h1::after {
-          content: '';
-          position: absolute;
-          bottom: -1px;
-          left: 0;
-          width: 80px;
-          height: 3px;
-          background-color: var(--hermes-orange);
-        }
-
+        
         h2 {
           font-size: 1.5em;
           padding-bottom: 0.3em;
-          color: var(--gucci-green);
         }
-
+        
         a {
-          color: var(--hermes-orange);
+          color: var(--link-color);
           text-decoration: none;
-          transition: color var(--luxury-transition), transform var(--luxury-transition);
-          display: inline-block;
         }
-
+        
         a:hover {
-          color: var(--hermes-orange-light);
-          transform: translateY(-1px);
+          text-decoration: underline;
         }
-
+        
         p {
           margin-top: 0;
           margin-bottom: 16px;
         }
-
+        
         code {
           font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
           padding: 0.2em 0.4em;
@@ -594,14 +555,14 @@ function getHelpPageHtml(content: string): string {
           background-color: var(--code-bg-color);
           border-radius: 3px;
         }
-
+        
         pre {
           background-color: var(--code-bg-color);
           border-radius: 3px;
           padding: 16px;
           overflow: auto;
         }
-
+        
         pre code {
           background-color: transparent;
           padding: 0;
@@ -610,46 +571,46 @@ function getHelpPageHtml(content: string): string {
           word-break: normal;
           white-space: pre;
         }
-
+        
         ul, ol {
           margin-top: 0;
           margin-bottom: 16px;
           padding-left: 2em;
         }
-
+        
         li {
           margin-top: 0.25em;
         }
-
+        
         .help-category {
-          margin-bottom: 40px;
+          margin-bottom: 30px;
         }
-
+        
         .command-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 16px;
-          margin-bottom: 30px;
+          gap: 12px;
+          margin-bottom: 20px;
         }
-
+        
         .command-card {
           background-color: var(--card-bg-color);
           border-radius: 8px;
-          padding: 20px;
+          padding: 16px;
           cursor: pointer;
-          transition: all var(--luxury-transition);
-          border: 1px solid transparent;
-          box-shadow: var(--luxury-shadow-sm);
+          transition: all 0.2s ease;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
           position: relative;
           overflow: hidden;
         }
-
+        
         .command-card:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--luxury-shadow-md);
-          border-color: var(--gucci-green-light);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          border-color: var(--accent-color);
         }
-
+        
         .command-card::before {
           content: '';
           position: absolute;
@@ -657,396 +618,221 @@ function getHelpPageHtml(content: string): string {
           left: 0;
           width: 4px;
           height: 100%;
-          background-color: var(--gucci-green);
+          background-color: var(--accent-color);
           opacity: 0;
-          transition: opacity var(--luxury-transition);
+          transition: opacity 0.2s ease;
         }
-
+        
         .command-card:hover::before {
           opacity: 1;
         }
-
-        .command-card::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 30px;
-          height: 1px;
-          background-color: var(--hermes-orange);
-          transition: width var(--luxury-transition);
-        }
-
-        .command-card:hover::after {
-          width: 60px;
-        }
-
+        
         .clickable-command {
           cursor: pointer;
-          transition: all var(--luxury-transition);
-          padding: 2px 6px;
-          border-radius: 3px;
+          transition: all 0.2s ease;
         }
-
+        
         .clickable-command:hover {
-          color: var(--hermes-orange);
-          background-color: rgba(255, 102, 0, 0.1);
+          color: var(--accent-color);
+          text-decoration: underline;
         }
-
+        
         .command-name {
           font-weight: bold;
-          margin-bottom: 12px;
-          color: var(--gucci-green);
+          margin-bottom: 10px;
+          color: var(--accent-color);
           font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
           font-size: 1.1em;
           display: flex;
           align-items: center;
-          letter-spacing: 0.02em;
         }
-
+        
         .command-description {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
           color: var(--text-color);
-          line-height: 1.5;
+          line-height: 1.4;
         }
-
+        
         .command-examples {
           font-size: 0.85em;
           color: var(--vscode-descriptionForeground, #747474);
           font-style: italic;
           padding: 4px 0;
-          border-left: 2px solid rgba(0, 104, 55, 0.2);
-          padding-left: 8px;
-          margin-top: 8px;
         }
-
+        
         .command-aliases {
           font-size: 0.85em;
           color: var(--vscode-descriptionForeground, #747474);
-          background-color: rgba(0, 104, 55, 0.08);
-          border-radius: 4px;
-          padding: 3px 8px;
+          background-color: var(--code-bg-color);
+          border-radius: 3px;
+          padding: 2px 6px;
           display: inline-block;
-          margin-top: 6px;
-          transition: background-color var(--luxury-transition);
+          margin-top: 4px;
         }
-
-        .command-card:hover .command-aliases {
-          background-color: rgba(0, 104, 55, 0.15);
-        }
-
+        
         .command-icon {
-          font-size: 1.1em;
-          margin-right: 8px;
+          font-size: 1em;
+          margin-right: 6px;
           position: relative;
           top: 1px;
-          color: var(--gucci-green-dark);
-          transition: transform var(--luxury-transition);
         }
-
-        .command-card:hover .command-icon {
-          transform: scale(1.1);
-        }
-
+        
         .command-text {
           font-weight: bold;
-          position: relative;
         }
-
+        
         .command-usage {
-          margin-bottom: 18px;
-          background-color: rgba(0, 104, 55, 0.05);
-          padding: 8px 12px;
-          border-radius: 6px;
-          border-left: 3px solid var(--gucci-green);
+          margin-bottom: 16px;
         }
-
+        
         .command-aliases, .related-commands {
-          margin-bottom: 18px;
+          margin-bottom: 16px;
         }
-
+        
         .related-command {
-          margin-right: 10px;
-          background-color: rgba(255, 102, 0, 0.08);
-          padding: 4px 10px;
-          border-radius: 4px;
-          transition: all var(--luxury-transition);
-          display: inline-block;
+          margin-right: 8px;
         }
-
-        .related-command:hover {
-          background-color: rgba(255, 102, 0, 0.15);
-          transform: translateY(-2px);
-          text-decoration: none;
-        }
-
+        
         .back-link {
-          margin-top: 30px;
-          padding-top: 20px;
+          margin-top: 24px;
+          padding-top: 16px;
           border-top: 1px solid var(--border-color);
         }
-
-        .back-link a {
-          display: inline-flex;
-          align-items: center;
-          color: var(--gucci-green);
-          font-weight: 500;
-          padding: 6px 14px;
-          border-radius: 4px;
-          background-color: rgba(0, 104, 55, 0.05);
-          transition: all var(--luxury-transition);
-        }
-
-        .back-link a:hover {
-          background-color: rgba(0, 104, 55, 0.1);
-          transform: translateY(-2px);
-          box-shadow: var(--luxury-shadow-sm);
-          text-decoration: none;
-        }
-
-        .back-link a::before {
-          content: '←';
-          margin-right: 8px;
-          font-size: 1.1em;
-          transition: transform var(--luxury-transition);
-        }
-
-        .back-link a:hover::before {
-          transform: translateX(-3px);
-        }
-
+        
         .faq-list {
-          margin-top: 30px;
+          margin-top: 24px;
         }
-
+        
         .faq-item {
-          margin-bottom: 28px;
-          border-bottom: 1px solid rgba(0, 104, 55, 0.1);
-          padding-bottom: 20px;
-          transition: transform var(--luxury-transition);
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 16px;
         }
-
-        .faq-item:hover {
-          transform: translateY(-2px);
-        }
-
+        
         .faq-question {
           font-weight: 600;
           font-size: 1.2em;
-          margin-bottom: 10px;
-          color: var(--gucci-green);
-          position: relative;
-          padding-left: 16px;
+          margin-bottom: 8px;
+          color: var(--accent-color);
         }
-
-        .faq-question::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 6px;
-          height: 6px;
-          background-color: var(--hermes-orange);
-          border-radius: 50%;
-        }
-
-        .faq-answer {
-          padding-left: 16px;
-        }
-
+        
         .guides-list {
-          margin-top: 30px;
+          margin-top: 24px;
         }
-
+        
         .guide-item {
-          margin-bottom: 28px;
-          border-bottom: 1px solid rgba(0, 104, 55, 0.1);
-          padding-bottom: 20px;
-          transition: all var(--luxury-transition);
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 16px;
         }
-
-        .guide-item:hover {
-          border-bottom-color: var(--gucci-green-light);
-          transform: translateY(-2px);
-        }
-
+        
         .guide-title {
-          margin-bottom: 10px;
-          color: var(--gucci-green);
+          margin-bottom: 8px;
         }
-
-        .guide-title a {
-          text-decoration: none;
-          color: var(--gucci-green);
-          transition: color var(--luxury-transition);
-          font-weight: 600;
-          display: inline-block;
-          padding-bottom: 2px;
-          border-bottom: 1px solid transparent;
-        }
-
-        .guide-title a:hover {
-          color: var(--gucci-green-light);
-          border-bottom-color: var(--hermes-orange-light);
-        }
-
+        
         .guide-description {
-          margin-bottom: 10px;
-          color: var(--text-color);
+          margin-bottom: 8px;
         }
-
+        
         .markdown-body {
           line-height: 1.6;
         }
-
+        
         .markdown-body img {
           max-width: 100%;
           box-sizing: content-box;
-          border-radius: 6px;
-          box-shadow: var(--luxury-shadow-sm);
         }
-
+        
         .markdown-body blockquote {
-          padding: 0.5em 1em;
+          padding: 0 1em;
           color: var(--vscode-editor-foreground, #6a737d);
-          border-left: 3px solid var(--gucci-green-light);
+          border-left: 0.25em solid var(--vscode-panel-border, #dfe2e5);
           margin: 0 0 16px 0;
-          background-color: rgba(0, 104, 55, 0.05);
-          border-radius: 0 4px 4px 0;
         }
-
+        
         .markdown-body table {
           display: block;
           width: 100%;
           overflow: auto;
           border-collapse: collapse;
           margin-bottom: 16px;
-          border-radius: 6px;
-          overflow: hidden;
-          box-shadow: var(--luxury-shadow-sm);
         }
-
+        
         .markdown-body table th,
         .markdown-body table td {
-          padding: 8px 16px;
+          padding: 6px 13px;
           border: 1px solid var(--vscode-panel-border, #dfe2e5);
         }
-
-        .markdown-body table th {
-          background-color: rgba(0, 104, 55, 0.1);
-          font-weight: 600;
-        }
-
+        
         .markdown-body table tr {
           background-color: var(--bg-color);
           border-top: 1px solid var(--vscode-panel-border, #c6cbd1);
-          transition: background-color var(--luxury-transition);
         }
-
-        .markdown-body table tr:hover {
-          background-color: rgba(0, 104, 55, 0.03);
-        }
-
+        
         .markdown-body table tr:nth-child(2n) {
           background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
         }
-
-        .markdown-body table tr:nth-child(2n):hover {
-          background-color: rgba(0, 104, 55, 0.05);
-        }
-
+        
         /* 퀵 액션 스타일 */
         .quick-actions {
-          margin: 30px 0 40px;
-          background-color: rgba(0, 104, 55, 0.04);
-          border-radius: 10px;
-          padding: 24px;
-          border: 1px solid rgba(0, 104, 55, 0.1);
-          position: relative;
-          box-shadow: var(--luxury-shadow-sm);
-          transition: box-shadow var(--luxury-transition), transform var(--luxury-transition);
+          margin: 20px 0 30px;
+          background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
+          border-radius: 8px;
+          padding: 16px;
+          border: 1px solid var(--border-color);
         }
-
-        .quick-actions:hover {
-          box-shadow: var(--luxury-shadow-md);
-          transform: translateY(-2px);
-        }
-
-        .quick-actions::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 40px;
-          height: 3px;
-          background-color: var(--hermes-orange);
-          border-radius: 0 10px 0 10px;
-        }
-
+        
         .quick-actions h2 {
           margin-top: 0;
-          font-size: 1.4em;
-          color: var(--gucci-green);
-          margin-bottom: 20px;
-          letter-spacing: -0.01em;
+          font-size: 1.3em;
+          color: var(--accent-color);
+          padding-left: 4px;
         }
-
+        
         .quick-buttons {
           display: flex;
           flex-wrap: wrap;
-          gap: 14px;
+          gap: 10px;
         }
-
+        
         .quick-button {
           display: flex;
           align-items: center;
-          padding: 10px 18px;
-          border-radius: 6px;
+          padding: 8px 16px;
+          border-radius: 4px;
           cursor: pointer;
           font-weight: 500;
           border: none;
-          min-width: 130px;
+          min-width: 120px;
           font-size: 0.95em;
-          transition: all var(--luxury-transition);
+          transition: all 0.2s ease;
           color: white;
-          letter-spacing: 0.01em;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
-
+        
         .quick-button:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
-
+        
         .quick-button .codicon {
-          margin-right: 10px;
+          margin-right: 8px;
           font-size: 1.2em;
-          transition: transform var(--luxury-transition);
         }
-
-        .quick-button:hover .codicon {
-          transform: scale(1.1);
-        }
-
+        
         .quick-button.git {
-          background: linear-gradient(135deg, var(--gucci-green) 0%, var(--gucci-green-dark) 100%);
-          border: 1px solid rgba(0, 104, 55, 0.3);
+          background-color: #F05033;
         }
-
+        
         .quick-button.code {
-          background: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-orange-dark) 100%);
-          border: 1px solid rgba(255, 102, 0, 0.3);
+          background-color: #007ACC;
         }
-
+        
         .quick-button.utility {
-          background: linear-gradient(135deg, var(--gucci-green-light) 0%, var(--gucci-green) 100%);
-          border: 1px solid rgba(0, 104, 55, 0.3);
+          background-color: #6C757D;
         }
-
+        
         .quick-button.model {
-          background: linear-gradient(135deg, var(--hermes-orange-light) 0%, var(--hermes-orange) 100%);
-          border: 1px solid rgba(255, 102, 0, 0.3);
+          background-color: #28A745;
         }
       </style>
     </head>
