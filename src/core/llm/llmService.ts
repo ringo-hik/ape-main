@@ -293,21 +293,34 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResult<LLMResponse>> {
     try {
-      // 모델 지정 (디버깅 목적으로 사용됩니다)
-      // options?.model || this.getActiveModel();
-      
+      const model = options?.model || this.getActiveModel();
+      console.log(`[LLMService] 요청 시작: 모델=${model}, 연결 타입=${this._connectionType}`);
+      console.log(`[LLMService] 현재 API 엔드포인트: ${this._endpoint}`);
+
+      if (isInternalModel(model)) {
+        console.log(`[LLMService] 내부망 모델 요청 - 엔드포인트: ${selectApiEndpoint(model, this._endpoint)}`);
+      }
+
       if (this._connectionType === ConnectionType.WebSocket) {
+        console.log(`[LLMService] WebSocket 요청 시작`);
         const response = await this._sendWebSocketRequest(messages, options);
+        console.log(`[LLMService] WebSocket 응답 수신 완료`);
         return { success: true, data: response };
       } else {
+        console.log(`[LLMService] HTTP 요청 시작`);
         const response = await this._sendHttpRequest(messages, options);
+        console.log(`[LLMService] HTTP 응답 수신 완료`);
         return { success: true, data: response };
       }
     } catch (error) {
-      console.error('Error sending LLM request:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error 
+      console.error('[LLMService] 요청 오류:', error);
+      if (error instanceof Error) {
+        console.error('[LLMService] 오류 메시지:', error.message);
+        console.error('[LLMService] 스택 트레이스:', error.stack);
+      }
+      return {
+        success: false,
+        error: error instanceof Error
           ? error
           : new Error(`Failed to communicate with LLM service: ${String(error)}`)
       };
@@ -327,21 +340,40 @@ export class LLMService implements vscode.Disposable {
     options?: LLMRequestOptions
   ): Promise<LLMResult<void>> {
     try {
-      // 모델 지정 (디버깅 목적으로 사용됩니다)
-      // options?.model || this.getActiveModel();
-      
+      const model = options?.model || this.getActiveModel();
+      console.log(`[LLMService] 스트리밍 요청 시작: 모델=${model}, 연결 타입=${this._connectionType}`);
+      console.log(`[LLMService] 스트리밍 API 엔드포인트: ${this._endpoint}`);
+
+      if (isInternalModel(model)) {
+        const apiEndpoint = selectApiEndpoint(model, this._endpoint);
+        console.log(`[LLMService] 내부망 모델 스트리밍 요청 - 엔드포인트: ${apiEndpoint}`);
+
+        // Narrans 모델 특수 처리 로그
+        if (model === LLMModel.NARRANS) {
+          console.log(`[LLMService] Narrans 모델 스트리밍 요청 - 프록시 무시 및 SSL 검증 비활성화 활성화됨`);
+        }
+      }
+
       if (this._connectionType === ConnectionType.WebSocket) {
+        console.log(`[LLMService] WebSocket 스트리밍 요청 시작`);
         await this._streamWebSocketResponse(messages, streamCallback, options);
+        console.log(`[LLMService] WebSocket 스트리밍 완료`);
         return { success: true };
       } else {
+        console.log(`[LLMService] HTTP 스트리밍 요청 시작`);
         await this._streamHttpResponse(messages, streamCallback, options);
+        console.log(`[LLMService] HTTP 스트리밍 완료`);
         return { success: true };
       }
     } catch (error) {
-      console.error('Error streaming LLM response:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error 
+      console.error('[LLMService] 스트리밍 요청 오류:', error);
+      if (error instanceof Error) {
+        console.error('[LLMService] 스트리밍 오류 메시지:', error.message);
+        console.error('[LLMService] 스트리밍 스택 트레이스:', error.stack);
+      }
+      return {
+        success: false,
+        error: error instanceof Error
           ? error
           : new Error(`Failed to stream from LLM service: ${String(error)}`)
       };
@@ -418,15 +450,50 @@ export class LLMService implements vscode.Disposable {
 
     // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
     if (model === LLMModel.NARRANS) {
-      console.log("Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
+      console.log("[LLMService] Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
       axiosConfig.proxy = false;
       axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
     }
 
-    const response = await axios.post(endpoint, request, axiosConfig);
-    console.log("LLM 응답:", JSON.stringify(response.data, null, 2));
+    console.log("[LLMService] HTTP 요청 세부정보:");
+    console.log(`[LLMService] - URL: ${endpoint}`);
+    console.log(`[LLMService] - 메서드: POST`);
+    console.log(`[LLMService] - 헤더:`, headers);
+    console.log(`[LLMService] - 설정:`, JSON.stringify(axiosConfig, (key, value) => {
+      // httpsAgent 객체는 직렬화 불가능하므로 분리하여 로깅
+      if (key === 'httpsAgent') return value ? 'SSL Agent (rejectUnauthorized: false)' : undefined;
+      return value;
+    }, 2));
 
-    return this._processHttpResponse(response.data);
+    try {
+      console.log("[LLMService] 요청 전송 중...");
+      const response = await axios.post(endpoint, request, axiosConfig);
+      console.log("[LLMService] 응답 성공:", response.status, response.statusText);
+      console.log("[LLMService] 응답 헤더:", response.headers);
+      console.log("[LLMService] 응답 데이터:", JSON.stringify(response.data, null, 2));
+      return this._processHttpResponse(response.data);
+    } catch (error: any) {
+      // axios 오류 상세 로깅
+      console.error("[LLMService] HTTP 요청 실패:");
+      if (error.response) {
+        // 서버가 응답을 반환했지만 상태 코드가 2xx 범위를 벗어남
+        console.error(`[LLMService] 상태 코드: ${error.response.status}`);
+        console.error(`[LLMService] 응답 데이터:`, error.response.data);
+        console.error(`[LLMService] 응답 헤더:`, error.response.headers);
+      } else if (error.request) {
+        // 요청이 전송되었지만 응답이 없음
+        console.error('[LLMService] 응답이 수신되지 않음. 네트워크나 CORS 이슈 가능성');
+        console.error('[LLMService] 요청 세부 정보:', error.request);
+      } else {
+        // 요청 설정 중 오류 발생
+        console.error('[LLMService] 요청 설정 오류:', error.message);
+      }
+      // 오류 스택 트레이스 출력
+      if (error.stack) {
+        console.error('[LLMService] 스택 트레이스:', error.stack);
+      }
+      throw error; // 오류를 다시 던져서 상위 핸들러에서 처리
+    }
   }
   
   /**
@@ -571,8 +638,9 @@ export class LLMService implements vscode.Disposable {
     this._cancelTokenSource = axios.CancelToken.source();
 
     try {
-      console.log("스트리밍 요청:", JSON.stringify(request, null, 2));
-      console.log("스트리밍 엔드포인트:", endpoint);
+      console.log("[LLMService] 스트리밍 요청 세부 정보:");
+      console.log(`[LLMService] - 요청 본문:`, JSON.stringify(request, null, 2));
+      console.log(`[LLMService] - 엔드포인트: ${endpoint}`);
 
       // 스트리밍 요청 설정
       const axiosConfig: any = {
@@ -583,20 +651,37 @@ export class LLMService implements vscode.Disposable {
 
       // Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
       if (model === LLMModel.NARRANS) {
-        console.log("Narrans 모델 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화");
+        console.log("[LLMService] Narrans 모델 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화");
         axiosConfig.proxy = false;
         axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
       }
 
+      console.log(`[LLMService] - 헤더:`, headers);
+      console.log(`[LLMService] - 설정:`, JSON.stringify(axiosConfig, (key, value) => {
+        // httpsAgent 객체는 직렬화 불가능하므로 분리하여 로깅
+        if (key === 'httpsAgent') return value ? 'SSL Agent (rejectUnauthorized: false)' : undefined;
+        if (key === 'cancelToken') return value ? 'CancelToken (present)' : undefined;
+        return value;
+      }, 2));
+
+      console.log("[LLMService] 스트리밍 요청 전송 중...");
       const response = await axios.post(endpoint, request, axiosConfig);
+      console.log("[LLMService] 스트리밍 응답 연결 성공:", response.status, response.statusText);
 
       response.data.on('data', (chunk: Buffer) => {
-        const lines = chunk.toString().split('\n').filter(Boolean);
+        const chunkStr = chunk.toString();
+        console.log(`[LLMService] 스트리밍 청크 수신 (${chunkStr.length} 바이트)`);
+
+        const lines = chunkStr.split('\n').filter(Boolean);
+        console.log(`[LLMService] 청크 내 라인 수: ${lines.length}`);
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            console.log(`[LLMService] 데이터 라인 발견: ${line.substring(0, 50)}${line.length > 50 ? '...' : ''}`);
             const data = line.substring('data: '.length);
+
             if (data === '[DONE]') {
+              console.log(`[LLMService] 스트림 완료 신호 ([DONE]) 수신`);
               streamCallback('', true); // 스트림 완료 신호
             } else {
               try {
@@ -608,53 +693,74 @@ export class LLMService implements vscode.Disposable {
                 } catch (jsonError) {
                   // 잘린 JSON 문자열 처리 - 마지막 괄호 닫기 추가
                   if (jsonError instanceof SyntaxError && jsonError.message.includes('Unterminated string')) {
-                    console.warn('잘린 JSON 문자열 감지, 복구 시도 중');
+                    console.warn('[LLMService] 잘린 JSON 문자열 감지, 복구 시도 중');
+                    console.warn('[LLMService] 원본 데이터:', validData);
                     // 닫는 큰따옴표와 괄호들 추가
                     validData = validData + '"}}}';
+                    console.warn('[LLMService] 수정된 데이터:', validData);
                   }
                 }
 
+                console.log(`[LLMService] JSON 파싱 시도 중...`);
                 const parsed = JSON.parse(validData);
+                console.log(`[LLMService] JSON 파싱 성공`);
 
                 // 내부망 API의 응답 형식은 표준 OpenAI와 다를 수 있으므로 분기 처리
                 if (isInternalModel(model)) {
                   // 내부망 모델의 스트리밍 응답 처리
+                  console.log(`[LLMService] 내부망 모델 응답 처리 중`);
                   const content = parsed.choices?.[0]?.delta?.content ||
                                  parsed.choices?.[0]?.message?.content ||
                                  parsed.delta?.content ||
                                  parsed.content ||
                                  '';
                   if (content) {
+                    console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
                     streamCallback(content, false);
+                  } else {
+                    console.log(`[LLMService] 콘텐츠 없음, 응답 구조:`, Object.keys(parsed));
                   }
                 } else {
                   // 표준 OpenAI 형식의 스트리밍 응답 처리
+                  console.log(`[LLMService] 표준 OpenAI 형식 응답 처리 중`);
                   if (parsed.choices && parsed.choices.length > 0) {
                     const content = parsed.choices[0].delta?.content ||
                                   parsed.choices[0].message?.content || '';
                     if (content) {
+                      console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
                       streamCallback(content, false);
+                    } else {
+                      console.log(`[LLMService] 콘텐츠 없음, choices 구조:`, parsed.choices[0]);
                     }
+                  } else {
+                    console.log(`[LLMService] choices 배열 없음, 응답 구조:`, Object.keys(parsed));
                   }
                 }
               } catch (err) {
-                console.error('Stream parsing error:', err);
-                console.error('문제가 된 데이터:', data);
+                console.error('[LLMService] 스트림 파싱 오류:', err);
+                console.error('[LLMService] 문제가 된 데이터:', data);
+                if (err instanceof Error) {
+                  console.error('[LLMService] 오류 상세:', err.message, err.stack);
+                }
               }
             }
+          } else {
+            console.log(`[LLMService] 데이터 라인 아님:`, line);
           }
         }
       });
 
       response.data.on('end', () => {
         this._cancelTokenSource = null;
-        console.log('스트림 데이터 수신 완료');
+        console.log('[LLMService] 스트림 데이터 수신 완료');
         streamCallback('', true); // 스트림 완료 신호
       });
 
       response.data.on('error', (err: Error) => {
         this._cancelTokenSource = null;
-        console.error('스트림 오류:', err);
+        console.error('[LLMService] 스트림 오류:', err);
+        console.error('[LLMService] 스트림 오류 메시지:', err.message);
+        console.error('[LLMService] 스트림 오류 스택:', err.stack);
         // 오류가 발생해도 클라이언트에게 스트림 완료 신호 전송
         streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true);
       });

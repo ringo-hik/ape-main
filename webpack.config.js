@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 /**
  * @type {import('webpack').Configuration}
@@ -7,7 +8,7 @@ const webpack = require('webpack');
 module.exports = {
   target: 'node',
   mode: 'none', // VS Code 확장은 기본적으로 개발자 도구 접근이 필요하므로 최소한의 최적화만 수행
-  
+
   entry: './src/extension.ts',
   output: {
     path: path.resolve(__dirname, 'out'),
@@ -55,7 +56,17 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env.APE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
       'process.env.APE_VERSION': JSON.stringify(require('./package.json').version)
-    })
+    }),
+    // JSON 파일 및 데이터 파일 복사 플러그인 추가
+    new CopyPlugin({
+      patterns: [
+        {
+          from: 'src/data/*.json',
+          to: 'data/[name][ext]',
+          noErrorOnMissing: true
+        }
+      ],
+    }),
   ],
   optimization: {
     minimizer: [],

@@ -159,10 +159,28 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
    */
   private getRandomGreeting(): string {
     try {
-      // greetings.json 파일에서 인사말 데이터 불러오기
-      const greetingsUri = vscode.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
-      const greetingsPath = greetingsUri.fsPath;
-      const greetingsFile = require(greetingsPath);
+      // greetings.json 파일에서 인사말 데이터 불러오기 (빌드된 확장 프로그램의 경로 사용)
+      const greetingsUri = vscode.Uri.joinPath(this._context.extensionUri, 'out', 'data', 'greetings.json');
+
+      console.log('Loading greetings from:', greetingsUri.fsPath);
+
+      // 파일 읽기 - fs 모듈 사용
+      const fs = require('fs');
+      let greetingsContent;
+
+      try {
+        // 먼저 빌드된 경로에서 시도
+        greetingsContent = fs.readFileSync(greetingsUri.fsPath, 'utf8');
+      } catch (fsError) {
+        console.warn('Failed to read from build output, trying source directory:', fsError);
+
+        // 빌드 경로에서 실패하면 소스 디렉토리에서 시도
+        const sourceGreetingsUri = vscode.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
+        greetingsContent = fs.readFileSync(sourceGreetingsUri.fsPath, 'utf8');
+      }
+
+      // JSON 파싱
+      const greetingsFile = JSON.parse(greetingsContent);
 
       // 변경된 포맷의 greetings.json 파일 처리
       if (greetingsFile.messages && Array.isArray(greetingsFile.messages) && greetingsFile.messages.length > 0) {
