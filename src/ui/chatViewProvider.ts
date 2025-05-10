@@ -401,7 +401,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'cancelStream':
-        this._llmService.cancelStream();
+        // 취소 메시지를 표시하기 위한 콜백 정의
+        const cancelCallback = (chunk: string, done: boolean) => {
+          // 현재 스트리밍 중인 메시지가 있는 경우
+          if (this._currentStreamMessageId) {
+            const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
+            if (assistantMessage && chunk) {
+              // 취소 메시지 추가
+              assistantMessage.content += chunk;
+            }
+            // 메시지 UI 업데이트 (취소 메시지 표시)
+            this._updateChatView();
+          }
+        };
+
+        // 취소 콜백과 함께 스트림 취소
+        this._llmService.cancelStream(cancelCallback);
         this._isStreaming = false;
         this._currentStreamMessageId = null;
 
