@@ -56,12 +56,12 @@ function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming
     return {
       'Content-Type': 'application/json',
       'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
-      'Send-System-Name': 'narrans',
-      'User-Id': 'ape_ext',
-      'User-Type': 'ape_ext',
+      'Send-System-Name': 'ringo',
+      'User-Id': 'ringo',
+      'User-Type': 'ringo',
       'Prompt-Msg-Id': requestId,
       'Completion-Msg-Id': requestId,
-      'Authorization': 'Bearer dummytoken'  // 하드코딩된 Bearer 토큰
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiJoYWttaW5fMS5raW0iLCJleHAiOjI1NTYxNDM5OTl9.vO_UgDXQKxYlZrGB1D6iD_WwiC-nXSr6VzBPUi7AM3U'  // 실제 Narrans 토큰
     };
   }
   // LLAMA4 모델 요청 헤더
@@ -69,12 +69,12 @@ function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming
     return {
       'Content-Type': 'application/json',
       'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
-      'Send-System-Name': 'narrans',
-      'User-Id': 'ape_ext',
-      'User-Type': 'ape_ext',
+      'Send-System-Name': 'ringo',
+      'User-Id': 'ringo',
+      'User-Type': 'ringo',
       'Prompt-Msg-Id': requestId,
       'Completion-Msg-Id': requestId,
-      'x-dep-ticket': 'dummy-credential-key'  // 하드코딩된 x-dep-ticket
+      'x-dep-ticket': 'TICKET-440ea61b-4691-427a-a248-67dce1e839a7:be36c69d-70c7-4453-a8c1-6fbc9ede5f6d:fd95297d-bc8e-4a9e-9279-159a05dd65f8_8223307b-9b7e-4957-95f8-bb0404370a67:-1:VmyKrVeastm47m242e3mmlkbUEptgvvozKe+8qDoyVH4vG49kh0f4cx5k2AT/oquE4G14Ov56iadf4Szrjtp5A==:signature=13OBqywSvP+YAQOMCrosjVsjlFZH5n3M584XMhpA07tXhp/HD5503Dq0DHkVm9XxpYAy5NJYo6VkaD7hfK2KAw=='  // 실제 x-dep-ticket
     };
   }
 }
@@ -100,9 +100,9 @@ function createInternalApiRequestBody(model: string, messages: any[], options?: 
       messages: messages,
       temperature: options?.temperature || 0.7,
       stream: !!options?.stream,
-      system_name: 'narrans',
-      user_id: 'ape_ext',
-      user_type: 'ape_ext',
+      system_name: 'ringo',
+      user_id: 'ringo',
+      user_type: 'ringo',
       max_tokens: 50000
     };
   }
@@ -113,9 +113,9 @@ function createInternalApiRequestBody(model: string, messages: any[], options?: 
       messages: messages,
       temperature: options?.temperature || 0.7,
       stream: !!options?.stream,
-      system_name: 'narrans',
-      user_id: 'ape_ext',
-      user_type: 'ape_ext',
+      system_name: 'ringo',
+      user_id: 'ringo',
+      user_type: 'ringo',
       max_tokens: 50000
     };
   }
@@ -1001,7 +1001,7 @@ export class LLMService implements vscode.Disposable {
 
             if (data === '[DONE]') {
               console.log(`[LLMService] 스트림 완료 신호 ([DONE]) 수신`);
-              streamCallback('', true); // 스트림 완료 신호
+              streamCallback('', true, 200); // 스트림 완료 신호
             } else {
               try {
                 // 데이터 유효성 검사 및 잘린 JSON 처리
@@ -1035,7 +1035,7 @@ export class LLMService implements vscode.Disposable {
                                  '';
                   if (content) {
                     console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
-                    streamCallback(content, false);
+                    streamCallback(content, false, 200);
                   } else {
                     console.log(`[LLMService] 콘텐츠 없음, 응답 구조:`, Object.keys(parsed));
                   }
@@ -1047,7 +1047,7 @@ export class LLMService implements vscode.Disposable {
                                   parsed.choices[0].message?.content || '';
                     if (content) {
                       console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
-                      streamCallback(content, false);
+                      streamCallback(content, false, 200);
                     } else {
                       console.log(`[LLMService] 콘텐츠 없음, choices 구조:`, parsed.choices[0]);
                     }
@@ -1072,7 +1072,7 @@ export class LLMService implements vscode.Disposable {
       response.data.on('end', () => {
         this._cancelTokenSource = null;
         console.log('[LLMService] 스트림 데이터 수신 완료');
-        streamCallback('', true); // 스트림 완료 신호
+        streamCallback('', true, 200); // 스트림 완료 신호
       });
 
       response.data.on('error', (err: Error) => {
@@ -1081,14 +1081,14 @@ export class LLMService implements vscode.Disposable {
         console.error('[LLMService] 스트림 오류 메시지:', err.message);
         console.error('[LLMService] 스트림 오류 스택:', err.stack);
         // 오류가 발생해도 클라이언트에게 스트림 완료 신호 전송
-        streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true);
+        streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true, 500);
       });
     } catch (error: any) {
       this._cancelTokenSource = null;
       if (axios.isCancel(error)) {
         // Request was canceled intentionally
         console.log('[LLMService] 스트리밍 요청이 취소되었습니다.');
-        streamCallback('', true); // Signal completion with empty chunk and done=true
+        streamCallback('', true, 499); // Signal completion with empty chunk and done=true, status 499 (Client Closed Request)
       } else {
         // 스트리밍 오류 상세 로깅
         console.error("[LLMService] 스트리밍 HTTP 요청 실패:");
@@ -1230,13 +1230,13 @@ export class LLMService implements vscode.Disposable {
               reject(new Error(response.error));
             } else if (response.type === 'chunk') {
               // Streaming chunk
-              streamCallback(response.content || '', false);
+              streamCallback(response.content || '', false, 200);
             } else if (response.type === 'complete') {
               // Stream complete
               if (this._wsConnection) {
                 this._wsConnection.removeListener('message', messageHandler);
               }
-              streamCallback('', true); // Signal completion
+              streamCallback('', true, 200); // Signal completion
               resolve();
             }
           }
