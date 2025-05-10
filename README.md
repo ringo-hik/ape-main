@@ -1,6 +1,6 @@
-# APE: Agentic Pipeline Extension
+ㅗ# APE: Agentic Pipeline Extension
 
-> Agentic Vision. Development Illuminated.  
+> Agentic Vision. Development Illuminated.
 > Seamless • Plugin-driven • Lightweight For Our Developer.
 
 ## 🚀 Overview
@@ -145,22 +145,22 @@ Event filters support both exact matches and regular expressions, making it easy
 1. Create a new TypeScript file with the Plugin interface:
    ```typescript
    import { Plugin, PluginContext } from '../types/plugin';
-   
+
    export class MyCustomPlugin implements Plugin {
      async activate(context: PluginContext): Promise<void> {
        // Your plugin initialization code here
        context.log('My plugin activated!');
-       
+
        // Register commands, create UI elements, etc.
        const disposable = context.api.registerCommand(
-         'my-plugin.helloWorld', 
+         'my-plugin.helloWorld',
          () => context.api.ui.showInformationMessage('Hello from my plugin!')
        );
-       
+
        // Store disposables for cleanup
        context.subscriptions.push(disposable);
      }
-     
+
      async deactivate(): Promise<void> {
        // Cleanup code when plugin is deactivated
      }
