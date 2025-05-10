@@ -1,18 +1,12 @@
-/* 
- * 마크다운 스타일 - APE Extension
- * 기본 마크다운 요소에 대한 스타일 정의
- */
+/* chat-ape-markdown.css */
+/* 마크다운 컨텐츠 스타일링 */
 
-/* 마크다운 컨테이너 스타일 */
 .markdown-content {
   line-height: 1.6;
-  word-wrap: break-word;
   font-size: 14px;
   color: var(--ape-text-primary);
-  font-family: var(--ape-font-sans);
 }
 
-/* 제목 스타일 */
 .markdown-content h1,
 .markdown-content h2,
 .markdown-content h3,
@@ -23,7 +17,6 @@
   margin-bottom: 16px;
   font-weight: 600;
   line-height: 1.25;
-  color: var(--ape-text-primary);
 }
 
 .markdown-content h1 {
@@ -55,72 +48,40 @@
   color: var(--ape-text-secondary);
 }
 
-/* 텍스트 스타일링 */
 .markdown-content p {
   margin-top: 0;
   margin-bottom: 16px;
 }
 
-.markdown-content strong {
-  font-weight: 600;
+.markdown-content a {
+  color: var(--ape-accent-primary);
+  text-decoration: none;
 }
 
-.markdown-content em {
-  font-style: italic;
+.markdown-content a:hover {
+  text-decoration: underline;
 }
 
-.markdown-content del {
-  text-decoration: line-through;
+.markdown-content img {
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: var(--ape-bg-secondary);
+  border-radius: 4px;
 }
 
-/* 리스트 스타일 */
-.markdown-content ul,
-.markdown-content ol {
-  padding-left: 2em;
-  margin-top: 0;
-  margin-bottom: 16px;
+.markdown-content hr {
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: var(--ape-border-subtle);
+  border: 0;
 }
 
-.markdown-content ul ul,
-.markdown-content ul ol,
-.markdown-content ol ul,
-.markdown-content ol ol {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.markdown-content li {
-  margin-bottom: 4px;
-}
-
-.markdown-content li > p {
-  margin-top: 16px;
-}
-
-/* 체크박스 리스트 */
-.markdown-content ul.contains-task-list {
-  padding-left: 0;
-  list-style: none;
-}
-
-.markdown-content .task-list-item {
-  list-style-type: none;
-  padding-left: 24px;
-  position: relative;
-}
-
-.markdown-content .task-list-item input {
-  position: absolute;
-  left: 0;
-  top: 0.3em;
-}
-
-/* 인용구 */
 .markdown-content blockquote {
-  margin: 0 0 16px 0;
   padding: 0 1em;
   color: var(--ape-text-secondary);
   border-left: 0.25em solid var(--ape-border-strong);
+  margin: 0 0 16px 0;
 }
 
 .markdown-content blockquote > :first-child {
@@ -131,136 +92,187 @@
   margin-bottom: 0;
 }
 
-/* 코드 스타일 */
-.markdown-content code {
-  font-family: var(--ape-font-mono);
-  font-size: 0.9em;
-  padding: 0.2em 0.4em;
-  margin: 0;
-  background-color: var(--ape-bg-tertiary);
-  border-radius: var(--ape-border-radius-sm);
-}
-
-.markdown-content pre {
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 2em;
   margin-top: 0;
   margin-bottom: 16px;
-  padding: 16px;
-  overflow: auto;
+}
+
+.markdown-content ul ul,
+.markdown-content ul ol,
+.markdown-content ol ol,
+.markdown-content ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-content code {
+  font-family: var(--ape-font-mono);
+  font-size: 85%;
   background-color: var(--ape-bg-tertiary);
-  border-radius: var(--ape-border-radius-md);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
 }
 
-.markdown-content pre code {
-  padding: 0;
-  margin: 0;
-  background-color: transparent;
-  border: 0;
-  white-space: pre;
-  word-break: normal;
-  overflow-wrap: normal;
-}
-
-/* 표 스타일 */
-.markdown-content table {
-  display: block;
-  width: 100%;
-  overflow: auto;
-  margin: 0 0 16px 0;
-  border-spacing: 0;
-  border-collapse: collapse;
-}
-
-.markdown-content table th {
-  font-weight: 600;
-  padding: 6px 13px;
-  border: 1px solid var(--ape-border-subtle);
-  background-color: var(--ape-bg-hover);
-}
-
-.markdown-content table td {
-  padding: 6px 13px;
-  border: 1px solid var(--ape-border-subtle);
-}
-
-.markdown-content table tr {
-  background-color: transparent;
-  border-top: 1px solid var(--ape-border-subtle);
-}
-
-.markdown-content table tr:nth-child(2n) {
+.markdown-content .inline-code {
+  font-family: var(--ape-font-mono);
+  font-size: 90%;
   background-color: var(--ape-bg-tertiary);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  color: var(--ape-text-primary);
 }
 
-/* 수평선 */
-.markdown-content hr {
-  height: 1px;
-  padding: 0;
-  margin: 24px 0;
-  background-color: var(--ape-border-subtle);
-  border: 0;
-}
-
-/* 링크 스타일 */
-.markdown-content a {
-  color: var(--ape-text-accent);
-  text-decoration: none;
-}
-
-.markdown-content a:hover {
-  text-decoration: underline;
-}
-
-/* 이미지 스타일 */
-.markdown-content img {
-  max-width: 100%;
-  box-sizing: border-box;
-  background-color: transparent;
-  border-radius: var(--ape-border-radius-md);
-}
-
-/* 인라인 코드 vs 코드 블록 구분 */
-.markdown-content p code,
-.markdown-content li code {
-  white-space: normal;
-}
-
-.markdown-content pre code {
-  display: block;
+/* 코드 블록 스타일 */
+.code-block-container {
+  margin: 16px 0;
+  background-color: var(--ape-bg-tertiary);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: var(--ape-font-mono);
+  font-size: 13px;
   line-height: 1.45;
-  font-size: 0.9em;
+  border: 1px solid var(--ape-border-subtle);
 }
 
-/* 코드 테마 - VS Code 다크 테마 기반 */
-.markdown-content .hljs-keyword,
-.markdown-content .hljs-selector-tag {
-  color: #569cd6;
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--ape-border-subtle);
 }
 
-.markdown-content .hljs-title,
-.markdown-content .hljs-section {
-  color: #dcdcaa;
+.code-block-language {
+  font-size: 12px;
+  color: var(--ape-text-secondary);
+  text-transform: lowercase;
 }
 
-.markdown-content .hljs-string {
-  color: #ce9178;
+.code-block-actions {
+  display: flex;
+  gap: 4px;
 }
 
-.markdown-content .hljs-attr,
-.markdown-content .hljs-selector-attr,
-.markdown-content .hljs-selector-class {
-  color: #9cdcfe;
+.code-action-button {
+  background: transparent;
+  border: none;
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 3px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.markdown-content .hljs-number,
-.markdown-content .hljs-literal {
-  color: #b5cea8;
+.code-action-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--ape-text-primary);
 }
 
-.markdown-content .hljs-comment {
-  color: #6a9955;
+.code-action-button .tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background-color: var(--ape-bg-tooltip);
+  color: var(--ape-text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.markdown-content .hljs-doctag,
-.markdown-content .hljs-meta {
-  color: #c586c0;
+.code-action-button:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+.code-content {
+  display: flex;
+  overflow: auto;
+  max-height: 400px;
+}
+
+.code-content.with-line-numbers {
+  padding-left: 0;
+}
+
+.line-numbers {
+  padding: 12px 8px;
+  text-align: right;
+  color: var(--ape-text-secondary);
+  user-select: none;
+  border-right: 1px solid var(--ape-border-subtle);
+  background-color: rgba(0, 0, 0, 0.05);
+  min-width: 40px;
+}
+
+.code-area {
+  padding: 12px;
+  overflow: auto;
+  width: 100%;
+}
+
+.code-area code {
+  background-color: transparent;
+  padding: 0;
+  font-family: var(--ape-font-mono);
+  white-space: pre;
+}
+
+/* 첨부 파일 스타일 */
+.attached-file {
+  display: flex;
+  align-items: center;
+  background-color: var(--ape-bg-tertiary);
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.attachment-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.attachment-name {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.attachment-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.attachment-action {
+  background: transparent;
+  border: none;
+  color: var(--ape-text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 14px;
+  border-radius: 3px;
+}
+
+.attachment-action:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--ape-text-primary);
 }

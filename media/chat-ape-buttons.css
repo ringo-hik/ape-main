@@ -307,7 +307,7 @@
   margin-left: 3px;
 }
 
-/* 슬래시 명령어 제안 스타일 (Claude.ai 스타일) */
+/* 슬래시 명령어 제안 스타일 (Claude.ai 스타일) - 미니멀 UI */
 #command-suggestions {
   position: absolute;
   bottom: 100%;
@@ -323,6 +323,15 @@
   z-index: 100;
   margin-bottom: 8px;
   display: none;
+}
+
+/* 추가 명령어 인디케이터 */
+.command-more-indicator {
+  text-align: center;
+  padding: 4px;
+  font-size: 11px;
+  color: var(--ape-text-secondary);
+  border-top: 1px solid var(--ape-border-subtle);
 }
 
 .suggestion-category {
@@ -408,7 +417,7 @@
   opacity: 0.7;
 }
 
-/* 명령어 하위 메뉴 스타일 */
+/* 명령어 하위 메뉴 스타일 - 미니멀 UI */
 .command-children {
   padding-left: 16px;
   margin-left: 8px;

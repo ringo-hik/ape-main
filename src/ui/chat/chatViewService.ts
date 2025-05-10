@@ -637,7 +637,7 @@ export class ChatViewService {
       if (remainingCount > 0) {
         const moreElement = document.createElement('div');
         moreElement.className = 'command-more-indicator';
-        moreElement.textContent = `+ ${remainingCount}개 더 보기... (스크롤)`;
+        moreElement.textContent = '+ ' + remainingCount + ' 더 보기... (스크롤)';
         moreElement.style.textAlign = 'center';
         moreElement.style.padding = '4px';
         moreElement.style.fontSize = '11px';

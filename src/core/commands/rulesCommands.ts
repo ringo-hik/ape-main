@@ -119,29 +119,7 @@ export function createRulesCommands(rulesService: RulesService): SlashCommand[] 
     }
   });
   
-  // r 명령어: rules의 별칭
-  commands.push({
-    name: 'r',
-    description: 'rules 명령어의 축약형 (APE Rules 관리)',
-    category: 'advanced',
-    aliases: [],
-    priority: 0,
-    execute: async (context) => {
-      // rules 명령어로 리다이렉트
-      const rulesCommand = commands.find(cmd => cmd.name === 'rules');
-      if (rulesCommand && rulesCommand.execute) {
-        await rulesCommand.execute(context);
-      }
-    },
-    provideCompletions: (partialArgs: string) => {
-      // rules 명령어의 자동완성 재사용
-      const rulesCommand = commands.find(cmd => cmd.name === 'rules');
-      if (rulesCommand && rulesCommand.provideCompletions) {
-        return rulesCommand.provideCompletions(partialArgs);
-      }
-      return [];
-    }
-  });
+  // 축약형 명령어 /r 제거 (미니멀 UI 개선을 위해)
   
   return commands;
 }
