@@ -1,0 +1,1889 @@
+/**
+ * 도움말 렌더러 (카드 기반 UI)
+ * 
+ * 도움말 데이터를 웹뷰에 표시하기 위한 HTML로 변환합니다.
+ * 카드 기반 UI로 명령어를 직접 실행할 수 있는 인터랙티브 환경을 제공합니다.
+ */
+
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { LLMService } from '../llm/llmService';
+
+// vscode 확장 인스턴스 캐시
+let _extensionContext: vscode.ExtensionContext | undefined;
+
+/**
+ * 확장 컨텍스트 설정
+ * @param context VS Code 확장 컨텍스트
+ */
+export function setExtensionContext(context: vscode.ExtensionContext): void {
+  _extensionContext = context;
+}
+
+/**
+ * Codicon CSS 파일에 대한 URI 가져오기
+ */
+function getCodiconCssUri(): vscode.Uri {
+  const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+  if (!extension) {
+    throw new Error('APE 확장을 찾을 수 없습니다');
+  }
+  
+  return vscode.Uri.joinPath(extension.extensionUri, 'media', 'codicon', 'codicon.css');
+}
+
+/**
+ * 채팅 APE CSS 파일에 대한 URI 가져오기
+ */
+function getChatApeCssUri(): vscode.Uri {
+  const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+  if (!extension) {
+    throw new Error('APE 확장을 찾을 수 없습니다');
+  }
+  
+  return vscode.Uri.joinPath(extension.extensionUri, 'media', 'chat-ape.css');
+}
+
+/**
+ * 채팅 APE 버튼 CSS 파일에 대한 URI 가져오기
+ */
+function getChatApeButtonsCssUri(): vscode.Uri {
+  const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+  if (!extension) {
+    throw new Error('APE 확장을 찾을 수 없습니다');
+  }
+  
+  return vscode.Uri.joinPath(extension.extensionUri, 'media', 'chat-ape-buttons.css');
+}
+
+/**
+ * 웰컴 CSS 파일에 대한 URI 가져오기
+ */
+function getWelcomeCssUri(): vscode.Uri {
+  const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+  if (!extension) {
+    throw new Error('APE 확장을 찾을 수 없습니다');
+  }
+  
+  return vscode.Uri.joinPath(extension.extensionUri, 'media', 'welcome.css');
+}
+
+import {
+  generateHelpSystemPrompt,
+} from '../../data/helpSystemPrompt';
+
+// 도움말 데이터 캐시
+let helpDataCache: any = null;
+
+/**
+ * 도움말 데이터 로드
+ * @returns 도움말 데이터 객체
+ */
+export async function loadHelpData(): Promise<any> {
+  if (helpDataCache) {
+    return helpDataCache;
+  }
+
+  try {
+    const extensionPath = vscode.extensions.getExtension('ape-team.ape-extension')?.extensionPath;
+    if (!extensionPath) {
+      throw new Error('확장 프로그램 경로를 찾을 수 없습니다.');
+    }
+
+    const helpFilePath = path.join(extensionPath, 'src', 'data', 'help.json');
+    const helpDataStr = fs.readFileSync(helpFilePath, 'utf8');
+    helpDataCache = JSON.parse(helpDataStr);
+    return helpDataCache;
+  } catch (error) {
+    console.error('도움말 데이터 로드 오류:', error);
+    throw new Error('도움말 데이터를 로드할 수 없습니다.');
+  }
+}
+
+/**
+ * 특정 명령어 데이터 가져오기
+ * @param commandName 명령어 이름
+ * @returns 명령어 데이터 객체
+ */
+export async function getCommandData(commandName: string): Promise<any | null> {
+  try {
+    const helpData = await loadHelpData();
+    
+    // 모든 카테고리 검색
+    for (const category of helpData.categories) {
+      // 카테고리 내 명령어 검색
+      for (const command of category.commands) {
+        // 명령어 이름 또는 별칭 매칭
+        if (command.name === commandName || (command.aliases && command.aliases.includes(commandName))) {
+          return {
+            ...command,
+            category: category.id,
+            categoryName: category.name
+          };
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('명령어 데이터 검색 오류:', error);
+    return null;
+  }
+}
+
+/**
+ * 카테고리별 명령어 목록 가져오기
+ * @param categoryId 카테고리 ID (옵션)
+ * @returns 카테고리별 명령어 목록
+ */
+export async function getCommandsByCategory(categoryId?: string): Promise<any[]> {
+  try {
+    const helpData = await loadHelpData();
+    
+    // 특정 카테고리 요청 시
+    if (categoryId) {
+      const category = helpData.categories.find((c: any) => c.id === categoryId);
+      return category ? [category] : [];
+    }
+    
+    // 모든 카테고리 반환
+    return helpData.categories;
+  } catch (error) {
+    console.error('카테고리별 명령어 목록 가져오기 오류:', error);
+    return [];
+  }
+}
+
+/**
+ * 도움말 HTML 생성 (카드 기반 카테고리 목록)
+ * @param categoryId 카테고리 ID (옵션)
+ * @returns HTML 문자열
+ */
+export async function generateHelpHtml(categoryId?: string): Promise<string> {
+  try {
+    const categories = await getCommandsByCategory(categoryId);
+    
+    let content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">APE 도움말</h1>
+          <div class="title-separator"></div>
+          <p class="help-tagline">사용 가능한 명령어 목록</p>
+          <p class="help-subtitle">명령어를 클릭하면 바로 실행됩니다.</p>
+        </div>
+        
+        <div class="quick-actions">
+          <h2>자주 사용하는 명령어</h2>
+          <div class="quick-buttons">
+            <button class="quick-button git" onclick="executeCommand('git status')">
+              <span class="emoji-icon">⚙️</span>Git 상태
+            </button>
+            <button class="quick-button code" onclick="executeCommand('analyze')">
+              <span class="emoji-icon">🔍</span>코드 분석
+            </button>
+            <button class="quick-button utility" onclick="executeCommand('clear')">
+              <span class="emoji-icon">🧹</span>채팅 지우기
+            </button>
+            <button class="quick-button model" onclick="executeCommand('model list')">
+              <span class="emoji-icon">🤖</span>모델 선택
+            </button>
+          </div>
+        </div>
+        
+        <div class="category-tabs">
+          ${categories.map(category => `
+            <div class="category-tab" data-category="${category.id}">
+              <span class="category-icon">${getCategoryEmoji(category.id)}</span>
+              <span class="category-name">${category.name}</span>
+            </div>
+          `).join('')}
+        </div>
+    `;
+    
+    // 카테고리별 명령어 섹션
+    content += `<div class="category-sections">`;
+    
+    // Git 카테고리는 특별 처리 (항상 더 강조하여 표시)
+    const gitCategory = categories.find(cat => cat.id === 'git');
+    if (gitCategory) {
+      content += `
+        <div class="category-section active" id="category-git">
+          <h2>${gitCategory.name}</h2>
+          <p>${gitCategory.description || ''}</p>
+          <div class="git-commands-container">
+            ${generateGitCommandCards(gitCategory.commands)}
+          </div>
+        </div>
+      `;
+    }
+    
+    // 나머지 카테고리 처리
+    for (const category of categories) {
+      if (category.id !== 'git') {
+        content += `
+          <div class="category-section ${category.id === (categoryId || 'general') ? 'active' : ''}" id="category-${category.id}">
+            <h2>${category.name}</h2>
+            <p>${category.description || ''}</p>
+            <div class="command-grid">
+              ${generateCommandCards(category.commands)}
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    content += `</div>`; // category-sections 종료
+    content += `</div>`; // help-container 종료
+    
+    // 전체 HTML 래핑
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('도움말 HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>도움말 로드 오류</h1>
+        <p>도움말 데이터를 로드하는 중 오류가 발생했습니다: ${error}</p>
+      </div>
+    `);
+  }
+}
+
+/**
+ * Git 명령어 카드 HTML 생성 (특별 강조 처리)
+ * @param commands Git 명령어 배열
+ * @returns HTML 문자열
+ */
+function generateGitCommandCards(commands: any[]): string {
+  let html = `<div class="git-commands-grid">`;
+  
+  for (const command of commands) {
+    const commandIcon = getCommandIcon(command.name);
+    const shortDesc = command.description.length > 70 ? command.description.substring(0, 67) + '...' : command.description;
+    
+    html += `
+      <div class="git-command-card" onclick="executeCommand('${command.name}')" title="${command.description}">
+        <div class="git-command-header">
+          <div class="git-command-icon">${commandIcon}</div>
+          <div class="git-command-name">/${command.name}</div>
+        </div>
+        <div class="git-command-description">${shortDesc}</div>
+        <div class="git-command-footer">
+          ${command.examples && command.examples.length > 0 ? 
+            `<div class="git-command-example">${command.examples[0]}</div>` : ''}
+          <div class="git-command-button">실행</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * 일반 명령어 카드 HTML 생성
+ * @param commands 명령어 배열
+ * @returns HTML 문자열
+ */
+function generateCommandCards(commands: any[]): string {
+  let html = '';
+  
+  for (const command of commands) {
+    const commandIcon = getCommandIcon(command.name);
+    const shortDesc = command.description.length > 60 ? command.description.substring(0, 57) + '...' : command.description;
+    
+    html += `
+      <div class="command-card" onclick="executeCommand('${command.name}')" title="${command.description}">
+        <div class="command-icon">${commandIcon}</div>
+        <div class="command-content">
+          <div class="command-name">/${command.name}</div>
+          <div class="command-description">${shortDesc}</div>
+          ${command.aliases && command.aliases.length > 0 ? 
+            `<div class="command-aliases">별칭: ${command.aliases.map((a: string) => `/${a}`).join(', ')}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  return html;
+}
+
+/**
+ * 명령어 상세 정보 HTML 생성
+ * @param commandName 명령어 이름
+ * @returns HTML 문자열
+ */
+export async function generateCommandDetailHtml(commandName: string): Promise<string> {
+  try {
+    const commandData = await getCommandData(commandName);
+    
+    if (!commandData) {
+      return getHelpPageHtml(`
+        <div class="help-container">
+          <h1>명령어를 찾을 수 없음</h1>
+          <p>'${commandName}' 명령어를 찾을 수 없습니다.</p>
+          <button class="back-button" onclick="executeCommand('help')">← 모든 명령어 보기</button>
+        </div>
+      `);
+    }
+    
+    // 명령어 이모지 아이콘 선택
+    const commandIcon = getCommandIcon(commandData.name);
+    
+    let content = `
+      <div class="help-container">
+        <div class="command-detail">
+          <div class="command-detail-header">
+            <div class="command-detail-icon">${commandIcon}</div>
+            <div class="command-detail-title">
+              <h1>/${commandData.name}</h1>
+              <div class="command-detail-category">${commandData.categoryName}</div>
+            </div>
+          </div>
+          
+          <div class="command-detail-description">
+            ${commandData.longDescription || commandData.description}
+          </div>
+          
+          <div class="command-detail-section">
+            <h2>사용법</h2>
+            <div class="command-usage">
+              <code>${commandData.usage || `/${commandData.name}`}</code>
+              <button class="execute-button" onclick="executeCommand('${commandData.name}')">이 명령어 실행</button>
+            </div>
+          </div>
+    `;
+    
+    // 예시
+    if (commandData.examples && commandData.examples.length > 0) {
+      content += `
+        <div class="command-detail-section">
+          <h2>예시</h2>
+          <div class="command-examples">
+            ${commandData.examples.map((example: string) => `
+              <div class="command-example">
+                <code>${example}</code>
+                <button class="example-execute-button" onclick="insertCommand('${example}')">
+                  <span class="emoji-icon">⌨️</span>
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // 별칭
+    if (commandData.aliases && commandData.aliases.length > 0) {
+      content += `
+        <div class="command-detail-section">
+          <h2>별칭</h2>
+          <div class="command-aliases-list">
+            ${commandData.aliases.map((alias: string) => `
+              <span class="command-alias" onclick="executeCommand('${alias}')">/${alias}</span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // 관련 명령어
+    if (commandData.related && commandData.related.length > 0) {
+      content += `
+        <div class="command-detail-section">
+          <h2>관련 명령어</h2>
+          <div class="related-commands">
+            ${commandData.related.map((cmd: string) => `
+              <div class="related-command" onclick="executeCommand('${cmd}')">
+                <span class="related-command-icon">${getCommandIcon(cmd)}</span>
+                <span class="related-command-name">/${cmd}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    content += `
+          <div class="command-detail-actions">
+            <button class="back-button" onclick="executeCommand('help')">← 모든 명령어 보기</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('명령어 상세 정보 HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>명령어 정보 로드 오류</h1>
+        <p>명령어 정보를 로드하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * FAQ HTML 생성
+ * @returns HTML 문자열
+ */
+export async function generateFaqHtml(): Promise<string> {
+  try {
+    const helpData = await loadHelpData();
+    const faqs = helpData.faq || [];
+    
+    let content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">자주 묻는 질문 (FAQ)</h1>
+          <div class="title-separator"></div>
+          <p class="help-subtitle">APE 사용 중 자주 발생하는 질문과 답변입니다.</p>
+        </div>
+        
+        <div class="faq-list">
+    `;
+    
+    for (const faq of faqs) {
+      content += `
+        <div class="faq-card">
+          <div class="faq-question">${faq.question}</div>
+          <div class="faq-answer">${faq.answer}</div>
+        </div>
+      `;
+    }
+    
+    content += `
+        </div>
+        
+        <div class="help-footer">
+          <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+        </div>
+      </div>
+    `;
+    
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('FAQ HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>FAQ 로드 오류</h1>
+        <p>FAQ 데이터를 로드하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * 가이드 문서 HTML 생성
+ * @param guideId 가이드 ID
+ * @returns HTML 문자열
+ */
+export async function generateGuideHtml(guideId: string): Promise<string> {
+  try {
+    const helpData = await loadHelpData();
+    const guides = helpData.guides || [];
+    const guide = guides.find((g: any) => g.id === guideId);
+    
+    if (!guide) {
+      return getHelpPageHtml(`
+        <div class="help-container">
+          <h1>가이드를 찾을 수 없음</h1>
+          <p>'${guideId}' 가이드를 찾을 수 없습니다.</p>
+          <button class="back-button" onclick="executeCommand('help guides')">← 모든 가이드 보기</button>
+        </div>
+      `);
+    }
+    
+    // 마크다운 형식 그대로 표시
+    const content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">${guide.title}</h1>
+          <div class="title-separator"></div>
+        </div>
+        
+        <div class="guide-content markdown-body">
+          ${guide.content}
+        </div>
+        
+        <div class="help-footer">
+          <button class="back-button" onclick="executeCommand('help guides')">← 모든 가이드 보기</button>
+        </div>
+      </div>
+    `;
+    
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('가이드 HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>가이드 로드 오류</h1>
+        <p>가이드 데이터를 로드하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * 모든 가이드 목록 HTML 생성
+ * @returns HTML 문자열
+ */
+export async function generateGuidesListHtml(): Promise<string> {
+  try {
+    const helpData = await loadHelpData();
+    const guides = helpData.guides || [];
+    
+    let content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">가이드 문서</h1>
+          <div class="title-separator"></div>
+          <p class="help-subtitle">사용 가능한 가이드 문서 목록입니다.</p>
+        </div>
+        
+        <div class="guides-grid">
+    `;
+    
+    for (const guide of guides) {
+      // 첫 번째 줄만 추출하여 미리보기로 사용
+      const preview = guide.content.split('\n').slice(1, 3).join(' ').replace(/^\s*#+\s*/, '').substring(0, 120);
+      
+      content += `
+        <div class="guide-card" onclick="executeCommand('help guide ${guide.id}')">
+          <div class="guide-icon">${getGuideIcon(guide.id)}</div>
+          <div class="guide-title">${guide.title}</div>
+          <div class="guide-preview">${preview}...</div>
+          <div class="guide-read-more">자세히 보기 →</div>
+        </div>
+      `;
+    }
+    
+    content += `
+        </div>
+        
+        <div class="help-footer">
+          <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+        </div>
+      </div>
+    `;
+    
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('가이드 목록 HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>가이드 목록 로드 오류</h1>
+        <p>가이드 목록을 로드하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * LLM을 사용한 스마트 도움말 생성
+ * @param query 사용자 질문
+ * @param llmService LLM 서비스 인스턴스
+ * @returns HTML 문자열
+ */
+export async function generateSmartHelpHtml(query: string, llmService: LLMService): Promise<string> {
+  try {
+    const helpData = await loadHelpData();
+    
+    // LLM 프롬프트 생성
+    const prompt = generateHelpSystemPrompt(helpData, query);
+    
+    // LLM에 질문 전송
+    const result = await llmService.getCompletion(prompt);
+    
+    if (!result.success || !result.data) {
+      throw new Error(result.error?.message || 'LLM 응답을 받을 수 없습니다.');
+    }
+    
+    // 마크다운 응답을 HTML로 변환
+    const markdownResponse = result.data;
+    
+    const content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">APE 도움말 검색</h1>
+          <div class="title-separator"></div>
+          <div class="help-query">"${escapeHtml(query)}"에 대한 결과</div>
+        </div>
+        
+        <div class="smart-help-result markdown-body">
+          ${markdownToHtml(markdownResponse)}
+        </div>
+        
+        <div class="help-footer">
+          <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+        </div>
+      </div>
+    `;
+    
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('스마트 도움말 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>도움말 응답 오류</h1>
+        <p>도움말을 생성하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * Agent 도구 목록 HTML 생성
+ * @returns HTML 문자열
+ */
+export async function generateToolsHelpHtml(): Promise<string> {
+  try {
+    // 도구 데이터 목록
+    const tools = [
+      {
+        name: 'Bash',
+        description: '쉘 명령을 실행하여 파일 시스템을 조작하고 시스템 작업을 수행합니다.',
+        icon: '⚙️',
+        examples: ['디렉터리 내용 나열', '파일 이동 및 복사', '시스템 정보 조회']
+      },
+      {
+        name: 'Batch',
+        description: '여러 도구 호출을 병렬로 실행하여 작업 속도를 향상시킵니다.',
+        icon: '⚡',
+        examples: ['여러 파일 동시 읽기', '복수 Bash 명령 실행', '병렬 검색 수행']
+      },
+      {
+        name: 'Glob',
+        description: '패턴 매칭을 사용하여 파일 시스템에서 파일을 검색합니다.',
+        icon: '🔍',
+        examples: ['.js 파일 찾기', '특정 디렉터리 내 파일 검색', '제외 패턴 사용']
+      },
+      {
+        name: 'Grep',
+        description: '파일 내용에서 정규식 패턴을 검색합니다.',
+        icon: '🔎',
+        examples: ['함수 정의 찾기', '오류 메시지 검색', '코드 패턴 식별']
+      },
+      {
+        name: 'LS',
+        description: '디렉터리 내용을 나열하여 파일과 폴더를 표시합니다.',
+        icon: '📁',
+        examples: ['디렉터리 구조 확인', '숨겨진 파일 표시', '파일 메타데이터 확인']
+      },
+      {
+        name: 'Read',
+        description: '파일 내용을 읽어 텍스트로 표시합니다.',
+        icon: '📖',
+        examples: ['소스 코드 읽기', '구성 파일 검사', '로그 파일 분석']
+      },
+      {
+        name: 'Edit',
+        description: '파일 내용을 수정하고 변경 사항을 저장합니다.',
+        icon: '✏️',
+        examples: ['코드 버그 수정', '구성 설정 업데이트', '문서 수정']
+      },
+      {
+        name: 'MultiEdit',
+        description: '여러 편집 작업을 단일 파일에 원자적으로 적용합니다.',
+        icon: '📝',
+        examples: ['여러 코드 섹션 수정', '클래스/함수 이름 변경', '여러 버그 한 번에 수정']
+      },
+      {
+        name: 'Write',
+        description: '새 파일을 생성하거나 기존 파일을 덮어씁니다.',
+        icon: '📄',
+        examples: ['새 소스 파일 생성', '구성 파일 작성', '로그 파일 생성']
+      },
+      {
+        name: 'WebFetch',
+        description: '웹 URL에서 콘텐츠를 가져와 분석합니다.',
+        icon: '🌐',
+        examples: ['API 문서 읽기', '웹 페이지 콘텐츠 분석', '외부 데이터 가져오기']
+      },
+      {
+        name: 'WebSearch',
+        description: '인터넷에서 최신 정보를 검색합니다.',
+        icon: '🔍',
+        examples: ['기술 문서 찾기', '오류 솔루션 검색', '라이브러리 사용법 검색']
+      },
+      {
+        name: 'TodoRead',
+        description: '세션의 현재 할 일 목록을 읽습니다.',
+        icon: '📋',
+        examples: ['작업 진행 상황 확인', '남은 작업 파악', '작업 우선순위 확인']
+      },
+      {
+        name: 'TodoWrite',
+        description: '할 일 목록을 업데이트하고 작업 상태를 관리합니다.',
+        icon: '✅',
+        examples: ['새 작업 추가', '작업 상태 업데이트', '완료된 작업 표시']
+      },
+      {
+        name: 'Task',
+        description: '하위 에이전트를 실행하여 독립적인 작업을 수행합니다.',
+        icon: '🤖',
+        examples: ['코드베이스 검색', '복잡한의 작업 위임', '배경 분석 수행']
+      }
+    ];
+    
+    // HTML 생성
+    let content = `
+      <div class="help-container">
+        <div class="help-header">
+          <h1 class="help-title">APE 도구 목록</h1>
+          <div class="title-separator"></div>
+          <p class="help-subtitle">APE에서 사용할 수 있는 다양한 Agent 도구 목록입니다.</p>
+        </div>
+        
+        <div class="tools-grid">
+    `;
+    
+    // 각 도구별 카드 생성
+    for (const tool of tools) {
+      content += `
+        <div class="tool-card">
+          <div class="tool-header">
+            <div class="tool-icon">${tool.icon}</div>
+            <div class="tool-name">${tool.name}</div>
+          </div>
+          <div class="tool-description">${tool.description}</div>
+          
+          <div class="tool-examples">
+            <div class="tool-examples-title">주요 사용 사례</div>
+            <ul class="tool-examples-list">
+              ${tool.examples.map(ex => `<li>${ex}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+    
+    content += `
+        </div>
+        
+        <div class="help-footer">
+          <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+        </div>
+      </div>
+    `;
+    
+    // 전체 HTML 생성
+    return getHelpPageHtml(content);
+  } catch (error) {
+    console.error('Agent 도구 HTML 생성 오류:', error);
+    return getHelpPageHtml(`
+      <div class="help-container">
+        <h1>도구 목록 로드 오류</h1>
+        <p>도구 목록을 로드하는 중 오류가 발생했습니다: ${error}</p>
+        <button class="back-button" onclick="executeCommand('help')">← 도움말로 돌아가기</button>
+      </div>
+    `);
+  }
+}
+
+/**
+ * 도움말 페이지 HTML 래핑
+ * @param content 내용 HTML
+ * @returns 완성된 HTML 문자열
+ */
+function getHelpPageHtml(content: string): string {
+  const customCss = getHelpCustomCSS();
+  
+  return `
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>APE 도움말</title>
+      <link rel="stylesheet" href="${getCodiconCssUri().toString()}" />
+      <link rel="stylesheet" href="${getChatApeCssUri().toString()}" />
+      <link rel="stylesheet" href="${getChatApeButtonsCssUri().toString()}" />
+      <link rel="stylesheet" href="${getWelcomeCssUri().toString()}" />
+      <style>
+        ${customCss}
+      </style>
+    </head>
+    <body>
+      <div class="help-page">
+        ${content}
+      </div>
+
+      <script>
+        const vscode = acquireVsCodeApi();
+        
+        // 명령어 실행 함수
+        function executeCommand(command) {
+          vscode.postMessage({
+            type: 'command',
+            command: command
+          });
+        }
+        
+        // 명령어 입력 함수 (채팅창에 명령어 삽입)
+        function insertCommand(command) {
+          vscode.postMessage({
+            type: 'insertCommand',
+            command: command
+          });
+        }
+        
+        // 카테고리 탭 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', () => {
+          // 카테고리 탭 클릭 이벤트
+          document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+              // 탭 활성화
+              document.querySelectorAll('.category-tab').forEach(t => {
+                t.classList.remove('active');
+              });
+              tab.classList.add('active');
+              
+              // 컨텐츠 표시
+              const categoryId = tab.dataset.category;
+              document.querySelectorAll('.category-section').forEach(section => {
+                section.style.display = 'none';
+              });
+              
+              const targetSection = document.getElementById('category-' + categoryId);
+              if (targetSection) {
+                targetSection.style.display = 'block';
+              }
+            });
+          });
+          
+          // 첫 번째 탭 활성화 (기본값)
+          const firstTab = document.querySelector('.category-tab');
+          if (firstTab) {
+            firstTab.click();
+          }
+        });
+      </script>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * 도움말 페이지 커스텀 CSS
+ */
+function getHelpCustomCSS(): string {
+  return `
+    /* 기본 레이아웃 */
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: var(--ape-font-sans);
+      background-color: var(--ape-bg-primary);
+      color: var(--ape-text-primary);
+    }
+    
+    /* 도움말 페이지 컨테이너 */
+    .help-page {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 2rem;
+      height: 100%;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    
+    /* 도움말 컨테이너 */
+    .help-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    
+    /* 도움말 헤더 */
+    .help-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .help-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--ape-text-primary);
+      letter-spacing: -0.02em;
+    }
+    
+    .title-separator {
+      width: 60px;
+      height: 3px;
+      background-color: var(--ape-accent-primary);
+      margin: 1rem auto;
+    }
+    
+    .help-tagline {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0.5rem 0;
+      color: var(--ape-accent-primary);
+      letter-spacing: 0.05em;
+    }
+    
+    .help-subtitle {
+      font-size: 1rem;
+      color: var(--ape-text-secondary);
+      margin: 0.5rem 0 0;
+    }
+    
+    .help-query {
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      background-color: var(--ape-accent-tertiary);
+      border-radius: var(--ape-border-radius-md);
+      display: inline-block;
+    }
+    
+    /* 빠른 액션 영역 */
+    .quick-actions {
+      margin: 1.5rem 0 2rem;
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--ape-shadow-md);
+    }
+    
+    .quick-actions h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .quick-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.8rem 1.2rem;
+      background-color: var(--ape-accent-primary);
+      border: none;
+      border-radius: var(--ape-border-radius-md);
+      color: white;
+      font-weight: 500;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--ape-shadow-sm);
+      min-width: 160px;
+      gap: 0.5rem;
+    }
+    
+    .quick-button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--ape-shadow-md);
+    }
+    
+    .quick-button.git {
+      background-color: #F05033;
+    }
+    
+    .quick-button.code {
+      background-color: #007ACC;
+    }
+    
+    .quick-button.utility {
+      background-color: #6C757D;
+    }
+    
+    .quick-button.model {
+      background-color: #28A745;
+    }
+    
+    .quick-button .emoji-icon {
+      font-size: 1.2rem;
+    }
+    
+    /* 카테고리 탭 */
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--ape-border-subtle);
+      padding-bottom: 1rem;
+    }
+    
+    .category-tab {
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: var(--ape-border-radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background-color: var(--ape-bg-secondary);
+      border: 1px solid var(--ape-border-subtle);
+    }
+    
+    .category-tab:hover {
+      background-color: var(--ape-bg-hover);
+      transform: translateY(-2px);
+    }
+    
+    .category-tab.active {
+      background-color: var(--ape-accent-tertiary);
+      border-color: var(--ape-accent-primary);
+      color: var(--ape-accent-primary);
+      font-weight: 500;
+    }
+    
+    .category-icon {
+      font-size: 1.2rem;
+    }
+    
+    /* 카테고리 섹션 */
+    .category-sections {
+      margin-top: 1.5rem;
+    }
+    
+    .category-section {
+      display: none;
+      margin-bottom: 2rem;
+    }
+    
+    .category-section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .category-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--ape-text-primary);
+      border-bottom: 1px solid var(--ape-border-subtle);
+      padding-bottom: 0.5rem;
+    }
+    
+    .category-section p {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      color: var(--ape-text-secondary);
+    }
+    
+    /* 명령어 그리드 */
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    
+    /* 일반 명령어 카드 */
+    .command-card {
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      border: 1px solid var(--ape-border-subtle);
+      padding: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 1rem;
+      box-shadow: var(--ape-shadow-sm);
+    }
+    
+    .command-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--ape-accent-primary);
+      box-shadow: var(--ape-shadow-md);
+    }
+    
+    .command-icon {
+      font-size: 1.5rem;
+      background-color: var(--ape-accent-tertiary);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--ape-border-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .command-content {
+      flex: 1;
+    }
+    
+    .command-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--ape-accent-primary);
+      font-family: var(--ape-font-mono);
+    }
+    
+    .command-description {
+      color: var(--ape-text-primary);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .command-aliases {
+      font-size: 0.8rem;
+      color: var(--ape-text-secondary);
+      background-color: var(--ape-bg-tertiary);
+      padding: 0.3rem 0.5rem;
+      border-radius: var(--ape-border-radius-sm);
+      display: inline-block;
+    }
+    
+    /* Git 명령어 카드 (특별 스타일) */
+    .git-commands-container {
+      margin-top: 1rem;
+    }
+    
+    .git-commands-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    
+    .git-command-card {
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      border: 1px solid #F05033;
+      padding: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--ape-shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .git-command-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background-color: #F05033;
+      transition: width 0.3s ease;
+      z-index: 1;
+    }
+    
+    .git-command-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(240, 80, 51, 0.2);
+    }
+    
+    .git-command-card:hover::before {
+      width: 8px;
+    }
+    
+    .git-command-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+    
+    .git-command-icon {
+      font-size: 1.3rem;
+      color: #F05033;
+    }
+    
+    .git-command-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--ape-text-primary);
+      font-family: var(--ape-font-mono);
+    }
+    
+    .git-command-description {
+      color: var(--ape-text-primary);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      flex: 1;
+    }
+    
+    .git-command-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+    
+    .git-command-example {
+      font-size: 0.8rem;
+      color: var(--ape-text-secondary);
+      flex: 1;
+    }
+    
+    .git-command-button {
+      background-color: #F05033;
+      color: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--ape-border-radius-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    .git-command-card:hover .git-command-button {
+      background-color: #DA3906;
+    }
+    
+    /* 명령어 상세 페이지 */
+    .command-detail {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-lg);
+      padding: 2rem;
+      box-shadow: var(--ape-shadow-md);
+    }
+    
+    .command-detail-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--ape-border-subtle);
+    }
+    
+    .command-detail-icon {
+      font-size: 2rem;
+      background-color: var(--ape-accent-tertiary);
+      width: 60px;
+      height: 60px;
+      border-radius: var(--ape-border-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .command-detail-title {
+      flex: 1;
+    }
+    
+    .command-detail-title h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.8rem;
+      color: var(--ape-text-primary);
+      font-family: var(--ape-font-mono);
+    }
+    
+    .command-detail-category {
+      color: var(--ape-text-secondary);
+      font-size: 1rem;
+    }
+    
+    .command-detail-description {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+    
+    .command-detail-section {
+      margin-bottom: 2rem;
+    }
+    
+    .command-detail-section h2 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: var(--ape-text-primary);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--ape-border-subtle);
+    }
+    
+    .command-usage {
+      background-color: var(--ape-bg-tertiary);
+      padding: 1rem;
+      border-radius: var(--ape-border-radius-md);
+      font-family: var(--ape-font-mono);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .command-usage code {
+      font-size: 1.1rem;
+      color: var(--ape-accent-primary);
+    }
+    
+    .execute-button {
+      background-color: var(--ape-accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--ape-border-radius-md);
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .execute-button:hover {
+      background-color: var(--ape-accent-secondary);
+      transform: translateY(-2px);
+    }
+    
+    .command-examples {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    
+    .command-example {
+      background-color: var(--ape-bg-tertiary);
+      padding: 0.8rem 1rem;
+      border-radius: var(--ape-border-radius-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .command-example code {
+      font-family: var(--ape-font-mono);
+      font-size: 1rem;
+      color: var(--ape-accent-primary);
+      flex: 1;
+    }
+    
+    .example-execute-button {
+      background-color: transparent;
+      border: 1px solid var(--ape-border-subtle);
+      color: var(--ape-text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    .example-execute-button:hover {
+      background-color: var(--ape-bg-hover);
+      color: var(--ape-text-primary);
+      border-color: var(--ape-border-strong);
+    }
+    
+    .command-aliases-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    
+    .command-alias {
+      background-color: var(--ape-bg-tertiary);
+      padding: 0.5rem 0.8rem;
+      border-radius: var(--ape-border-radius-md);
+      font-family: var(--ape-font-mono);
+      font-size: 0.9rem;
+      color: var(--ape-text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .command-alias:hover {
+      background-color: var(--ape-accent-tertiary);
+      color: var(--ape-accent-primary);
+      transform: translateY(-2px);
+    }
+    
+    .related-commands {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .related-command {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--ape-bg-tertiary);
+      padding: 0.5rem 1rem;
+      border-radius: var(--ape-border-radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .related-command:hover {
+      background-color: var(--ape-accent-tertiary);
+      color: var(--ape-accent-primary);
+      transform: translateY(-2px);
+    }
+    
+    .related-command-icon {
+      font-size: 1.2rem;
+    }
+    
+    .related-command-name {
+      font-family: var(--ape-font-mono);
+      font-size: 0.9rem;
+    }
+    
+    .command-detail-actions {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+    
+    /* FAQ 스타일 */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .faq-card {
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--ape-shadow-sm);
+      transition: all 0.2s ease;
+      border-left: 3px solid var(--ape-accent-primary);
+    }
+    
+    .faq-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--ape-shadow-md);
+    }
+    
+    .faq-question {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .faq-answer {
+      line-height: 1.6;
+      color: var(--ape-text-primary);
+    }
+    
+    /* 가이드 목록 스타일 */
+    .guides-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .guide-card {
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--ape-shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border: 1px solid var(--ape-border-subtle);
+    }
+    
+    .guide-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--ape-shadow-md);
+      border-color: var(--ape-accent-primary);
+    }
+    
+    .guide-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--ape-accent-primary);
+    }
+    
+    .guide-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .guide-preview {
+      color: var(--ape-text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      flex: 1;
+    }
+    
+    .guide-read-more {
+      color: var(--ape-accent-primary);
+      font-weight: 500;
+      font-size: 0.9rem;
+      margin-top: auto;
+    }
+    
+    .guide-card:hover .guide-read-more {
+      text-decoration: underline;
+    }
+    
+    /* 도구 카드 스타일 */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .tool-card {
+      background-color: var(--ape-bg-secondary);
+      border-radius: var(--ape-border-radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--ape-shadow-sm);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--ape-border-subtle);
+    }
+    
+    .tool-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--ape-shadow-md);
+      border-color: var(--ape-accent-primary);
+    }
+    
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .tool-icon {
+      font-size: 1.5rem;
+      color: var(--ape-accent-primary);
+      background-color: var(--ape-accent-tertiary);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--ape-border-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .tool-name {
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .tool-description {
+      color: var(--ape-text-primary);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    
+    .tool-examples {
+      background-color: var(--ape-bg-tertiary);
+      border-radius: var(--ape-border-radius-md);
+      padding: 1rem;
+    }
+    
+    .tool-examples-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .tool-examples-list {
+      padding-left: 1.2rem;
+      margin: 0.5rem 0 0 0;
+    }
+    
+    .tool-examples-list li {
+      color: var(--ape-text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+    }
+    
+    /* 뒤로가기 버튼 */
+    .help-footer {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .back-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--ape-bg-tertiary);
+      border: 1px solid var(--ape-border-subtle);
+      padding: 0.8rem 1.5rem;
+      border-radius: var(--ape-border-radius-md);
+      color: var(--ape-text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+    }
+    
+    .back-button:hover {
+      background-color: var(--ape-bg-hover);
+      transform: translateY(-2px);
+      border-color: var(--ape-border-strong);
+    }
+    
+    /* 마크다운 스타일 */
+    .markdown-body {
+      line-height: 1.6;
+    }
+    
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--ape-text-primary);
+    }
+    
+    .markdown-body p {
+      margin-bottom: 1rem;
+    }
+    
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+    
+    .markdown-body li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .markdown-body code {
+      background-color: var(--ape-bg-tertiary);
+      padding: 0.2rem 0.4rem;
+      border-radius: var(--ape-border-radius-sm);
+      font-family: var(--ape-font-mono);
+      font-size: 0.9em;
+    }
+    
+    .markdown-body pre {
+      background-color: var(--ape-bg-tertiary);
+      padding: 1rem;
+      border-radius: var(--ape-border-radius-md);
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+    
+    .markdown-body pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .help-page {
+        padding: 1rem;
+      }
+      
+      .command-detail {
+        padding: 1.5rem;
+      }
+      
+      .git-commands-grid, .command-grid, .guides-grid, .tools-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .quick-buttons {
+        flex-direction: column;
+      }
+      
+      .category-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        gap: 0.5rem;
+      }
+      
+      .category-tab {
+        flex: 0 0 auto;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+      }
+    }
+  `;
+}
+
+/**
+ * HTML 이스케이프
+ * @param unsafe 이스케이프할 문자열
+ * @returns 이스케이프된 문자열
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * 카테고리별 이모지 아이콘 가져오기
+ * @param category 카테고리 ID
+ * @returns 이모지 아이콘
+ */
+function getCategoryEmoji(category: string): string {
+  switch (category) {
+    case 'general':
+      return '📚';
+    case 'git':
+      return '⚙️';
+    case 'code':
+      return '🔍';
+    case 'utility':
+      return '🧰';
+    case 'advanced':
+      return '🔧';
+    case 'model':
+      return '🤖';
+    default:
+      return '📋';
+  }
+}
+
+/**
+ * 명령어별 이모지 아이콘 가져오기
+ * @param command 명령어 이름
+ * @returns 이모지 아이콘
+ */
+function getCommandIcon(command: string): string {
+  // 명령어에 따라 적절한 이모지 반환
+  if (command.includes('git')) {
+    if (command.includes('status')) return '📊';
+    if (command.includes('commit')) return '💾';
+    if (command.includes('auto')) return '🔄';
+    if (command.includes('consolidate') || command.includes('squash')) return '📦';
+    if (command.includes('branch')) return '🌿';
+    if (command.includes('push')) return '📤';
+    if (command.includes('pull')) return '📥';
+    if (command.includes('solve')) return '🔧';
+    return '⚙️';
+  }
+  
+  switch (command) {
+    // 일반 명령어
+    case 'help': return '❓';
+    case 'clear': return '🧹';
+    
+    // 코드 관련
+    case 'analyze': return '🔍';
+    case 'code': return '📄';
+    
+    // 모델 관련
+    case 'model': return '🤖';
+    case 'model list': return '📋';
+    case 'model use': return '🔄';
+    
+    // 유틸리티 명령어
+    case 'settings': return '⚙️';
+    case 'open': return '📂';
+    case 'chat': return '💬';
+    case 'chat save': return '💾';
+    case 'chat list': return '📋';
+    case 'chat show': return '👁️';
+    
+    // 사용자 확장 명령어
+    case 'plugins': return '🧩';
+    case 'rules': return '📏';
+    case 'vault': return '🔒';
+    
+    // 기본값
+    default: return '📎';
+  }
+}
+
+/**
+ * 가이드별 이모지 아이콘 가져오기
+ * @param guideId 가이드 ID
+ * @returns 이모지 아이콘
+ */
+function getGuideIcon(guideId: string): string {
+  switch (guideId) {
+    case 'auto-commit':
+      return '⚙️';
+    case 'code-analysis':
+      return '🔍';
+    case 'git-integration':
+      return '🔄';
+    case 'slash-commands':
+      return '📚';
+    case 'plugins':
+      return '🧩';
+    default:
+      return '📖';
+  }
+}
+
+/**
+ * 마크다운을 HTML로 변환 (간단 구현)
+ */
+function markdownToHtml(markdown: string): string {
+  return markdown
+    // 헤더 변환
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^##### (.+)$/gm, '<h5>$1</h5>')
+    .replace(/^###### (.+)$/gm, '<h6>$1</h6>')
+
+    // 코드 블록 변환
+    .replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre><code class="language-$1">$2</code></pre>')
+
+    // 인라인 코드 변환
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+
+    // 볼드 텍스트 변환
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+
+    // 이탤릭 텍스트 변환
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+
+    // 목록 변환
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^([0-9]+)\. (.+)$/gm, '<li>$2</li>')
+    .replace(/(<li>.*<\/li>\n)+/g, '<ul>$&</ul>')
+
+    // 링크 변환
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+
+    // 줄바꿈 변환
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+
+    // 단락 감싸기
+    .replace(/^(.+?)(?=<\/p>|<h[1-6]|<ul>|$)/s, '<p>$1</p>');
+}

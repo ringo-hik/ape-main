@@ -359,7 +359,7 @@ class AutoCommitService {
                         const commits = await this.bitbucketService.getCommitHistory(userName, 20);
                         if (commits && commits.length > 0) {
                             // 커밋 이력을 포맷팅하여 예제로 사용
-                            const formattedHistory = commits.map(commit => `${commit.displayId} - ${commit.message}`).join('\n');
+                            const formattedHistory = commits.map((commit) => `${commit.displayId} - ${commit.message}`).join('\n');
                             // 사용자의 최근 커밋 메시지를 예제로 사용
                             commitExamples = `Here are some example commit messages to follow the style:\n${formattedHistory}\n\n`;
                         }

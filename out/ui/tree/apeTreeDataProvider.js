@@ -52,7 +52,6 @@ class ApeTreeDataProvider {
     context;
     llmService;
     memoryService;
-    todoService;
     vaultService;
     rulesService;
     jiraService;
@@ -67,11 +66,10 @@ class ApeTreeDataProvider {
      * @param llmService LLM 서비스
      * @param memoryService 메모리 서비스
      */
-    constructor(context, llmService, memoryService, todoService, vaultService, rulesService, jiraService) {
+    constructor(context, llmService, memoryService, vaultService, rulesService, jiraService) {
         this.context = context;
         this.llmService = llmService;
         this.memoryService = memoryService;
-        this.todoService = todoService;
         this.vaultService = vaultService;
         this.rulesService = rulesService;
         this.jiraService = jiraService;
@@ -149,7 +147,7 @@ class ApeTreeDataProvider {
             // VAULT 섹션
             {
                 id: 'vault',
-                label: 'VAULT 컨텍스트',
+                label: 'VAULT',
                 type: treeNodeTypes_1.TreeNodeType.VAULT_ROOT,
                 iconPath: this.getIconPath('brain-ai', 'library'),
                 contextValue: 'vaultRoot',

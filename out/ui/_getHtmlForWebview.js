@@ -49,6 +49,12 @@ function generateHtmlHeader(webview, extensionUri, nonce) {
     const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'codicon', 'codicon.css'));
     // 추가 CSS 로드
     const welcomeCustomCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'welcome-custom.css'));
+    // 버튼 스타일 CSS 로드
+    const buttonStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-buttons.css'));
+    // 마크다운 스타일 CSS 로드
+    const markdownStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-markdown.css'));
+    // 메시지 복사 기능 CSS 로드
+    const messageCopyStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-message-copy.css'));
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,6 +64,9 @@ function generateHtmlHeader(webview, extensionUri, nonce) {
   <link href="${modernStylesUri}" rel="stylesheet">
   <link href="${codiconsUri}" rel="stylesheet">
   <link href="${welcomeCustomCssUri}" rel="stylesheet">
+  <link href="${buttonStylesUri}" rel="stylesheet">
+  <link href="${markdownStylesUri}" rel="stylesheet">
+  <link href="${messageCopyStylesUri}" rel="stylesheet">
   <title>APE Chat</title>
 </head>`;
 }
@@ -80,16 +89,19 @@ function generateChatUiHtml(webview, extensionUri, minimal = false) {
         <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
         <div id="input-buttons">
           <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-            <img src="${mascotIconUri}" width="18" height="18" />
+            <img src="${mascotIconUri}" width="20" height="20" />
           </button>
           <button id="attach-button" title="Attach File" class="input-action-button">
-            <span class="emoji-icon">◈</span>
+            <span class="emoji-icon">📎</span>
+          </button>
+          <button id="format-button" title="Format Text" class="input-action-button">
+            <span class="emoji-icon">✨</span>
           </button>
           <button id="clear-button" title="Clear Chat" class="input-action-button">
-            <span class="emoji-icon">⌫</span>
+            <span class="emoji-icon">↺</span>
           </button>
           <button id="send-button" title="Send Message">
-            <span class="emoji-icon">↑</span>
+            <span class="emoji-icon">↗</span>
           </button>
         </div>
       </div>
@@ -121,16 +133,19 @@ function generateChatUiHtml(webview, extensionUri, minimal = false) {
         <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
         <div id="input-buttons">
           <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-            <img src="${mascotIconUri}" width="18" height="18" />
+            <img src="${mascotIconUri}" width="20" height="20" />
           </button>
           <button id="attach-button" title="Attach File" class="input-action-button">
-            <span class="emoji-icon">◈</span>
+            <span class="emoji-icon">📎</span>
+          </button>
+          <button id="format-button" title="Format Text" class="input-action-button">
+            <span class="emoji-icon">✨</span>
           </button>
           <button id="clear-button" title="Clear Chat" class="input-action-button">
-            <span class="emoji-icon">⌫</span>
+            <span class="emoji-icon">↺</span>
           </button>
           <button id="send-button" title="Send Message">
-            <span class="emoji-icon">↑</span>
+            <span class="emoji-icon">↗</span>
           </button>
         </div>
       </div>

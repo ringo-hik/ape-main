@@ -31,7 +31,7 @@ export declare class SlashCommandManager {
      */
     private registerDefaultCommands;
     /**
-     * VS Code 명령어 등록
+     * VS Code 명령어 등록 - 중복 명령 체크 추가
      */
     private registerVSCodeCommands;
     /**

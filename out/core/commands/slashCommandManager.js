@@ -88,21 +88,46 @@ class SlashCommandManager {
         });
     }
     /**
-     * VS Code 명령어 등록
+     * VS Code 명령어 등록 - 중복 명령 체크 추가
      */
     registerVSCodeCommands() {
-        // 도움말 명령어 등록
-        const showHelpCommand = vscode.commands.registerCommand('ape.showCommandHelp', (category) => {
-            this.showCommandHelp(category);
-        });
-        // 'executeSlashCommand'는 CommandManager에서 이미 등록되므로 여기서는 제거
-        // 중복 등록으로 인한 충돌 방지
-        // Git 상태 표시 명령어
-        const showGitStatus = vscode.commands.registerCommand('ape.git.showStatus', () => {
-            this.showGitStatus();
-        });
-        // 명령어 등록 해제
-        this.context.subscriptions.push(showHelpCommand, showGitStatus);
+        try {
+            // 명령어가 이미 등록되어 있는지 확인하는 안전한 명령어 등록 함수
+            const safeRegisterCommand = async (commandId, handler) => {
+                try {
+                    // 먼저 기존 명령이 있는지 확인
+                    const commands = await vscode.commands.getCommands(true);
+                    if (!commands.includes(commandId)) {
+                        // 명령이 없으면 등록
+                        return vscode.commands.registerCommand(commandId, handler);
+                    }
+                    else {
+                        console.log(`명령 '${commandId}'는 이미 등록되어 있어 건너뜁니다.`);
+                        return { dispose: () => { } }; // 더미 disposable 반환
+                    }
+                }
+                catch (error) {
+                    console.error(`명령 조회 중 오류 발생: ${error}`);
+                    return { dispose: () => { } };
+                }
+            };
+            // 비동기로 명령어 등록
+            (async () => {
+                try {
+                    // 도움말 명령어
+                    const helpCommandDisposable = await safeRegisterCommand('ape.showCommandHelp', () => {
+                        vscode.commands.executeCommand('workbench.action.quickOpen', '/help ');
+                    });
+                    this.context.subscriptions.push(helpCommandDisposable);
+                }
+                catch (error) {
+                    console.error('명령어 등록 중 오류 발생:', error);
+                }
+            })();
+        }
+        catch (error) {
+            console.error('VS Code 명령어 등록 중 오류 발생:', error);
+        }
     }
     /**
      * 명령어 등록

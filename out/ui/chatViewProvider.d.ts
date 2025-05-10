@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { LLMService } from '../core/llm/llmService';
 import { MemoryService } from '../core/memory/memoryService';
 import { CommandManager } from '../core/commands/commandManager';
-import { Message } from '../types/chat';
 import { CommandSuggestion } from '../core/commands/slashCommand';
 import { ModelManager } from '../core/llm/modelManager';
 /**
@@ -54,8 +53,79 @@ export declare class ChatViewProvider implements vscode.WebviewViewProvider {
      * Clears all messages from the chat and shows welcome screen
      */
     clearChat(): void;
-    console: any;
-    log(: any): any;
-    const result: import("../core/memory/memoryService").MemoryResult<Message[]>;
-    if(result: any, success: any): any;
+    /**
+     * 메시지 로드 및 초기화
+     * @returns Promise<void>
+     */
+    private _loadMessages;
+    /**
+     * Saves messages to memory service
+     */
+    private _saveMessages;
+    /**
+     * Updates the chat view with the current messages
+     */
+    private _updateChatView;
+    /**
+     * Handles messages sent from the webview
+     */
+    private _handleMessage;
+    /**
+     * 텍스트 포맷팅 처리
+     * 클라이언트에서 받은 입력 내용을 포맷팅하여 응답
+     */
+    private _processFormattedText;
+    /**
+     * 명령어 제안 업데이트
+     */
+    private _updateCommandSuggestions;
+    /**
+     * 도움말에서 명령어를 채팅창에 입력
+     */
+    private _insertCommandToChat;
+    /**
+     * 외부에서 채팅 입력창에 텍스트 삽입
+     */
+    handleChatInput(text: string): void;
+    /**
+     * 외부에서 직접 LLM 응답을 채팅 창에 추가
+     */
+    sendLlmResponse(message: {
+        role: string;
+        content: string;
+    }): Promise<void>;
+    /**
+     * Opens an attached file in the editor
+     */
+    private _openAttachedFile;
+    /**
+     * 메시지 컨텍스트 포함/제외 토글
+     */
+    private _toggleMessageContext;
+    /**
+     * Gets the current editor content
+     */
+    private _getEditorContent;
+    /**
+     * 랜덤 인사말 메시지 가져오기
+     * @returns 랜덤 인사말 문자열
+     */
+    private _getRandomGreeting;
+    /**
+     * 명령어 제안 스크립트 가져오기
+     * 고급스러운 슬래시 명령어 자동완성 UI를 위한 스크립트
+     */
+    private _getCommandSuggestionScript;
+    /**
+     * 세련된 메시지 처리 및 포맷팅 스크립트
+     */
+    private _getChatScript;
+    /**
+     * Generates the HTML for the webview
+     */
+    private _getHtmlForWebview;
+    /**
+     * Generates a random nonce for CSP
+     */
+    private _getNonce;
 }

@@ -39,7 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDefaultCommands = createDefaultCommands;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
-const commands_1 = require("../git/commands");
+const minimalGitCommands_1 = require("../git/minimalGitCommands");
 const vaultCommands_1 = require("./vaultCommands");
 const rulesCommands_1 = require("./rulesCommands");
 const minimalJiraCommands_1 = require("./minimalJiraCommands");
@@ -194,8 +194,8 @@ function createDefaultCommands(services) {
             await vscode.commands.executeCommand('ape.analyzeCode');
         }
     });
-    // Git 명령어 추가
-    const gitCommands = (0, commands_1.createGitCommands)();
+    // Git 명령어 추가 (VS Code Git 확장 활용)
+    const gitCommands = (0, minimalGitCommands_1.createMinimalGitCommands)();
     commands.push(...gitCommands);
     // 설정
     commands.push({

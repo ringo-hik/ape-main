@@ -8,7 +8,6 @@ import * as vscode from 'vscode';
 import { ApeTreeItem } from './treeNodeTypes';
 import { LLMService } from '../../core/llm/llmService';
 import { MemoryService } from '../../core/memory/memoryService';
-import { TodoService } from '../../core/services/todoService';
 import { VaultService } from '../../core/services/vaultService';
 import { RulesService } from '../../core/services/rulesService';
 import { JiraService } from '../../core/services/jiraService';
@@ -19,7 +18,6 @@ export declare class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeT
     private readonly context;
     private readonly llmService;
     private readonly memoryService;
-    private readonly todoService?;
     private readonly vaultService?;
     private readonly rulesService?;
     private readonly jiraService?;
@@ -32,7 +30,7 @@ export declare class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeT
      * @param llmService LLM 서비스
      * @param memoryService 메모리 서비스
      */
-    constructor(context: vscode.ExtensionContext, llmService: LLMService, memoryService: MemoryService, todoService?: TodoService | undefined, vaultService?: VaultService | undefined, rulesService?: RulesService | undefined, jiraService?: JiraService | undefined);
+    constructor(context: vscode.ExtensionContext, llmService: LLMService, memoryService: MemoryService, vaultService?: VaultService | undefined, rulesService?: RulesService | undefined, jiraService?: JiraService | undefined);
     /**
      * 트리 데이터 초기화
      */

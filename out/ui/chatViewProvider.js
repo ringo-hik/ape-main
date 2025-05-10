@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("fs"));
 const chat_1 = require("../types/chat");
 // import { ChatViewService } from './chat/chatViewService'; // 사용하지 않음
 const codeService_1 = require("./chat/codeService");
@@ -165,18 +166,38 @@ class ChatViewProvider {
         }
     }
     /**
-     * 스마트 프롬프팅 UI 업데이트
+     * 스마트 프롬프팅 UI 업데이트 - Claude AI 스타일
      */
     _updateSmartPromptingUI(state) {
         if (!this._view) {
             return;
         }
-        // 웹뷰에 상태 업데이트 메시지 전송
+        // 웹뷰에 상태 업데이트 메시지 전송 - Claude AI 스타일
         this._view.webview.postMessage({
             type: 'updateSmartPrompting',
             enabled: state.enabled,
-            mode: state.mode
+            mode: state.mode,
+            // 모드에 따른 표시 이름 추가
+            modeName: this._getModeDisplayName(state.mode)
         });
+    }
+    /**
+     * 모드에 따른 표시 이름을 반환하는 함수
+     */
+    _getModeDisplayName(mode) {
+        const modeNames = {
+            'basic': '디버깅하기',
+            'advanced': '글쓰기',
+            'expert': '코드 분석',
+            'custom': '리팩토링',
+            'creative': '아이디어 구상하기',
+            'friendly': '친근한 모드',
+            'idea': '아이디어 구상하기',
+            'debug': '디버깅하기',
+            'analysis': '코드 분석',
+            'refactor': '리팩토링'
+        };
+        return modeNames[mode] || '스타일 선택';
     }
     /**
      * Sends a user message to the LLM and processes the response
@@ -356,65 +377,28 @@ class ChatViewProvider {
      * Clears all messages from the chat and shows welcome screen
      */
     clearChat() {
-        console.log('채팅 초기화 중 - 새 웰컴 메시지 생성');
+        console.log('채팅 초기화 중');
         // 메모리 서비스에서 메시지 삭제
         this._memoryService.clearMessages();
-        try {
-            // Get welcome message HTML with error handling
-            let welcomeHTML = '';
-            try {
-                welcomeHTML = welcomeView_1.WelcomeViewProvider.getWelcomeMessageHTML();
-                console.log('Welcome HTML generated successfully');
+        // 새로운 어시스턴트 메시지만 표시
+        const assistantId = `assistant_welcome_${Date.now()}`;
+        // 랜덤 인사말 가져오기
+        const greeting = this._getRandomGreeting();
+        // 간단한 인사말만 포함한 메시지 설정
+        this._messages = [
+            {
+                id: assistantId,
+                role: chat_1.MessageRole.Assistant,
+                content: greeting,
+                timestamp: new Date()
             }
-            catch (welcomeError) {
-                console.error('Error getting welcome HTML from provider:', welcomeError);
-                welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
-            }
-            // Ensure welcome HTML is not empty
-            if (!welcomeHTML || welcomeHTML.trim() === '') {
-                welcomeHTML = '<div class="welcome-container minimal"><h1>Welcome to APE</h1></div>';
-                console.warn('Empty welcome HTML detected, using fallback');
-            }
-            // Create a UI-only welcome message and conversation starter
-            const welcomeId = `welcome_ui_${Date.now()}`;
-            const assistantId = `assistant_welcome_${Date.now()}`;
-            // Create display messages - the welcome HTML message is UI-only and will not be sent to LLM
-            this._messages = [
-                // This is a UI-only message that won't be sent to LLM
-                {
-                    id: welcomeId,
-                    role: chat_1.MessageRole.System,
-                    content: welcomeHTML,
-                    timestamp: new Date(),
-                    metadata: {
-                        uiOnly: true, // Flag to indicate this shouldn't be sent to LLM
-                        type: 'welcome' // Mark as welcome message
-                    }
-                },
-                // This is the actual conversation starter from the assistant
-                {
-                    id: assistantId,
-                    role: chat_1.MessageRole.Assistant,
-                    content: 'Welcome to APE. How can I assist with your development today?',
-                    timestamp: new Date()
-                }
-            ];
-            // 즉시 UI 업데이트
-            this._updateChatView();
-        }
-        catch (error) {
-            console.error('웰컴 메시지 생성 중 오류:', error);
-            this._messages = [{
-                    id: `error_${Date.now()}`,
-                    role: chat_1.MessageRole.System,
-                    content: 'Error loading welcome screen.',
-                    timestamp: new Date()
-                }];
-            this._updateChatView();
-        }
+        ];
+        // 즉시 UI 업데이트
+        this._updateChatView();
     }
     /**
-     * Loads messages from memory service
+     * 메시지 로드 및 초기화
+     * @returns Promise<void>
      */
     async _loadMessages() {
         console.log('메시지 로드 중 - 기존 메시지 확인');
@@ -444,6 +428,8 @@ class ChatViewProvider {
                 // Create a UI-only welcome message and conversation starter
                 const welcomeId = `welcome_ui_${Date.now()}`;
                 const assistantId = `assistant_welcome_${Date.now()}`;
+                // 랜덤 인사말 가져오기
+                const greeting = this._getRandomGreeting();
                 // Create display messages with UI-only flag for welcome HTML
                 this._messages = [
                     // This is a UI-only message that won't be sent to LLM
@@ -461,7 +447,7 @@ class ChatViewProvider {
                     {
                         id: assistantId,
                         role: chat_1.MessageRole.Assistant,
-                        content: 'Welcome to APE. How can I assist with your development today?',
+                        content: greeting,
                         timestamp: new Date()
                     }
                 ];
@@ -605,6 +591,75 @@ class ChatViewProvider {
                     this._toggleMessageContext(message.messageId);
                 }
                 break;
+            case 'formatText':
+                // 텍스트 포맷 기능
+                this._formatInputText();
+                break;
+            case 'inputContent':
+                // 입력 내용을 받아서 포맷 처리
+                if (message.content) {
+                    this._processFormattedText(message.content);
+                }
+                break;
+        }
+    }
+    /**
+     * 텍스트 포맷 기능 구현
+     * 입력 텍스트를 개선된 형식으로 포맷팅
+     */
+    async _formatInputText() {
+        if (!this._view) {
+            return;
+        }
+        try {
+            // 현재 입력 내용을 가져오기 위해 웹뷰에 요청
+            this._view.webview.postMessage({
+                type: 'getInputContent'
+            });
+        }
+        catch (error) {
+            console.error('텍스트 포맷 요청 중 오류 발생:', error);
+            vscode.window.showErrorMessage('텍스트 포맷 요청 중 오류가 발생했습니다.');
+        }
+    }
+    /**
+     * 텍스트 포맷팅 처리
+     * 클라이언트에서 받은 입력 내용을 포맷팅하여 응답
+     */
+    async _processFormattedText(content) {
+        if (!this._view) {
+            return;
+        }
+        try {
+            // 간단한 텍스트 포맷팅 처리
+            let formattedText = content;
+            // 기본 포맷팅 규칙 적용
+            // 1. 줄 시작 부분 공백 제거
+            formattedText = formattedText.split('\n')
+                .map(line => line.trimStart())
+                .join('\n');
+            // 2. 연속된 공백 제거
+            formattedText = formattedText.replace(/\s{2,}/g, ' ');
+            // 3. 마크다운 제목 앞뒤에 공백 추가
+            formattedText = formattedText.replace(/^(#{1,6})([^\s#])/gm, '$1 $2');
+            // 4. 리스트 항목 포맷팅
+            formattedText = formattedText.replace(/^([*+-])([^\s])/gm, '$1 $2');
+            formattedText = formattedText.replace(/^(\d+\.)([^\s])/gm, '$1 $2');
+            // 고급 포맷팅 - 나중에 LLM 통합 가능
+            // 지금은 간단한 규칙만 적용
+            // 포맷된 텍스트 전송
+            this._view.webview.postMessage({
+                type: 'formatResponse',
+                formattedText: formattedText
+            });
+        }
+        catch (error) {
+            console.error('텍스트 포맷 처리 중 오류 발생:', error);
+            // 오류 시 원본 텍스트 반환
+            this._view.webview.postMessage({
+                type: 'formatResponse',
+                formattedText: content
+            });
         }
     }
     /**
@@ -757,6 +812,27 @@ class ChatViewProvider {
             }
         }
         return null;
+    }
+    /**
+     * 랜덤 인사말 메시지 가져오기
+     * @returns 랜덤 인사말 문자열
+     */
+    _getRandomGreeting() {
+        const defaultGreeting = 'Welcome to APE. How can I assist with your development today?';
+        try {
+            const greetingsPath = vscode.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
+            const greetingsContent = fs.readFileSync(greetingsPath.fsPath, 'utf-8');
+            const greetingsData = JSON.parse(greetingsContent);
+            if (greetingsData && greetingsData.greetings && greetingsData.greetings.length > 0) {
+                // 랜덤 인사말 선택
+                const randomIndex = Math.floor(Math.random() * greetingsData.greetings.length);
+                return greetingsData.greetings[randomIndex].text;
+            }
+        }
+        catch (error) {
+            console.warn('인사말을 불러오는 데 실패했습니다:', error);
+        }
+        return defaultGreeting;
     }
     /**
      * 명령어 제안 스크립트 가져오기
@@ -1486,7 +1562,7 @@ class ChatViewProvider {
       vscode.postMessage({ type: 'showModelSelector' });
     }
     
-    // 스마트 프롬프팅 토글 및 팝오버 처리
+    // 스마트 프롬프팅 토글 및 팝오버 처리 - Claude AI 스타일 UI
     function handleSmartPromptingToggle() {
       const popover = document.getElementById('smart-prompting-popover');
       if (popover) {
@@ -1494,66 +1570,193 @@ class ChatViewProvider {
         if (popover.style.display === 'block') {
           popover.style.display = 'none';
         } else {
+          // 팝오버 위치 조정
+          const toggleButton = document.getElementById('smart-prompting-toggle');
+          const toggleRect = toggleButton.getBoundingClientRect();
+
           popover.style.display = 'block';
+          popover.style.bottom = 'auto';
+          popover.style.top = '100%';
+          popover.style.left = '0';
 
-          // 모드 옵션에 클릭 이벤트 추가
-          document.querySelectorAll('.prompting-mode-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-              const modeElement = e.currentTarget as HTMLElement;
-              const mode = modeElement.dataset.mode;
+          // 클릭 이벤트 설정
+          setupStyleOptions();
 
-              // 활성 클래스 업데이트
-              document.querySelectorAll('.prompting-mode-option').forEach(opt => {
-                opt.classList.remove('active');
-              });
-              modeElement.classList.add('active');
-
-              // LLM 서비스에 모드 변경 알림
-              vscode.postMessage({
-                type: 'setSmartPromptingMode',
-                mode: mode
-              });
-
-              // 스마트 프롬프팅 활성화
-              vscode.postMessage({ type: 'toggleSmartPrompting' });
-            });
-          });
-
-          // 전문 프롬프트 옵션에 클릭 이벤트 추가
-          document.querySelectorAll('.specialized-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-              const promptElement = e.currentTarget as HTMLElement;
-              const promptType = promptElement.dataset.prompt;
-
-              // LLM 서비스에 전문 프롬프트 타입 전송
-              vscode.postMessage({
-                type: 'applySpecializedPrompt',
-                promptType: promptType
-              });
-
-              // 팝오버 닫기
-              popover.style.display = 'none';
-
-              // 스마트 프롬프팅 활성화
-              vscode.postMessage({ type: 'toggleSmartPrompting' });
-            });
-          });
-
-          // 닫기 버튼 이벤트
-          const closeButton = document.querySelector('.prompting-popover-close');
-          if (closeButton) {
-            closeButton.addEventListener('click', (e) => {
-              e.stopPropagation(); // 토글 버튼 이벤트 전파 방지
-              popover.style.display = 'none';
-            });
-          }
+          // 외부 클릭 시 팝오버 닫기
+          document.addEventListener('click', closePopoverOnOutsideClick);
         }
-      } else {
-        // 팝오버가 없으면 기본 토글 동작
-        vscode.postMessage({ type: 'toggleSmartPrompting' });
       }
     }
-    
+
+    // 스타일 옵션 설정
+    function setupStyleOptions() {
+      // 모드 옵션에 클릭 이벤트 추가
+      document.querySelectorAll('.prompting-mode-option').forEach(option => {
+        // 기존 이벤트 리스너 제거
+        option.removeEventListener('click', handleModeSelection);
+        // 새 이벤트 리스너 추가
+        option.addEventListener('click', handleModeSelection);
+      });
+
+      // 전문 프롬프트 옵션에 클릭 이벤트 추가
+      document.querySelectorAll('.specialized-option').forEach(option => {
+        // 기존 이벤트 리스너 제거
+        option.removeEventListener('click', handleSpecializedSelection);
+        // 새 이벤트 리스너 추가
+        option.addEventListener('click', handleSpecializedSelection);
+      });
+
+      // 닫기 버튼 이벤트
+      const closeButton = document.querySelector('.prompting-popover-close');
+      if (closeButton) {
+        closeButton.removeEventListener('click', closePopover);
+        closeButton.addEventListener('click', closePopover);
+      }
+
+      // 활성 스타일 제거 버튼
+      const removeStyleButton = document.querySelector('.remove-style');
+      if (removeStyleButton) {
+        removeStyleButton.removeEventListener('click', removeActiveStyle);
+        removeStyleButton.addEventListener('click', removeActiveStyle);
+      }
+    }
+
+    // 모드 선택 핸들러
+    function handleModeSelection(e) {
+      const modeElement = e.currentTarget;
+      const mode = modeElement.dataset.mode;
+      const modeLabel = modeElement.querySelector('.prompting-mode-label').textContent;
+
+      // 활성 클래스 업데이트
+      document.querySelectorAll('.prompting-mode-option').forEach(opt => {
+        opt.classList.remove('active');
+      });
+      modeElement.classList.add('active');
+
+      // 활성 스타일 표시
+      setActiveStyle(modeLabel);
+
+      // LLM 서비스에 모드 변경 알림
+      vscode.postMessage({
+        type: 'setSmartPromptingMode',
+        mode: mode
+      });
+
+      // 스마트 프롬프팅 활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+
+      // 팝오버 닫기
+      closePopover();
+    }
+
+    // 전문 프롬프트 선택 핸들러
+    function handleSpecializedSelection(e) {
+      const promptElement = e.currentTarget;
+      const promptType = promptElement.dataset.prompt;
+      const promptLabel = promptElement.textContent;
+
+      // 활성 스타일 표시
+      setActiveStyle(promptLabel);
+
+      // LLM 서비스에 전문 프롬프트 타입 전송
+      vscode.postMessage({
+        type: 'applySpecializedPrompt',
+        promptType: promptType
+      });
+
+      // 스마트 프롬프팅 활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+
+      // 팝오버 닫기
+      closePopover();
+    }
+
+    // 활성 스타일 설정
+    function setActiveStyle(styleName) {
+      const activeStyle = document.getElementById('active-style');
+      const activeStyleName = document.getElementById('active-style-name');
+
+      if (activeStyle && activeStyleName) {
+        activeStyleName.textContent = styleName;
+        activeStyle.style.display = 'flex';
+      }
+    }
+
+    // 활성 스타일 제거
+    function removeActiveStyle(e) {
+      e.stopPropagation();
+
+      const activeStyle = document.getElementById('active-style');
+      if (activeStyle) {
+        activeStyle.style.display = 'none';
+      }
+
+      // 스마트 프롬프팅 비활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+    }
+
+    // 팝오버 닫기
+    function closePopover(e) {
+      if (e) {
+        e.stopPropagation();
+      }
+
+      const popover = document.getElementById('smart-prompting-popover');
+      if (popover) {
+        popover.style.display = 'none';
+      }
+
+      // 외부 클릭 이벤트 리스너 제거
+      document.removeEventListener('click', closePopoverOnOutsideClick);
+    }
+
+    // 외부 클릭 시 팝오버 닫기
+    function closePopoverOnOutsideClick(e) {
+      const popover = document.getElementById('smart-prompting-popover');
+      const toggle = document.getElementById('smart-prompting-toggle');
+
+      if (popover && !popover.contains(e.target) && !toggle.contains(e.target)) {
+        closePopover();
+      }
+    }
+
+    // 스마트 프롬프팅 UI 업데이트 - Claude AI 스타일
+    function updateSmartPromptingUI(enabled, mode, modeName) {
+      const smartPromptingToggle = document.getElementById('smart-prompting-toggle');
+      const activeStyle = document.getElementById('active-style');
+      const activeStyleName = document.getElementById('active-style-name');
+
+      if (!smartPromptingToggle || !activeStyle || !activeStyleName) {
+        return;
+      }
+
+      if (enabled) {
+        // 활성화 스타일로 업데이트
+        smartPromptingToggle.classList.add('active');
+
+        // 선택된 모드 표시
+        activeStyleName.textContent = modeName || '스타일 적용됨';
+        activeStyle.style.display = 'flex';
+
+        // 해당 모드 옵션에 활성 클래스 추가
+        document.querySelectorAll('.prompting-mode-option').forEach(option => {
+          option.classList.remove('active');
+          if (option.dataset.mode === mode) {
+            option.classList.add('active');
+          }
+        });
+      } else {
+        // 비활성화 상태로 업데이트
+        smartPromptingToggle.classList.remove('active');
+        activeStyle.style.display = 'none';
+
+        // 모든 모드 옵션에서 활성 클래스 제거
+        document.querySelectorAll('.prompting-mode-option').forEach(option => {
+          option.classList.remove('active');
+        });
+      }
+    }
+
     // Handle clicks within message area (for file attachments, etc.)
     function handleMessageClick(event) {
       // File view button click handling
@@ -1600,7 +1803,7 @@ class ChatViewProvider {
           break;
 
         case 'updateSmartPrompting':
-          updateSmartPromptingUI(message.enabled, message.mode);
+          updateSmartPromptingUI(message.enabled, message.mode, message.modeName);
           break;
 
         case 'messageContextToggled':
@@ -2329,13 +2532,14 @@ class ChatViewProvider {
       <link href="${codeBlockStylesUri}" rel="stylesheet">
       <title>APE Chat</title>
       <style>
-        /* Additional minimal styling */
+        /* Modern minimal styling */
         #chat-container {
           display: flex;
           flex-direction: column;
           height: 100vh;
           padding: 0;
           margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
 
         #chat-messages {
@@ -2345,7 +2549,7 @@ class ChatViewProvider {
         }
 
         #chat-input-container {
-          padding: 12px;
+          padding: 16px 16px 12px 16px;
           border-top: 1px solid var(--vscode-input-border);
           background: var(--vscode-editor-background);
         }
@@ -2353,31 +2557,226 @@ class ChatViewProvider {
         #input-wrapper {
           display: flex;
           align-items: flex-end;
+          width: 100%;
+          position: relative;
+          margin-bottom: 12px;
         }
 
         #chat-input {
           flex: 1;
-          min-height: 40px;
-          max-height: 120px;
-          padding: 10px 12px;
+          min-height: 60px;
+          max-height: 200px;
+          padding: 12px 50px 12px 16px;
           resize: none;
           border-radius: 8px;
           font-size: 14px;
+          background: var(--vscode-input-background);
+          border: 1px solid var(--vscode-input-border);
+          color: var(--vscode-input-foreground);
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        #chat-input:focus {
+          outline: none;
+          border-color: var(--vscode-focusBorder);
         }
 
         #input-buttons {
           display: flex;
-          margin-left: 8px;
+          position: absolute;
+          right: 12px;
+          bottom: 18px;
+          z-index: 1;
+          gap: 8px;
         }
 
         .input-action-button, #send-button {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 36px;
-          height: 36px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
+          background: transparent;
+          border: none;
+          color: var(--vscode-foreground);
+          opacity: 0.7;
+          transition: opacity 0.2s, transform 0.2s;
+          cursor: pointer;
+        }
+
+        .input-action-button:hover, #send-button:hover {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+
+        /* Style selector bar */
+        #style-selector-bar {
+          display: flex;
+          align-items: center;
+          margin-top: 0;
+          margin-bottom: 0;
+          padding-top: 8px;
+          font-size: 12px;
+          width: 100%;
+          height: 36px;
+        }
+
+        #smart-prompting-toggle {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          background: transparent;
+          border: none;
+          font-size: 12px;
+          color: var(--vscode-foreground);
+          margin-right: 15px;
+        }
+
+        #smart-prompting-toggle:hover {
+          background: var(--vscode-list-hoverBackground);
+        }
+
+        #smart-prompting-toggle .toggle-icon {
+          margin-right: 6px;
+          font-size: 14px;
+        }
+
+        #active-style {
+          display: flex;
+          align-items: center;
+          margin-left: 8px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          background: var(--vscode-badge-background);
+          color: var(--vscode-badge-foreground);
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        #active-style .remove-style {
           margin-left: 6px;
+          cursor: pointer;
+          font-size: 10px;
+        }
+
+        /* Style popover */
+        #smart-prompting-popover {
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          width: 280px;
+          background: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+          display: none;
+          padding: 12px;
+          margin-bottom: 8px;
+        }
+
+        .prompting-popover-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .prompting-popover-title {
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .prompting-popover-close {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-size: 14px;
+          color: var(--vscode-descriptionForeground);
+        }
+
+        .prompting-popover-description {
+          margin-bottom: 12px;
+          font-size: 12px;
+          line-height: 1.4;
+          color: var(--vscode-descriptionForeground);
+          padding: 0 2px;
+        }
+
+        .prompting-modes {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .prompting-mode-option {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 8px;
+          border-radius: 6px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          cursor: pointer;
+          text-align: center;
+          transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .prompting-mode-option:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+          transform: translateY(-2px);
+        }
+
+        .prompting-mode-option.active {
+          background: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+        }
+
+        .prompting-mode-icon {
+          font-size: 18px;
+          margin-bottom: 8px;
+        }
+
+        .prompting-mode-label {
+          font-size: 12px;
+        }
+
+        .specialized-title {
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: var(--vscode-descriptionForeground);
+        }
+
+        .specialized-options {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .specialized-option {
+          padding: 6px 8px;
+          border-radius: 4px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          cursor: pointer;
+          font-size: 12px;
+          text-align: center;
+          transition: background-color 0.2s;
+        }
+
+        .specialized-option:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
         }
       </style>
     </head>
@@ -2386,14 +2785,74 @@ class ChatViewProvider {
         <div id="chat-messages"></div>
         <div id="chat-input-container">
           <div id="input-wrapper">
-            <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
+            <textarea id="chat-input" placeholder="메시지를 입력하거나 / 명령어 사용..." rows="1"></textarea>
             <div id="input-buttons">
-              <button id="clear-button" title="Clear Chat" class="input-action-button">
-                <span class="emoji-icon">⌫</span>
+              <button id="clear-button" title="대화 지우기" class="input-action-button">
+                <span class="emoji-icon">✕</span>
               </button>
-              <button id="send-button" title="Send Message">
+              <button id="send-button" title="메시지 전송">
                 <span class="emoji-icon">↑</span>
               </button>
+            </div>
+          </div>
+
+          <div id="style-selector-bar">
+            <button id="smart-prompting-toggle" title="스마트 프롬프트 기반 스타일 선택">
+              <span class="toggle-icon">✦</span>
+              <span id="smart-prompting-label">스타일 선택</span>
+            </button>
+            <div id="active-style" style="display: none;">
+              <span id="active-style-name"></span>
+              <span class="remove-style">✕</span>
+            </div>
+
+            <div id="smart-prompting-popover">
+              <div class="prompting-popover-header">
+                <span class="prompting-popover-title">스타일 선택</span>
+                <button class="prompting-popover-close">✕</button>
+              </div>
+              <div class="prompting-popover-description">
+                스마트 프롬프트 기술을 활용하여 AI 응답의 스타일과 특성을 조절합니다
+              </div>
+
+              <div class="prompting-modes">
+                <div class="prompting-mode-option" data-mode="idea">
+                  <span class="prompting-mode-icon">✧</span>
+                  <span class="prompting-mode-label">아이디어 구상하기</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="debug">
+                  <span class="prompting-mode-icon">⚙</span>
+                  <span class="prompting-mode-label">디버깅하기</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="analysis">
+                  <span class="prompting-mode-icon">⬡</span>
+                  <span class="prompting-mode-label">코드 분석</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="refactor">
+                  <span class="prompting-mode-icon">⬢</span>
+                  <span class="prompting-mode-label">리팩토링</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="creative">
+                  <span class="prompting-mode-icon">✦</span>
+                  <span class="prompting-mode-label">창의적 작성</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="friendly">
+                  <span class="prompting-mode-icon">♥</span>
+                  <span class="prompting-mode-label">친근한 모드</span>
+                </div>
+              </div>
+
+              <div class="specialized-prompting">
+                <div class="specialized-title">자주 사용하는 전문 프롬프트</div>
+                <div class="specialized-options">
+                  <div class="specialized-option" data-prompt="코드 리뷰">코드 리뷰</div>
+                  <div class="specialized-option" data-prompt="성능 최적화">성능 최적화</div>
+                  <div class="specialized-option" data-prompt="문서화">문서화</div>
+                  <div class="specialized-option" data-prompt="보고서">보고서</div>
+                  <div class="specialized-option" data-prompt="디자인 패턴">디자인 패턴</div>
+                  <div class="specialized-option" data-prompt="테스트 작성">테스트 작성</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2415,6 +2874,82 @@ class ChatViewProvider {
             text += possible.charAt(Math.floor(Math.random() * possible.length));
         }
         return text;
+    }
+    /**
+     * 입력 텍스트 포맷팅 기능
+     * - 코드 블록을 정리하고 구문 강조 지원
+     * - 마크다운 텍스트 포맷팅
+     */
+    _formatInputText() {
+        if (!this._view) {
+            return;
+        }
+        vscode.window.showQuickPick([
+            { label: '코드 블록 추가', detail: '코드 블록으로 텍스트를 감싸기', value: 'code' },
+            { label: '마크다운 정리', detail: '들여쓰기와 줄바꿈 정리', value: 'markdown' },
+            { label: '인용문 추가', detail: '인용문으로 텍스트 포맷', value: 'quote' },
+            { label: '리스트 포맷', detail: '번호 또는 글머리 기호 리스트로 변환', value: 'list' }
+        ], {
+            placeHolder: '적용할 포맷 스타일을 선택하세요',
+            matchOnDetail: true
+        }).then(selection => {
+            if (selection) {
+                // 에디터에서 선택된 텍스트 가져오기
+                this._getEditorContent().then(content => {
+                    let formattedText = '';
+                    switch (selection.value) {
+                        case 'code':
+                            if (content) {
+                                formattedText = '```\n' + content + '\n```';
+                            }
+                            else {
+                                formattedText = '```\n\n```';
+                            }
+                            break;
+                        case 'markdown':
+                            if (content) {
+                                // 마크다운 텍스트 정리: 여러 줄바꿈을 한 줄로, 들여쓰기 정리
+                                formattedText = content
+                                    .replace(/\n{3,}/g, '\n\n') // 3개 이상의 줄바꿈을 2개로
+                                    .replace(/^ {4,}/gm, '  '); // 4개 이상 들여쓰기를 2개로
+                            }
+                            break;
+                        case 'quote':
+                            if (content) {
+                                // 각 줄 앞에 인용문 표시 추가
+                                formattedText = content
+                                    .split('\n')
+                                    .map(line => line.trim() ? `> ${line}` : '>')
+                                    .join('\n');
+                            }
+                            else {
+                                formattedText = '> ';
+                            }
+                            break;
+                        case 'list':
+                            if (content) {
+                                // 리스트 형식으로 변환
+                                formattedText = content
+                                    .split('\n')
+                                    .filter(line => line.trim())
+                                    .map((line, index) => `- ${line}`)
+                                    .join('\n');
+                            }
+                            else {
+                                formattedText = '- ';
+                            }
+                            break;
+                    }
+                    // 포맷된 텍스트 웹뷰로 전송
+                    if (this._view) {
+                        this._view.webview.postMessage({
+                            type: 'formatResponse',
+                            formattedText
+                        });
+                    }
+                });
+            }
+        });
     }
 }
 exports.ChatViewProvider = ChatViewProvider;
