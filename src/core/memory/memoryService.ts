@@ -101,13 +101,16 @@ export class MemoryService implements vscode.Disposable {
    */
   private async _initializeDefaultSession(): Promise<void> {
     const defaultSessionId = 'default';
-    
+
     try {
       // Check if default session exists
       const existingSession = await this._loadSession(defaultSessionId);
-      
+
       if (existingSession) {
         this._sessions.set(defaultSessionId, existingSession);
+
+        // 기존 세션을 워크스페이스에도 저장
+        await this._saveSessionToWorkspace(existingSession);
       } else {
         // Create new default session
         const newSession: ChatSession = {
@@ -117,11 +120,11 @@ export class MemoryService implements vscode.Disposable {
           updatedAt: new Date(),
           messages: []
         };
-        
+
         this._sessions.set(defaultSessionId, newSession);
         await this._saveSession(newSession);
       }
-      
+
       this._currentSessionId = defaultSessionId;
     } catch (error) {
       console.error('Failed to initialize default session:', error);
@@ -725,13 +728,69 @@ export class MemoryService implements vscode.Disposable {
    */
   private async _saveSession(session: ChatSession): Promise<void> {
     const sessionFile = path.join(this._storageDir, `${session.id}.json`);
-    
+
     try {
       const sessionJson = JSON.stringify(session, null, 2);
       await fs.writeFile(sessionFile, sessionJson, 'utf-8');
+
+      // 워크스페이스 .ape/vault/chat-history 디렉토리에도 저장
+      await this._saveSessionToWorkspace(session);
     } catch (error) {
       console.error(`Error saving session ${session.id}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * 세션을 워크스페이스의 .ape/vault/chat-history 디렉토리에 저장
+   */
+  private async _saveSessionToWorkspace(session: ChatSession): Promise<void> {
+    try {
+      // 워크스페이스 폴더 확인
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        return; // 워크스페이스가 없으면 종료
+      }
+
+      // .ape/vault/chat-history 디렉토리 경로
+      const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
+
+      // 디렉토리가 없으면 생성
+      if (!existsSync(chatHistoryDir)) {
+        mkdirSync(chatHistoryDir, { recursive: true });
+      }
+
+      // 메타데이터 파일 경로
+      const metaFile = path.join(chatHistoryDir, `${session.id}.meta.json`);
+
+      // 세션 내용 파일 경로
+      const contentFile = path.join(chatHistoryDir, `${session.id}.json`);
+
+      // 요약 생성 (첫 번째 사용자 메시지 기반)
+      const firstUserMessage = session.messages.find(m => m.role === MessageRole.User);
+      const summary = firstUserMessage
+        ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
+        : '새 대화';
+
+      // 세션 제목 설정
+      const title = session.metadata?.summary || session.name || summary || `대화 (${new Date().toLocaleString()})`;
+
+      // 메타데이터 생성
+      const metadata = {
+        id: session.id,
+        title: title,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        messageCount: session.messages.length,
+        summary: summary
+      };
+
+      // 파일 저장
+      await fs.writeFile(metaFile, JSON.stringify(metadata, null, 2), 'utf-8');
+      await fs.writeFile(contentFile, JSON.stringify(session, null, 2), 'utf-8');
+    } catch (error) {
+      console.error(`Error saving session to workspace ${session.id}:`, error);
+      // 워크스페이스 저장 실패는 무시하고 계속 진행
     }
   }
   

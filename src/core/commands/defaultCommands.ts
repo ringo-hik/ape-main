@@ -239,20 +239,61 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     }
   });
 
-  // Ask 명령어 - 가이드 및 도움말을 LLM 기반으로 제공
+  // Ask 명령어 - 다양한 스마트 프롬프팅 모드를 제공하는 LLM 기반 가이드
   commands.push({
     name: 'ask',
     aliases: ['질문', '물어보기', '가이드', '어떻게', '어떡해', '방법', '조언'],
     description: 'LLM을 사용하여 질문에 대한 가이드와 도움말을 제공합니다',
-    examples: ['/ask 컨플릭 해결하려면 어떻게해?', '/ask 자동 커밋 사용 방법', '/질문 규칙 관리는 어떻게 하나요?'],
+    examples: ['/ask 컨플릭 해결하려면 어떻게해?', '/ask --mode=디버깅 코드가 오류를 발생시켜요', '/ask --mode=git 자동 커밋 어떻게 사용하나요?', '/ask --mode=테스트 단위 테스트 작성 방법'],
     category: 'general',
     priority: 1,
     execute: async (context) => {
       try {
-        const question = context.args.join(' ').trim();
+        // 모드 옵션 파싱
+        let mode = 'general';  // 기본 모드
+        let question = '';
 
+        // 모드 옵션 확인 (--mode=값 형식)
+        const modeArg = context.args.find(arg => arg.startsWith('--mode='));
+        if (modeArg) {
+          mode = modeArg.split('=')[1].trim();
+          // 모드 옵션을 제외한 나머지 인자를 질문으로 사용
+          question = context.args.filter(arg => arg !== modeArg).join(' ').trim();
+        } else {
+          question = context.args.join(' ').trim();
+        }
+
+        // 사용 가능한 모드 목록
+        const availableModes = [
+          { id: 'general', name: '일반', description: '일반적인 도움말 및 가이드 제공', icon: '📚' },
+          { id: 'debug', name: '디버깅', description: '코드 디버깅 및 문제 해결 가이드', icon: '🔍' },
+          { id: 'refactor', name: '리팩토링', description: '코드 개선 및 리팩토링 제안', icon: '🔄' },
+          { id: 'jira', name: 'JIRA', description: 'JIRA 이슈 작성 및 관리 가이드', icon: '📋' },
+          { id: 'workflow', name: '워크플로우', description: '작업 단계 및 절차 안내', icon: '📝' },
+          { id: 'code', name: '코드', description: '코드 작성 및 구현 가이드', icon: '💻' },
+          { id: 'git', name: 'Git', description: 'Git 관련 명령어 및 작업 가이드', icon: '🔀' },
+          { id: 'explain', name: '설명', description: '코드 및 개념 설명', icon: '📖' },
+          { id: 'planning', name: '계획', description: '개발 작업 계획 및 단계 수립', icon: '📊' },
+          { id: 'testing', name: '테스트', description: '테스트 케이스 작성 및 테스트 전략', icon: '✅' }
+        ];
+
+        // 질문이 없는 경우 모드 선택 UI 표시
         if (!question) {
-          vscode.window.showErrorMessage('질문을 입력해주세요');
+          // 간소화된 모드 목록
+          const modesList = availableModes.map(m => `${m.icon} ${m.name}: ${m.id}`).join('\n');
+
+          const modesHtml = `
+          <div>
+            <h3>스마트 프롬프팅 모드</h3>
+            <p>질문 시 다음 모드를 사용할 수 있습니다:</p>
+            <pre>${modesList}</pre>
+            <p>사용법: <code>/ask --mode=[모드명] [질문]</code></p>
+          </div>`;
+
+          await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: modesHtml
+          });
           return;
         }
 
@@ -277,16 +318,25 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
         }
 
         // help.json과 guide.json 내용 로드
-        const helpPath = path.join(vscode.extensions.getExtension('ape-team.ape-extension')?.extensionPath || '', 'src', 'data', 'help.json');
-        const guidePath = path.join(vscode.extensions.getExtension('ape-team.ape-extension')?.extensionPath || '', 'src', 'data', 'guide.json');
-
         let helpData;
         let guideData;
+
+        // 익스텐션 정보 가져오기
+        const extension = vscode.extensions.getExtension('ape-team.ape-extension');
+
+        if (!extension) {
+          throw new Error('APE 익스텐션을 찾을 수 없습니다.');
+        }
+
+        const extensionPath = extension.extensionPath;
+        const helpPath = path.join(extensionPath, 'src', 'data', 'help.json');
+        const guidePath = path.join(extensionPath, 'src', 'data', 'guide.json');
 
         try {
           helpData = JSON.parse(fs.readFileSync(helpPath, 'utf8'));
         } catch (error) {
           console.error('help.json 파일 로드 오류:', error);
+          // 기본 데이터 구조 제공
           helpData = { categories: [], faq: [], guides: [] };
         }
 
@@ -294,11 +344,217 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           guideData = JSON.parse(fs.readFileSync(guidePath, 'utf8'));
         } catch (error) {
           console.error('guide.json 파일 로드 오류:', error);
+          // 기본 데이터 구조 제공
           guideData = { workflows: [], commandGuides: [] };
         }
 
-        // 시스템 프롬프트 생성
-        const systemPrompt = `당신은 APE(Agentic Programming Extension)의 가이드 도우미입니다.
+        // 선택한 모드에 따라 시스템 프롬프트 생성
+        let systemPrompt = '';
+        let modeIcon = '📚';
+        let modeName = '일반';
+
+        // 현재 모드에 해당하는 정보 찾기
+        const currentMode = availableModes.find(m => m.id === mode.toLowerCase() || m.name === mode);
+        if (currentMode) {
+          modeIcon = currentMode.icon;
+          modeName = currentMode.name;
+        }
+
+        switch (mode.toLowerCase()) {
+          case 'debug':
+          case '디버깅':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 디버깅 도우미입니다.
+사용자가 제시한 코드 문제나 오류에 대해 help.json과 guide.json에 있는 정보를 바탕으로 디버깅 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 문제의 잠재적 원인을 분석하고 진단하세요
+2. 오류 메시지의 의미를 설명하세요
+3. 단계별 디버깅 과정을 구체적으로 안내하세요
+4. 관련 APE 명령어나 도구가 있다면 함께 소개하세요
+5. 문제 해결을 위한 검증 방법도 제시하세요
+
+답변 형식:
+[문제 진단 요약]
+
+[가능한 원인 분석]
+
+[단계별 디버깅 방법]
+
+[관련 명령어 및 도구]`;
+            break;
+          case 'refactor':
+          case '리팩토링':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 리팩토링 도우미입니다.
+사용자의 코드 개선 요청에 대해 help.json과 guide.json에 있는 정보를 바탕으로 리팩토링 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 코드의 품질, 가독성, 성능 측면에서 개선점을 분석하세요
+2. 디자인 패턴이나 모범 사례를 제안하세요
+3. 단계별 리팩토링 과정을 구체적으로 안내하세요
+4. 관련 APE 명령어나 도구가 있다면 함께 소개하세요
+5. 리팩토링 후 예상되는 이점을 설명하세요
+
+답변 형식:
+[코드 분석 요약]
+
+[개선 가능한 부분]
+
+[리팩토링 접근 방법]
+
+[관련 명령어 및 도구]`;
+            break;
+          case 'jira':
+          case 'jira 이슈':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 JIRA 도우미입니다.
+사용자의 JIRA 이슈 작성 또는 관리 요청에 대해 help.json과 guide.json에 있는 정보를 바탕으로 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. JIRA 이슈 작성을 위한 구조화된 템플릿을 제공하세요
+2. 이슈 제목, 설명, 재현 단계, 기대 결과 등 필요한 항목을 포함하세요
+3. APE에서 JIRA 관련 명령어나 기능을 소개하세요
+4. 이슈 추적 및 관리 모범 사례를 제안하세요
+
+답변 형식:
+[JIRA 이슈 템플릿]
+
+[APE JIRA 통합 기능]
+
+[JIRA 이슈 관리 팁]`;
+            break;
+          case 'workflow':
+          case '워크플로우':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 워크플로우 도우미입니다.
+사용자의 작업 프로세스 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 워크플로우를 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 작업 목표 달성을 위한 명확한 단계별 절차를 설명하세요
+2. 각 단계마다 필요한 APE 명령어나 기능을 연결하세요
+3. 작업 간 의존성과 순서를 명확히 하세요
+4. 체크포인트나 검증 단계를 포함하세요
+5. 자동화 가능한 부분이 있다면 제안하세요
+
+답변 형식:
+[워크플로우 개요]
+
+[단계별 작업 절차]
+
+[추천 자동화 옵션]
+
+[관련 명령어 및 도구]`;
+            break;
+          case 'code':
+          case '코드':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 코드 작성 도우미입니다.
+사용자의 코드 구현 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 가이드를 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 구현하려는 기능에 대한 접근 방식을 제안하세요
+2. 필요한 구성 요소와 설계 패턴을 설명하세요
+3. 핵심 코드 구현 방법을 단계별로 안내하세요
+4. APE에서 제공하는 관련 도구와 명령어를 소개하세요
+5. 테스트 및 검증 방법도 포함하세요
+
+답변 형식:
+[기능 구현 접근 방식]
+
+[핵심 구성 요소]
+
+[구현 단계]
+
+[관련 명령어 및 도구]`;
+            break;
+          case 'git':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 Git 도우미입니다.
+사용자의 Git 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 가이드를 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. Git 명령어와 워크플로우에 관한 명확한 설명을 제공하세요
+2. APE의 Git 관련 명령어와 사용법을 상세하게 안내하세요
+3. 문제 상황별 해결 방법을 단계별로 설명하세요
+4. Git 모범 사례와 팁을 공유하세요
+5. APE의 자동 커밋, 충돌 해결 등 특화 기능을 강조하세요
+
+답변 형식:
+[핵심 답변]
+
+[상세 설명 및 단계별 방법]
+
+[APE Git 명령어 관련 정보]
+
+[참고할 수 있는 모범 사례]`;
+            break;
+          case 'explain':
+          case '설명':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 개념 설명 도우미입니다.
+사용자가 질문한 코드나 개념에 대해 help.json과 guide.json에 있는 정보를 바탕으로 명확한 설명을 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 개념이나 코드의 목적과 기능을 명확히 설명하세요
+2. 핵심 원리와 작동 방식을 이해하기 쉽게 풀어서 설명하세요
+3. 실제 사용 예시와 적용 사례를 제공하세요
+4. 관련된 다른 개념이나 패턴과의 관계를 설명하세요
+5. 관련 APE 기능이 있다면 함께 소개하세요
+
+답변 형식:
+[개념 정의 - 1-2문장]
+
+[작동 원리 설명]
+
+[사용 사례 및 예시]
+
+[관련 개념 및 APE 기능]`;
+            break;
+          case 'planning':
+          case '계획':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 개발 계획 도우미입니다.
+사용자의 개발 계획 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 체계적인 계획 수립을 도와야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 목표 달성을 위한 명확한 단계별 계획을 수립하세요
+2. 각 단계의 우선순위와 의존성을 고려하세요
+3. 일정 추정과 마일스톤을 제안하세요
+4. 잠재적 위험 요소와 대응 방안을 분석하세요
+5. APE 기능을 활용한 작업 효율화 방안을 제안하세요
+
+답변 형식:
+[계획 개요]
+
+[단계별 작업 계획]
+
+[일정 및 마일스톤]
+
+[위험 요소 및 대응 방안]
+
+[APE 기능 활용 방안]`;
+            break;
+          case 'testing':
+          case '테스트':
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 테스트 도우미입니다.
+사용자의 테스트 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 테스트 전략과
+구현 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 테스트 대상에 적합한 테스트 유형과 방법론을 추천하세요
+2. 효과적인 테스트 케이스 설계 방법을 제안하세요
+3. 테스트 코드 작성 예시와 모범 사례를 제공하세요
+4. 테스트 자동화와 CI/CD 통합 방안을 안내하세요
+5. APE에서 제공하는 테스트 관련 도구와 명령어를 소개하세요
+
+답변 형식:
+[테스트 전략 개요]
+
+[테스트 케이스 설계]
+
+[테스트 코드 작성 방법]
+
+[테스트 자동화 방안]
+
+[관련 APE 도구 및 명령어]`;
+            break;
+          case 'general':
+          case '일반':
+          default:
+            systemPrompt = `당신은 APE(Agentic Programming Extension)의 가이드 도우미입니다.
 사용자의 질문에 대해 help.json과 guide.json에 있는 정보를 기반으로 명확하고 구체적인 답변을 제공해야 합니다.
 질문과 가장 관련성 높은 명령어, 워크플로우, 가이드를 찾아 답변하세요.
 
@@ -312,18 +568,14 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
 7. 답변은 간결하고 명확하게 작성하세요
 8. 가이드와 도움말에 없는 내용에 대해서는 정확히 모른다고 답변하세요
 
-답변은 다음 형식을 따르세요:
-1. 핵심 명령어 또는 기능을 간략히 소개
-2. 단계별 사용 방법
-3. 예시 명령어
-
 답변 형식:
 [핵심 답변 - 1-2문장]
 
 [상세 설명 및 단계별 방법]
 
-[예시 및 관련 명령어]
-`;
+[예시 및 관련 명령어]`;
+            break;
+        }
 
         // 컨텍스트 메시지 생성 (help.json, guide.json 데이터)
         const helpCommandsStr = helpData.categories
@@ -394,10 +646,23 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
         const response = await llmService.sendRequest(messages, { temperature: 0.2 });
 
         if (response.success && response.data) {
+          // 현재 모드에 해당하는 뱃지 생성
+          const modeBadge = `<div style="display:inline-block; padding:5px 10px; background-color:#f0f0f0; border-radius:5px; margin-bottom:10px;">
+            <span style="font-size:16px;">${modeIcon}</span> <strong>${modeName} 모드</strong>
+          </div>`;
+
+          // 모드 선택기 UI 생성 (간소화)
+          const modeSelector = `<div style="margin-top:15px; color:#0066cc; cursor:pointer;">
+            <span>다른 모드로 질문하려면 '/ask --mode=[모드명] ${question}' 명령어를 입력하세요.</span>
+          </div>`;
+
+          // 간소화된 응답 형식
+          const formattedResponse = `${modeBadge}\n\n${response.data.message.content}\n\n${modeSelector}`;
+
           // 결과를 채팅창에 표시
           await vscode.commands.executeCommand('ape.sendLlmResponse', {
             role: 'assistant',
-            content: response.data.message.content,
+            content: formattedResponse,
             replaceMessageId: 'temp_loading'
           });
         } else {
@@ -463,8 +728,11 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
         }
 
         // 시스템 정보 구성 (일반 텍스트 형식)
-        let output = 'APE 시스템 상태\n';
-        output += '=================\n\n';
+        let output = `
++----------------------+
+|  APE 시스템 상태     |
++----------------------+
+`;
 
         // 현재 세션 정보
         const currentSession = memoryService.getCurrentSession();
@@ -683,8 +951,8 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           return;
         }
         
-        // Vault 내 채팅 내역 경로 확인 및 생성
-        const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+        // .ape/vault/chat-history 디렉토리 경로 확인 및 생성
+        const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
         const chatHistoryUri = vscode.Uri.file(chatHistoryDir);
         
         try {
@@ -760,8 +1028,8 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           return;
         }
         
-        // 채팅 내역 폴더 경로
-        const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+        // 채팅 내역 폴더 경로 (.ape/vault/chat-history)
+        const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
         const chatHistoryUri = vscode.Uri.file(chatHistoryDir);
         
         // 폴더 존재 확인
