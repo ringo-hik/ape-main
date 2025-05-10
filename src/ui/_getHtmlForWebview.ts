@@ -36,6 +36,11 @@ export function generateHtmlHeader(
     vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-markdown.css')
   );
 
+  // 메시지 복사 기능 CSS 로드
+  const messageCopyStylesUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-message-copy.css')
+  );
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,6 +52,7 @@ export function generateHtmlHeader(
   <link href="${welcomeCustomCssUri}" rel="stylesheet">
   <link href="${buttonStylesUri}" rel="stylesheet">
   <link href="${markdownStylesUri}" rel="stylesheet">
+  <link href="${messageCopyStylesUri}" rel="stylesheet">
   <title>APE Chat</title>
 </head>`;
 }
