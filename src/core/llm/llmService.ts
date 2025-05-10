@@ -33,6 +33,12 @@ const INTERNAL_API_ENDPOINTS: Record<string, string> = {
   [LLMModel.LLAMA4_MAVERICK]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions'
 };
 
+// 내부망 인증 정보 (고정값)
+const INTERNAL_AUTH = {
+  NARRANS_TOKEN: 'dummytoken', // Narrans 인증 토큰 (테스트용)
+  DEP_TICKET: 'dummy-credential-key' // x-dep-ticket 값 (테스트용)
+};
+
 // Define constants for WebSocket states
 const WS_OPEN = 1;
 
@@ -47,34 +53,35 @@ function isInternalModel(model: string): boolean {
 
 /**
  * 내부망 모델용 요청 헤더 생성
- * @param apiKey API 키 (내부망에서는 x-dep-ticket으로 사용)
+ * @param requestId 요청 ID
  * @param isStreaming 스트리밍 요청 여부
+ * @param model 모델 ID
  * @returns 헤더 객체
  */
 function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming: boolean = false, model: LLMModel = '' as LLMModel): Record<string, string> {
   // 기본 헤더
   const headers = {
     'Content-Type': 'application/json',
-    'Accept': isStreaming ? 'text/event-stream' : 'application/json',
-    'Send-System-Name': 'swdp',
-    'user-id': 'ape_ext',
-    'user-type': 'ape_ext',
+    'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
+    'Send-System-Name': 'narrans',
+    'User-Id': 'ape_ext',
+    'User-Type': 'ape_ext',
     'Prompt-Msg-Id': requestId,
-    'Completion-msg-Id': requestId,
+    'Completion-Msg-Id': requestId,
   };
 
   // Narrans 모델은 Bearer 인증 방식 사용
   if (model === LLMModel.NARRANS) {
     return {
       ...headers,
-      'Authorization': `Bearer dummy_key` // 임시 API 키
+      'Authorization': `Bearer ${INTERNAL_AUTH.NARRANS_TOKEN}` // 고정 토큰
     };
   }
   // 기타 내부망 모델은 x-dep-ticket 사용
   else {
     return {
       ...headers,
-      'x-dep-ticket': apiKey
+      'x-dep-ticket': INTERNAL_AUTH.DEP_TICKET // 고정 티켓
     };
   }
 }
@@ -102,7 +109,7 @@ function createInternalApiRequestBody(model: string, messages: any[], options?: 
   } else if (model === LLMModel.LLAMA4_SCOUT || model === LLMModel.LLAMA4_MAVERICK) {
     return {
       ...baseRequest,
-      system_name: 'swdp',
+      system_name: 'narrans',  // 통일된 system_name
       user_id: 'ape_ext',
       user_type: 'ape_ext',
       max_tokens: options?.maxTokens || 50000
