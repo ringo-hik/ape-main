@@ -9,7 +9,6 @@ import { createGitCommands } from '../git/commands';
 import { createVaultCommands } from './vaultCommands';
 import { createRulesCommands } from './rulesCommands';
 import { createJiraCommands } from './jiraCommands';
-import { createTodoCommands } from './todoCommands';
 
 /**
  * 기본 슬래시 커맨드 목록 생성
@@ -35,11 +34,7 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     commands.push(...jiraCommands);
   }
   
-  // Todo 명령어 추가 (Todo 서비스가 있는 경우)
-  if (services?.todoService) {
-    const todoCommands = createTodoCommands(services.todoService);
-    commands.push(...todoCommands);
-  }
+  // Todo 관련 코드 삭제됨
   
   // 도움말 명령어
   commands.push({
@@ -227,15 +222,36 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     }
   });
   
-  // 대화 내역 저장 기능
+  // 채팅 관리 기능
   commands.push({
-    name: 'save-chat',
-    aliases: ['stack', 'history', 'save', '기록', '대화기록', '저장'],
-    description: '현재 채팅 내역을 저장하고 관리합니다',
-    examples: ['/save-chat', '/stack', '/history', '/기록'],
+    name: 'chat',
+    aliases: ['대화', '채팅', 'c'],
+    description: '채팅 내역을 저장하고 관리합니다',
+    examples: ['/chat save', '/chat list', '/chat show ID', '/대화 저장', '/채팅 목록'],
     category: 'utility',
     priority: 25,
-    execute: async () => {
+    execute: async (context) => {
+      const subCommand = context.args[0]?.toLowerCase();
+
+      if (!subCommand || subCommand === 'help' || subCommand === '도움말') {
+        // 도움말 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+          role: 'assistant',
+          content: `## 채팅 관리 명령어 사용법
+
+다음 하위 명령어를 사용할 수 있습니다:
+
+- \`/chat save\`: 현재 채팅 내용을 저장합니다.
+- \`/chat list\`: 저장된 모든 채팅 목록을 표시합니다.
+- \`/chat show [ID]\`: 특정 채팅 내역을 표시합니다.
+
+예시: \`/chat save\`, \`/chat list\`, \`/chat show chat_12345\``
+        });
+        return;
+      }
+
+      if (subCommand === 'save' || subCommand === '저장') {
+        // 대화 내역 저장 기능
       try {
         // 메모리 서비스 가져오기
         const memoryService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.memoryService;
@@ -382,25 +398,15 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           role: 'assistant',
           content: `대화 내역이 **${chatTitle}**으로 저장되었습니다. 총 ${messages.length}개의 메시지가 기록되었습니다.
 
-채팅 내역은 트리 뷰에서 확인하고 관리할 수 있습니다.`
+채팅 내역은 트리 뷰에서 확인하거나 \`/chat list\` 명령어로 확인할 수 있습니다.`
         });
-        
+
       } catch (error) {
         console.error('대화 내역 저장 오류:', error);
         vscode.window.showErrorMessage(`대화 내역 저장 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
       }
-    }
-  });
-  
-  // 대화 내역 보기 기능
-  commands.push({
-    name: 'show',
-    aliases: ['view', 'display', '보기', '내역보기', '대화보기'],
-    description: '저장된 채팅 내역을 확인합니다',
-    examples: ['/show', '/view', '/보기', '/show 채팅ID'],
-    category: 'utility',
-    priority: 25,
-    execute: async (context) => {
+    } else if (subCommand === 'list' || subCommand === 'ls' || subCommand === '목록') {
+      // 저장된 모든 채팅 내역 목록 표시
       try {
         // 워크스페이스 루트 경로 가져오기
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -408,11 +414,11 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           vscode.window.showErrorMessage('워크스페이스 폴더를 찾을 수 없습니다');
           return;
         }
-        
+
         // 채팅 내역 폴더 경로
         const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
         const chatHistoryUri = vscode.Uri.file(chatHistoryDir);
-        
+
         // 폴더 존재 확인
         try {
           await vscode.workspace.fs.stat(chatHistoryUri);
@@ -420,14 +426,45 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
           // 폴더가 없는 경우
           await vscode.commands.executeCommand('ape.sendLlmResponse', {
             role: 'assistant',
-            content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+            content: '저장된 대화 내역이 없습니다. `/chat save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
           });
           return;
         }
-        
+
+        // 저장된 모든 채팅 내역 목록 표시
+        await showChatList(chatHistoryUri);
+      } catch (error) {
+        console.error('대화 내역 목록 표시 오류:', error);
+        vscode.window.showErrorMessage(`대화 내역 목록 표시 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } else if (subCommand === 'show' || subCommand === 'view' || subCommand === '보기') {
+      try {
+        // 워크스페이스 루트 경로 가져오기
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+          vscode.window.showErrorMessage('워크스페이스 폴더를 찾을 수 없습니다');
+          return;
+        }
+
+        // 채팅 내역 폴더 경로
+        const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+        const chatHistoryUri = vscode.Uri.file(chatHistoryDir);
+
+        // 폴더 존재 확인
+        try {
+          await vscode.workspace.fs.stat(chatHistoryUri);
+        } catch {
+          // 폴더가 없는 경우
+          await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: '저장된 대화 내역이 없습니다. `/chat save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+          });
+          return;
+        }
+
         // 채팅 ID 지정 여부
-        const chatId = context.args[0];
-        
+        const chatId = context.args[1];
+
         if (chatId) {
           // 특정 채팅 내역 표시
           await showSpecificChat(chatId, chatHistoryUri);
@@ -439,14 +476,26 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
         console.error('대화 내역 표시 오류:', error);
         vscode.window.showErrorMessage(`대화 내역 표시 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
       }
-    },
-    provideCompletions: (partialArgs) => {
-      // 이 시점에서는 간단한 빈 배열만 반환
-      // 실제 자동완성은 SlashCommandManager에서 처리할 때 구현
+    } else {
+      vscode.window.showErrorMessage(`알 수 없는 채팅 명령어입니다: ${subCommand}. 사용 가능한 명령어: save, list, show`);
+    }
+  },
+  provideCompletions: (partialArgs) => {
+    const subCommands = ['save', 'list', 'show', 'help', '저장', '목록', '보기', '도움말'];
+
+      const parts = partialArgs.split(' ');
+
+      // 첫 번째 인자 자동완성 (서브커맨드)
+      if (parts.length <= 1) {
+        return subCommands.filter(cmd =>
+          cmd.toLowerCase().startsWith(parts[0]?.toLowerCase() || '')
+        );
+      }
+
       return [];
     }
   });
-  
+
   /**
    * 특정 채팅 내역 표시
    * @param chatId 채팅 ID

@@ -25,6 +25,20 @@
   --ape-green-dark: #0e4330;
   --ape-green-light: #1d6d4f;
 
+  /* 구찌 & 에르메스 테마 컬러 - 럭셔리 감성 */
+  --gucci-green: #006837;
+  --gucci-green-light: #00854a;
+  --gucci-green-dark: #004d27;
+  --hermes-orange: #ff6600;
+  --hermes-orange-light: #ff8533;
+  --hermes-orange-dark: #cc5200;
+  --luxury-gold: #d4af37;
+  --luxury-silver: #c0c0c0;
+  --luxury-bg-dark: #1a1a1a;
+  --luxury-bg-light: #f5f5f5;
+  --luxury-gradient: linear-gradient(135deg, var(--gucci-green) 0%, var(--gucci-green-dark) 100%);
+  --luxury-accent-gradient: linear-gradient(135deg, var(--hermes-orange) 0%, var(--hermes-orange-dark) 100%);
+
   /* 텍스트 색상 */
   --ape-text-primary: var(--vscode-foreground, #cccccc);
   --ape-text-secondary: var(--vscode-descriptionForeground, #8a8a8a);
@@ -46,11 +60,14 @@
   --ape-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
   --ape-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
   --ape-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
+  --luxury-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  --luxury-glow: 0 0 10px rgba(0, 104, 55, 0.15);
 
   /* 폰트 */
   --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
   --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Consolas, monospace);
   --ape-font-display: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
+  --luxury-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
 
   /* 간격 */
   --ape-spacing-xs: 0.25rem;
@@ -63,6 +80,7 @@
   --ape-transition-fast: 150ms ease;
   --ape-transition-normal: 250ms ease;
   --ape-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --luxury-transition: 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
 
   /* 테두리 반경 */
   --ape-border-radius-sm: 4px;
