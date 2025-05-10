@@ -179,7 +179,7 @@ body {
   margin-left: auto;
   margin-right: var(--ape-spacing-md);
   color: var(--ape-text-primary);
-  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+  max-width: calc(var(--ape-container-max-width) * 0.85);
 }
 
 .assistant {
@@ -187,7 +187,7 @@ body {
   border-left: 2px solid var(--ape-accent-silver);
   margin-right: auto;
   margin-left: var(--ape-spacing-md);
-  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+  max-width: calc(var(--ape-container-max-width) * 0.85);
 }
 
 .system {
@@ -289,54 +289,52 @@ body {
 
 /* 입력 영역 - 균형 잡힌 구조미 */
 #chat-input-container {
-  border-top: 2px solid var(--ape-border-highlight);
-  padding: var(--ape-spacing-md);
-  background-color: var(--ape-bg-secondary);
+  border-top: 1px solid var(--ape-border-subtle);
+  padding: 16px 24px;
+  background-color: var(--ape-bg-primary);
   position: relative;
   z-index: 10;
-  box-shadow: var(--ape-shadow-md);
   width: 100%;
   max-width: var(--ape-container-max-width);
   margin: 0 auto;
   box-sizing: border-box;
-  /* 입력 영역 강조를 위한 그라데이션 */
-  background-image: linear-gradient(
-    to bottom, 
-    rgba(14, 99, 156, 0.1), 
-    rgba(14, 99, 156, 0.05) 40%, 
-    rgba(14, 99, 156, 0.02)
-  );
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 #input-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--ape-spacing-sm);
-  gap: var(--ape-spacing-sm);
+  margin-bottom: 8px;
+  gap: 8px;
 }
 
-/* 스마트 프롬프팅 토글 버튼 - 상징적 디테일 */
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 스마트 프롬프팅 토글 버튼 - Claude.ai 스타일 */
 #smart-prompting-toggle {
   display: flex;
   align-items: center;
   background-color: transparent;
   border: 1px solid var(--ape-border-subtle);
-  border-radius: var(--ape-border-radius-md);
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--ape-text-secondary);
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--ape-accent-primary);
   cursor: pointer;
-  transition: all var(--ape-transition-fast);
+  transition: all 0.2s ease;
 }
 
 #smart-prompting-toggle.active {
-  border-color: var(--ape-accent-gold);
-  color: var(--ape-accent-gold);
-  background-color: rgba(212, 175, 55, 0.1);
+  border-color: var(--ape-accent-primary);
+  color: var(--ape-accent-primary);
+  background-color: var(--ape-accent-tertiary);
 }
 
 #smart-prompting-toggle:hover {
-  background-color: var(--ape-bg-hover);
+  background-color: var(--ape-accent-tertiary);
 }
 
 #smart-prompting-toggle .emoji-icon {
@@ -346,28 +344,33 @@ body {
 /* 입력 필드 - 시대를 초월한 클래식함 */
 #chat-input {
   width: 100%;
-  min-height: 48px; /* 약간 더 높게 조정 */
+  min-height: 56px;
   max-height: 200px;
-  padding: var(--ape-spacing-md);
+  padding: 16px 50px 16px 16px;
   background-color: var(--ape-bg-tertiary);
   color: var(--ape-text-primary);
-  border: 2px solid var(--ape-border-subtle); /* 더 두꺼운 테두리 */
-  border-radius: var(--ape-border-radius-md);
+  border: 1px solid var(--ape-border-subtle);
+  border-radius: 12px;
   resize: none;
   outline: none;
   font-family: var(--ape-font-sans);
-  font-size: 14px;
-  line-height: 1.6;
-  transition: border-color var(--ape-transition-fast), box-shadow var(--ape-transition-fast);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: 15px;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
   box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+#chat-input::-webkit-scrollbar {
+  width: 0;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 #chat-input:focus {
-  border-color: var(--ape-border-highlight);
-  box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.2);
-  /* 포커스 시 그린 애니메이션 효과 */
-  animation: input-focus-pulse 3s infinite;
+  border-color: var(--ape-accent-primary);
+  box-shadow: 0 0 0 1px var(--ape-accent-tertiary);
 }
 
 @keyframes input-focus-pulse {
@@ -390,73 +393,67 @@ body {
   opacity: 0.7;
 }
 
-/* 버튼 영역 - 대담한 비대칭 미학 */
+/* 버튼 영역 - Claude.ai 스타일 */
 #input-buttons {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
   display: flex;
   align-items: center;
-  margin-top: var(--ape-spacing-sm);
-  gap: var(--ape-spacing-sm);
-  justify-content: flex-end;
+  gap: 8px;
 }
 
-/* 버튼 공통 스타일 - 절제된 개성 */
+/* 버튼 공통 스타일 - Claude.ai 스타일 */
 #input-buttons button {
-  padding: 8px;
+  padding: 6px;
   border: none;
-  border-radius: var(--ape-border-radius-md);
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--ape-transition-fast);
-  background-color: var(--ape-bg-tertiary);
-  color: var(--ape-text-primary);
+  transition: all 0.2s ease;
+  background-color: transparent;
+  color: var(--ape-accent-primary);
+  width: 32px;
+  height: 32px;
 }
 
 #input-buttons button:hover {
-  background-color: var(--ape-bg-hover);
+  background-color: var(--ape-accent-tertiary);
 }
 
-/* 전송 버튼 스타일 - 대담한 디자인 */
+/* 전송 버튼 스타일 - Claude.ai 스타일 */
 #send-button {
-  background-color: var(--ape-border-highlight);
+  background-color: var(--ape-accent-primary);
   color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--ape-border-radius-full);
-  /* 그린 스타일 그라데이션 */
-  background-image: linear-gradient(
-    135deg, 
-    var(--ape-green-dark) 0%, 
-    var(--ape-border-highlight) 55%, 
-    var(--ape-green-light) 120%
-  );
-  /* 약간의 그림자로 입체감 */
-  box-shadow: 0 2px 4px rgba(14, 67, 48, 0.2);
-  /* 부드러운 전환 효과 */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #send-button:hover {
-  background-color: var(--ape-green-light);
-  transform: translateY(-1px);
-  /* 호버 시 그라데이션 변화 */
-  background-image: linear-gradient(
-    135deg, 
-    var(--ape-border-highlight) 0%, 
-    var(--ape-green-light) 70% 
-  );
-  /* 호버 시 그림자 강화 */
-  box-shadow: 0 3px 6px rgba(14, 67, 48, 0.3);
+  background-color: var(--ape-accent-secondary);
 }
 
-/* 첨부 및 클리어 버튼 - 플레이풀한 디자인 */
+/* 첨부 및 클리어 버튼 - Claude.ai 스타일 */
 .input-action-button {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ape-border-radius-full);
+  border-radius: 50%;
   background-color: transparent;
-  border: 1px solid var(--ape-border-subtle);
+  color: var(--ape-accent-primary);
+}
+
+/* 채팅 액션 버튼 스타일 - 미니멀 디자인 */
+.chat-action-button {
+  background-color: var(--ape-bg-tertiary);
+  color: var(--ape-text-primary);
+  border-radius: var(--ape-border-radius-full);
+  padding: 10px;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
 }
 
 /* 모델 인디케이터 - 현대적 엣지 */
@@ -464,84 +461,50 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--ape-spacing-sm) var(--ape-spacing-md);
+  padding: 8px 24px;
   font-size: 12px;
-  color: var(--ape-text-secondary);
+  color: #555;
   border-top: 1px solid var(--ape-border-subtle);
   background-color: var(--ape-bg-primary);
   width: 100%;
   max-width: var(--ape-container-max-width);
   margin: 0 auto;
   box-sizing: border-box;
-  /* 상태 바 강조를 위한 그린 그라데이션 효과 */
-  background-image: linear-gradient(to right, 
-    rgba(14, 67, 48, 0.15), 
-    rgba(29, 109, 79, 0.05) 30%, 
-    rgba(29, 109, 79, 0.05) 70%, 
-    rgba(14, 67, 48, 0.15)
-  );
-  /* 상태 바 미묘한 패턴 */
   position: relative;
   overflow: hidden;
 }
 
-/* 그린 스타일 미묘한 패턴 오버레이 */
+/* Claude.ai 스타일 정리 */
 #model-indicator::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(45deg, 
-    transparent 65%, 
-    rgba(121, 175, 137, 0.03) 80%, 
-    transparent 90%);
-  background-size: 10px 10px;
-  pointer-events: none;
-  opacity: 0.4;
+  display: none;
 }
 
 #model-selector {
   background: none;
   border: none;
-  color: var(--ape-text-accent);
+  color: var(--ape-accent-primary);
   cursor: pointer;
   padding: 4px 8px;
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: var(--ape-border-radius-sm);
-  transition: all var(--ape-transition-fast);
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 #model-selector:hover {
-  background-color: var(--ape-bg-hover);
+  background-color: var(--ape-accent-tertiary);
 }
 
 #model-name {
-  font-weight: 600;
-  background-color: var(--ape-border-highlight);
-  color: white;
+  font-weight: 500;
+  background-color: var(--ape-accent-tertiary);
+  color: var(--ape-accent-primary);
   padding: 4px 12px;
-  border-radius: var(--ape-border-radius-md);
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(14, 67, 48, 0.3);
-  /* 모델 이름 살짝 빛나는 효과 - 프리미엄 느낌 */
-  text-shadow: 0 0 5px rgba(121, 175, 137, 0.4);
-  /* 그린 그라데이션으로 깊이감 추가 */
-  background-image: linear-gradient(
-    135deg, 
-    var(--ape-green-dark) 0%, 
-    var(--ape-border-highlight) 60%, 
-    var(--ape-green-light) 110%
-  );
-  /* 미묘한 테두리 하이라이트 */
-  border: 1px solid rgba(121, 175, 137, 0.3);
-  /* 모델 이름 위치 강조 */
-  position: relative;
-  transform: translateY(-1px);
+  border-radius: 8px;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--ape-border-subtle);
 }
 
 /* 슬래시 명령어 자동완성 - 현대적 디자인 */
