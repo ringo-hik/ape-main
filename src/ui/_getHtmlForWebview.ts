@@ -31,6 +31,11 @@ export function generateHtmlHeader(
     vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-buttons.css')
   );
 
+  // 마크다운 스타일 CSS 로드
+  const markdownStylesUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'chat-ape-markdown.css')
+  );
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,6 +46,7 @@ export function generateHtmlHeader(
   <link href="${codiconsUri}" rel="stylesheet">
   <link href="${welcomeCustomCssUri}" rel="stylesheet">
   <link href="${buttonStylesUri}" rel="stylesheet">
+  <link href="${markdownStylesUri}" rel="stylesheet">
   <title>APE Chat</title>
 </head>`;
 }
