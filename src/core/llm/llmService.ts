@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import axios, { CancelTokenSource } from 'axios';
 import { WebSocket } from 'ws';
+import * as https from 'https';
 import {
   Message,
   MessageRole,
@@ -419,7 +420,7 @@ export class LLMService implements vscode.Disposable {
     if (model === LLMModel.NARRANS) {
       console.log("Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
       axiosConfig.proxy = false;
-      axiosConfig.httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+      axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
     }
 
     const response = await axios.post(endpoint, request, axiosConfig);
@@ -584,7 +585,7 @@ export class LLMService implements vscode.Disposable {
       if (model === LLMModel.NARRANS) {
         console.log("Narrans 모델 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화");
         axiosConfig.proxy = false;
-        axiosConfig.httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+        axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
       }
 
       const response = await axios.post(endpoint, request, axiosConfig);
