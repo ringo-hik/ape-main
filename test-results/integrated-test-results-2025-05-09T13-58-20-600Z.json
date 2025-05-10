@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-05-09T13:57:55.437Z",
+  "success": false,
+  "stages": [
+    {
+      "name": "타입스크립트 컴파일",
+      "command": "npx tsc --noEmit",
+      "success": true,
+      "duration": 3526,
+      "required": true,
+      "error": null
+    },
+    {
+      "name": "ESLint 정적 분석",
+      "command": "npx eslint src --max-warnings=0",
+      "success": false,
+      "duration": 5411,
+      "required": true,
+      "error": null
+    },
+    {
+      "name": "보안 테스트",
+      "command": "node /home/hik90/ape/new_ape-extension/scripts/run-security-tests.js",
+      "success": false,
+      "duration": 11735,
+      "required": false,
+      "error": null
+    },
+    {
+      "name": "순환 참조 감지",
+      "command": "node /home/hik90/ape/new_ape-extension/scripts/detect-circular-deps.js",
+      "success": false,
+      "duration": 3358,
+      "required": true,
+      "error": null
+    },
+    {
+      "name": "기본 단위 테스트",
+      "command": "npm run test:basic",
+      "success": false,
+      "duration": 542,
+      "required": true,
+      "error": null
+    },
+    {
+      "name": "LLM 자체 테스트",
+      "command": "npm run test:llm-self",
+      "success": true,
+      "duration": 588,
+      "required": true,
+      "error": null
+    }
+  ]
+}

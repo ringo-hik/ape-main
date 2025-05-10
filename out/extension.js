@@ -16021,14 +16021,19 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! path */ "path");
 /* harmony import */ var path__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(path__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _git_commands__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../git/commands */ "./src/core/git/commands.ts");
-/* harmony import */ var _vaultCommands__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./vaultCommands */ "./src/core/commands/vaultCommands.ts");
-/* harmony import */ var _rulesCommands__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./rulesCommands */ "./src/core/commands/rulesCommands.ts");
-/* harmony import */ var _jiraCommands__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./jiraCommands */ "./src/core/commands/jiraCommands.ts");
-/* harmony import */ var _todoCommands__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./todoCommands */ "./src/core/commands/todoCommands.ts");
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! fs */ "fs");
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _git_commands__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../git/commands */ "./src/core/git/commands.ts");
+/* harmony import */ var _vaultCommands__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./vaultCommands */ "./src/core/commands/vaultCommands.ts");
+/* harmony import */ var _rulesCommands__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./rulesCommands */ "./src/core/commands/rulesCommands.ts");
+/* harmony import */ var _jiraCommands__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./jiraCommands */ "./src/core/commands/jiraCommands.ts");
+/* harmony import */ var _todoCommands__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./todoCommands */ "./src/core/commands/todoCommands.ts");
+/* harmony import */ var _types_chat__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../types/chat */ "./src/types/chat.ts");
 /**
  * 기본 슬래시 커맨드 정의
  */
+
+
 
 
 
@@ -16043,22 +16048,22 @@ function createDefaultCommands(services) {
     const commands = [];
     // VAULT 명령어 추가 (VAULT 서비스가 있는 경우)
     if (services?.vaultService) {
-        const vaultCommands = (0,_vaultCommands__WEBPACK_IMPORTED_MODULE_3__.createVaultCommands)(services.vaultService);
+        const vaultCommands = (0,_vaultCommands__WEBPACK_IMPORTED_MODULE_4__.createVaultCommands)(services.vaultService);
         commands.push(...vaultCommands);
     }
     // Rules 명령어 추가 (Rules 서비스가 있는 경우)
     if (services?.rulesService) {
-        const rulesCommands = (0,_rulesCommands__WEBPACK_IMPORTED_MODULE_4__.createRulesCommands)(services.rulesService);
+        const rulesCommands = (0,_rulesCommands__WEBPACK_IMPORTED_MODULE_5__.createRulesCommands)(services.rulesService);
         commands.push(...rulesCommands);
     }
     // Jira 명령어 추가 (Jira 서비스가 있는 경우)
     if (services?.jiraService) {
-        const jiraCommands = (0,_jiraCommands__WEBPACK_IMPORTED_MODULE_5__.createJiraCommands)(services.jiraService);
+        const jiraCommands = (0,_jiraCommands__WEBPACK_IMPORTED_MODULE_6__.createJiraCommands)(services.jiraService);
         commands.push(...jiraCommands);
     }
     // Todo 명령어 추가 (Todo 서비스가 있는 경우)
     if (services?.todoService) {
-        const todoCommands = (0,_todoCommands__WEBPACK_IMPORTED_MODULE_6__.createTodoCommands)(services.todoService);
+        const todoCommands = (0,_todoCommands__WEBPACK_IMPORTED_MODULE_7__.createTodoCommands)(services.todoService);
         commands.push(...todoCommands);
     }
     // 도움말 명령어
@@ -16139,7 +16144,37 @@ function createDefaultCommands(services) {
         priority: 10,
         execute: async (context) => {
             const subCommand = context.args[0]?.toLowerCase();
-            if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+            if (!subCommand) {
+                // Model 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+                const modelSubcommands = [
+                    { command: 'list', description: '사용 가능한 모델 목록을 표시합니다' },
+                    { command: 'use', description: '지정한 모델로 변경합니다' }
+                ];
+                // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+                const suggestions = modelSubcommands.map(cmd => ({
+                    label: `/model ${cmd.command}`,
+                    description: cmd.description,
+                    category: 'advanced',
+                    insertText: `/model ${cmd.command} `
+                }));
+                // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+                vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+                // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showQuickPick(modelSubcommands.map(cmd => ({
+                    label: cmd.command,
+                    description: cmd.description,
+                    detail: `Model 하위 명령어: ${cmd.command}`
+                })), {
+                    placeHolder: 'Model 명령어를 선택하세요',
+                    matchOnDescription: true
+                }).then(selected => {
+                    if (selected) {
+                        // 선택한 명령어를 채팅 입력창에 삽입
+                        vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.insertToChatInput', `/model ${selected.label}`);
+                    }
+                });
+            }
+            else if (subCommand === 'list' || subCommand === '목록') {
                 // 모델 목록 표시
                 await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.selectModel');
             }
@@ -16194,7 +16229,7 @@ function createDefaultCommands(services) {
         }
     });
     // Git 명령어 추가
-    const gitCommands = (0,_git_commands__WEBPACK_IMPORTED_MODULE_2__.createGitCommands)();
+    const gitCommands = (0,_git_commands__WEBPACK_IMPORTED_MODULE_3__.createGitCommands)();
     commands.push(...gitCommands);
     // 설정
     commands.push({
@@ -16205,6 +16240,548 @@ function createDefaultCommands(services) {
         priority: 15,
         execute: async () => {
             await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('workbench.action.openSettings', 'ape');
+        }
+    });
+    // Ask 명령어 - 다양한 스마트 프롬프팅 모드를 제공하는 LLM 기반 가이드
+    commands.push({
+        name: 'ask',
+        aliases: ['질문', '물어보기', '가이드', '어떻게', '어떡해', '방법', '조언'],
+        description: 'LLM을 사용하여 질문에 대한 가이드와 도움말을 제공합니다',
+        examples: ['/ask 컨플릭 해결하려면 어떻게해?', '/ask --mode=디버깅 코드가 오류를 발생시켜요', '/ask --mode=git 자동 커밋 어떻게 사용하나요?', '/ask --mode=테스트 단위 테스트 작성 방법'],
+        category: 'general',
+        priority: 1,
+        execute: async (context) => {
+            try {
+                // 모드 옵션 파싱
+                let mode = 'general'; // 기본 모드
+                let question = '';
+                // 모드 옵션 확인 (--mode=값 형식)
+                const modeArg = context.args.find(arg => arg.startsWith('--mode='));
+                if (modeArg) {
+                    mode = modeArg.split('=')[1].trim();
+                    // 모드 옵션을 제외한 나머지 인자를 질문으로 사용
+                    question = context.args.filter(arg => arg !== modeArg).join(' ').trim();
+                }
+                else {
+                    question = context.args.join(' ').trim();
+                }
+                // 사용 가능한 모드 목록
+                const availableModes = [
+                    { id: 'general', name: '일반', description: '일반적인 도움말 및 가이드 제공', icon: '📚' },
+                    { id: 'debug', name: '디버깅', description: '코드 디버깅 및 문제 해결 가이드', icon: '🔍' },
+                    { id: 'refactor', name: '리팩토링', description: '코드 개선 및 리팩토링 제안', icon: '🔄' },
+                    { id: 'jira', name: 'JIRA', description: 'JIRA 이슈 작성 및 관리 가이드', icon: '📋' },
+                    { id: 'workflow', name: '워크플로우', description: '작업 단계 및 절차 안내', icon: '📝' },
+                    { id: 'code', name: '코드', description: '코드 작성 및 구현 가이드', icon: '💻' },
+                    { id: 'git', name: 'Git', description: 'Git 관련 명령어 및 작업 가이드', icon: '🔀' },
+                    { id: 'explain', name: '설명', description: '코드 및 개념 설명', icon: '📖' },
+                    { id: 'planning', name: '계획', description: '개발 작업 계획 및 단계 수립', icon: '📊' },
+                    { id: 'testing', name: '테스트', description: '테스트 케이스 작성 및 테스트 전략', icon: '✅' }
+                ];
+                // 질문이 없는 경우 모드 선택 UI 표시
+                if (!question) {
+                    // 간소화된 모드 목록
+                    const modesList = availableModes.map(m => `${m.icon} ${m.name}: ${m.id}`).join('\n');
+                    const modesHtml = `
+          <div>
+            <h3>스마트 프롬프팅 모드</h3>
+            <p>질문 시 다음 모드를 사용할 수 있습니다:</p>
+            <pre>${modesList}</pre>
+            <p>사용법: <code>/ask --mode=[모드명] [질문]</code></p>
+          </div>`;
+                    await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                        role: 'assistant',
+                        content: modesHtml
+                    });
+                    return;
+                }
+                // LLM 서비스 가져오기
+                let llmService;
+                if (services && services.llmService) {
+                    // 개발 환경에서는 services 객체가 전달됨
+                    llmService = services.llmService;
+                }
+                else {
+                    // 익스텐션에서 서비스 가져오기 시도
+                    const extension = vscode__WEBPACK_IMPORTED_MODULE_0__.extensions.getExtension('ape-team.ape-extension');
+                    if (extension && extension.isActive) {
+                        llmService = extension.exports.llmService;
+                    }
+                }
+                // LLM 서비스 존재 확인
+                if (!llmService) {
+                    vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('LLM 서비스를 찾을 수 없습니다');
+                    return;
+                }
+                // help.json과 guide.json 내용 로드
+                let helpData;
+                let guideData;
+                // 익스텐션 정보 가져오기
+                const extension = vscode__WEBPACK_IMPORTED_MODULE_0__.extensions.getExtension('ape-team.ape-extension');
+                if (!extension) {
+                    throw new Error('APE 익스텐션을 찾을 수 없습니다.');
+                }
+                const extensionPath = extension.extensionPath;
+                const helpPath = path__WEBPACK_IMPORTED_MODULE_1__.join(extensionPath, 'src', 'data', 'help.json');
+                const guidePath = path__WEBPACK_IMPORTED_MODULE_1__.join(extensionPath, 'src', 'data', 'guide.json');
+                try {
+                    helpData = JSON.parse(fs__WEBPACK_IMPORTED_MODULE_2__.readFileSync(helpPath, 'utf8'));
+                }
+                catch (error) {
+                    console.error('help.json 파일 로드 오류:', error);
+                    // 기본 데이터 구조 제공
+                    helpData = { categories: [], faq: [], guides: [] };
+                }
+                try {
+                    guideData = JSON.parse(fs__WEBPACK_IMPORTED_MODULE_2__.readFileSync(guidePath, 'utf8'));
+                }
+                catch (error) {
+                    console.error('guide.json 파일 로드 오류:', error);
+                    // 기본 데이터 구조 제공
+                    guideData = { workflows: [], commandGuides: [] };
+                }
+                // 선택한 모드에 따라 시스템 프롬프트 생성
+                let systemPrompt = '';
+                let modeIcon = '📚';
+                let modeName = '일반';
+                // 현재 모드에 해당하는 정보 찾기
+                const currentMode = availableModes.find(m => m.id === mode.toLowerCase() || m.name === mode);
+                if (currentMode) {
+                    modeIcon = currentMode.icon;
+                    modeName = currentMode.name;
+                }
+                switch (mode.toLowerCase()) {
+                    case 'debug':
+                    case '디버깅':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 디버깅 도우미입니다.
+사용자가 제시한 코드 문제나 오류에 대해 help.json과 guide.json에 있는 정보를 바탕으로 디버깅 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 문제의 잠재적 원인을 분석하고 진단하세요
+2. 오류 메시지의 의미를 설명하세요
+3. 단계별 디버깅 과정을 구체적으로 안내하세요
+4. 관련 APE 명령어나 도구가 있다면 함께 소개하세요
+5. 문제 해결을 위한 검증 방법도 제시하세요
+
+답변 형식:
+[문제 진단 요약]
+
+[가능한 원인 분석]
+
+[단계별 디버깅 방법]
+
+[관련 명령어 및 도구]`;
+                        break;
+                    case 'refactor':
+                    case '리팩토링':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 리팩토링 도우미입니다.
+사용자의 코드 개선 요청에 대해 help.json과 guide.json에 있는 정보를 바탕으로 리팩토링 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 코드의 품질, 가독성, 성능 측면에서 개선점을 분석하세요
+2. 디자인 패턴이나 모범 사례를 제안하세요
+3. 단계별 리팩토링 과정을 구체적으로 안내하세요
+4. 관련 APE 명령어나 도구가 있다면 함께 소개하세요
+5. 리팩토링 후 예상되는 이점을 설명하세요
+
+답변 형식:
+[코드 분석 요약]
+
+[개선 가능한 부분]
+
+[리팩토링 접근 방법]
+
+[관련 명령어 및 도구]`;
+                        break;
+                    case 'jira':
+                    case 'jira 이슈':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 JIRA 도우미입니다.
+사용자의 JIRA 이슈 작성 또는 관리 요청에 대해 help.json과 guide.json에 있는 정보를 바탕으로 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. JIRA 이슈 작성을 위한 구조화된 템플릿을 제공하세요
+2. 이슈 제목, 설명, 재현 단계, 기대 결과 등 필요한 항목을 포함하세요
+3. APE에서 JIRA 관련 명령어나 기능을 소개하세요
+4. 이슈 추적 및 관리 모범 사례를 제안하세요
+
+답변 형식:
+[JIRA 이슈 템플릿]
+
+[APE JIRA 통합 기능]
+
+[JIRA 이슈 관리 팁]`;
+                        break;
+                    case 'workflow':
+                    case '워크플로우':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 워크플로우 도우미입니다.
+사용자의 작업 프로세스 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 워크플로우를 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 작업 목표 달성을 위한 명확한 단계별 절차를 설명하세요
+2. 각 단계마다 필요한 APE 명령어나 기능을 연결하세요
+3. 작업 간 의존성과 순서를 명확히 하세요
+4. 체크포인트나 검증 단계를 포함하세요
+5. 자동화 가능한 부분이 있다면 제안하세요
+
+답변 형식:
+[워크플로우 개요]
+
+[단계별 작업 절차]
+
+[추천 자동화 옵션]
+
+[관련 명령어 및 도구]`;
+                        break;
+                    case 'code':
+                    case '코드':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 코드 작성 도우미입니다.
+사용자의 코드 구현 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 가이드를 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 구현하려는 기능에 대한 접근 방식을 제안하세요
+2. 필요한 구성 요소와 설계 패턴을 설명하세요
+3. 핵심 코드 구현 방법을 단계별로 안내하세요
+4. APE에서 제공하는 관련 도구와 명령어를 소개하세요
+5. 테스트 및 검증 방법도 포함하세요
+
+답변 형식:
+[기능 구현 접근 방식]
+
+[핵심 구성 요소]
+
+[구현 단계]
+
+[관련 명령어 및 도구]`;
+                        break;
+                    case 'git':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 Git 도우미입니다.
+사용자의 Git 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 가이드를 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. Git 명령어와 워크플로우에 관한 명확한 설명을 제공하세요
+2. APE의 Git 관련 명령어와 사용법을 상세하게 안내하세요
+3. 문제 상황별 해결 방법을 단계별로 설명하세요
+4. Git 모범 사례와 팁을 공유하세요
+5. APE의 자동 커밋, 충돌 해결 등 특화 기능을 강조하세요
+
+답변 형식:
+[핵심 답변]
+
+[상세 설명 및 단계별 방법]
+
+[APE Git 명령어 관련 정보]
+
+[참고할 수 있는 모범 사례]`;
+                        break;
+                    case 'explain':
+                    case '설명':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 개념 설명 도우미입니다.
+사용자가 질문한 코드나 개념에 대해 help.json과 guide.json에 있는 정보를 바탕으로 명확한 설명을 제공해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 개념이나 코드의 목적과 기능을 명확히 설명하세요
+2. 핵심 원리와 작동 방식을 이해하기 쉽게 풀어서 설명하세요
+3. 실제 사용 예시와 적용 사례를 제공하세요
+4. 관련된 다른 개념이나 패턴과의 관계를 설명하세요
+5. 관련 APE 기능이 있다면 함께 소개하세요
+
+답변 형식:
+[개념 정의 - 1-2문장]
+
+[작동 원리 설명]
+
+[사용 사례 및 예시]
+
+[관련 개념 및 APE 기능]`;
+                        break;
+                    case 'planning':
+                    case '계획':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 개발 계획 도우미입니다.
+사용자의 개발 계획 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 체계적인 계획 수립을 도와야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 목표 달성을 위한 명확한 단계별 계획을 수립하세요
+2. 각 단계의 우선순위와 의존성을 고려하세요
+3. 일정 추정과 마일스톤을 제안하세요
+4. 잠재적 위험 요소와 대응 방안을 분석하세요
+5. APE 기능을 활용한 작업 효율화 방안을 제안하세요
+
+답변 형식:
+[계획 개요]
+
+[단계별 작업 계획]
+
+[일정 및 마일스톤]
+
+[위험 요소 및 대응 방안]
+
+[APE 기능 활용 방안]`;
+                        break;
+                    case 'testing':
+                    case '테스트':
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 테스트 도우미입니다.
+사용자의 테스트 관련 질문에 대해 help.json과 guide.json에 있는 정보를 바탕으로 테스트 전략과
+구현 방법을 안내해야 합니다.
+
+답변 시 다음 규칙을 따르세요:
+1. 테스트 대상에 적합한 테스트 유형과 방법론을 추천하세요
+2. 효과적인 테스트 케이스 설계 방법을 제안하세요
+3. 테스트 코드 작성 예시와 모범 사례를 제공하세요
+4. 테스트 자동화와 CI/CD 통합 방안을 안내하세요
+5. APE에서 제공하는 테스트 관련 도구와 명령어를 소개하세요
+
+답변 형식:
+[테스트 전략 개요]
+
+[테스트 케이스 설계]
+
+[테스트 코드 작성 방법]
+
+[테스트 자동화 방안]
+
+[관련 APE 도구 및 명령어]`;
+                        break;
+                    case 'general':
+                    case '일반':
+                    default:
+                        systemPrompt = `당신은 APE(Agentic Programming Extension)의 가이드 도우미입니다.
+사용자의 질문에 대해 help.json과 guide.json에 있는 정보를 기반으로 명확하고 구체적인 답변을 제공해야 합니다.
+질문과 가장 관련성 높은 명령어, 워크플로우, 가이드를 찾아 답변하세요.
+
+답변 시 다음 규칙을 따르세요:
+1. 사용자 질문과 관련된 명령어가 있다면 명령어 이름, 설명, 예시를 포함하세요
+2. 명령어 사용법과 별칭을 명확히 설명하세요
+3. 관련된 워크플로우가 있다면 단계별로 설명하세요
+4. 사용자가 질문한 작업을 수행하는 방법을 구체적인 예시와 함께 제공하세요
+5. 모든 답변은 한국어로 제공합니다
+6. 관련 명령어가 여러 개 있으면 가장 적합한 것을 중심으로 설명하고 다른 관련 명령어도 간략히 언급하세요
+7. 답변은 간결하고 명확하게 작성하세요
+8. 가이드와 도움말에 없는 내용에 대해서는 정확히 모른다고 답변하세요
+
+답변 형식:
+[핵심 답변 - 1-2문장]
+
+[상세 설명 및 단계별 방법]
+
+[예시 및 관련 명령어]`;
+                        break;
+                }
+                // 컨텍스트 메시지 생성 (help.json, guide.json 데이터)
+                const helpCommandsStr = helpData.categories
+                    .flatMap((category) => category.commands)
+                    .map((cmd) => `${cmd.name}: ${cmd.description}\n사용법: ${cmd.usage || '/' + cmd.name}\n예시: ${cmd.examples?.join(', ') || '없음'}\n별칭: ${cmd.aliases?.join(', ') || '없음'}\n`)
+                    .join('\n');
+                const faqStr = helpData.faq
+                    .map((item) => `Q: ${item.question}\nA: ${item.answer}`)
+                    .join('\n\n');
+                const guidesStr = guideData.commandGuides
+                    .map((guide) => `${guide.title}:\n${guide.content.replace(/#+\s/g, '')}`)
+                    .join('\n\n');
+                const workflowsStr = guideData.workflows
+                    .map((workflow) => `${workflow.name}: ${workflow.description}\n권장 명령어: ${workflow.recommendedCommands.map((cmd) => cmd.command).join(', ')}`)
+                    .join('\n\n');
+                // 질문을 LLM에 전송
+                const messages = [
+                    {
+                        id: `system_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.System,
+                        content: systemPrompt,
+                        timestamp: new Date()
+                    },
+                    {
+                        id: `context_1_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.User,
+                        content: `다음은 APE의 명령어 목록입니다:\n\n${helpCommandsStr}`,
+                        timestamp: new Date()
+                    },
+                    {
+                        id: `context_2_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.User,
+                        content: `다음은 APE의 FAQ 목록입니다:\n\n${faqStr}`,
+                        timestamp: new Date()
+                    },
+                    {
+                        id: `context_3_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.User,
+                        content: `다음은 APE의 가이드 목록입니다:\n\n${guidesStr}`,
+                        timestamp: new Date()
+                    },
+                    {
+                        id: `context_4_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.User,
+                        content: `다음은 APE의 워크플로우 목록입니다:\n\n${workflowsStr}`,
+                        timestamp: new Date()
+                    },
+                    {
+                        id: `question_${Date.now()}`,
+                        role: _types_chat__WEBPACK_IMPORTED_MODULE_8__.MessageRole.User,
+                        content: question,
+                        timestamp: new Date()
+                    }
+                ];
+                // 진행 중 메시지 표시
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                    role: 'assistant',
+                    content: '질문을 분석하고 답변을 준비하고 있습니다...',
+                    messageId: 'temp_loading'
+                });
+                // LLM에 요청 전송
+                const response = await llmService.sendRequest(messages, { temperature: 0.2 });
+                if (response.success && response.data) {
+                    // 현재 모드에 해당하는 뱃지 생성
+                    const modeBadge = `<div style="display:inline-block; padding:5px 10px; background-color:#f0f0f0; border-radius:5px; margin-bottom:10px;">
+            <span style="font-size:16px;">${modeIcon}</span> <strong>${modeName} 모드</strong>
+          </div>`;
+                    // 모드 선택기 UI 생성 (간소화)
+                    const modeSelector = `<div style="margin-top:15px; color:#0066cc; cursor:pointer;">
+            <span>다른 모드로 질문하려면 '/ask --mode=[모드명] ${question}' 명령어를 입력하세요.</span>
+          </div>`;
+                    // 간소화된 응답 형식
+                    const formattedResponse = `${modeBadge}\n\n${response.data.message.content}\n\n${modeSelector}`;
+                    // 결과를 채팅창에 표시
+                    await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                        role: 'assistant',
+                        content: formattedResponse,
+                        replaceMessageId: 'temp_loading'
+                    });
+                }
+                else {
+                    // 실패 메시지 표시
+                    await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                        role: 'assistant',
+                        content: '죄송합니다. 질문에 답변하는 중 오류가 발생했습니다.',
+                        replaceMessageId: 'temp_loading'
+                    });
+                }
+            }
+            catch (error) {
+                console.error('Ask 명령어 오류:', error);
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage(`질문 응답 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+                // 오류 메시지 표시
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                    role: 'assistant',
+                    content: '죄송합니다. 질문에 답변하는 중 오류가 발생했습니다.',
+                    replaceMessageId: 'temp_loading'
+                });
+            }
+        }
+    });
+    // 시스템 상태 명령어
+    commands.push({
+        name: 'system',
+        aliases: ['sys', '시스템', '상태'],
+        description: '시스템 정보와 메모리 상태를 표시합니다',
+        examples: ['/system', '/system memory', '/시스템'],
+        category: 'utility',
+        priority: 15,
+        execute: async (context) => {
+            try {
+                const subCommand = context.args[0]?.toLowerCase();
+                // 메모리 서비스와 LLM 서비스 참조
+                let memoryService;
+                let llmService;
+                if (services && services.memoryService && services.llmService) {
+                    // 개발 환경에서는 services 객체가 전달됨
+                    memoryService = services.memoryService;
+                    llmService = services.llmService;
+                }
+                else {
+                    // 익스텐션에서 서비스 가져오기 시도
+                    const extension = vscode__WEBPACK_IMPORTED_MODULE_0__.extensions.getExtension('ape-team.ape-extension');
+                    if (extension && extension.isActive) {
+                        memoryService = extension.exports.memoryService;
+                        llmService = extension.exports.llmService;
+                    }
+                }
+                // 서비스 존재 확인
+                if (!memoryService) {
+                    vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('메모리 서비스를 찾을 수 없습니다');
+                    return;
+                }
+                if (!llmService) {
+                    vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('LLM 서비스를 찾을 수 없습니다');
+                    return;
+                }
+                // 시스템 정보 구성 (일반 텍스트 형식)
+                let output = `
++----------------------+
+|  APE 시스템 상태     |
++----------------------+
+`;
+                // 현재 세션 정보
+                const currentSession = memoryService.getCurrentSession();
+                const messagesResult = await memoryService.getMessages();
+                const messages = messagesResult.success ? messagesResult.data || [] : [];
+                // 현재 모델 정보
+                const currentModel = llmService.getActiveModel();
+                const modelDisplayName = llmService.getModelDisplayName(currentModel);
+                // 메시지 수 계산
+                const userMessages = messages.filter((m) => m.role === 'user').length;
+                const assistantMessages = messages.filter((m) => m.role === 'assistant').length;
+                const systemMessages = messages.filter((m) => m.role === 'system').length;
+                // 기본 시스템 정보 표시 (텍스트 형식)
+                output += '[ 세션 정보 ]\n\n';
+                output += `현재 세션: ${currentSession?.name || '기본 세션'}\n`;
+                output += `세션 ID: ${currentSession?.id || 'default'}\n`;
+                output += `생성 시간: ${currentSession?.createdAt.toLocaleString() || '알 수 없음'}\n`;
+                output += `마지막 업데이트: ${currentSession?.updatedAt.toLocaleString() || '알 수 없음'}\n\n`;
+                output += '[ LLM 정보 ]\n\n';
+                output += `현재 모델: ${modelDisplayName}\n`;
+                output += `모델 ID: ${currentModel}\n\n`;
+                output += '[ 메모리 통계 ]\n\n';
+                output += `총 메시지 수: ${messages.length}개\n`;
+                output += `사용자 메시지: ${userMessages}개\n`;
+                output += `어시스턴트 메시지: ${assistantMessages}개\n`;
+                output += `시스템 메시지: ${systemMessages}개\n\n`;
+                // 메모리 상세 정보 (메모리 하위 명령어인 경우)
+                if (!subCommand || subCommand === 'memory' || subCommand === '메모리') {
+                    output += '[ 메모리 세부 정보 ]\n\n';
+                    // 최근 메시지 5개 표시 (일반 텍스트 형식)
+                    if (messages.length > 0) {
+                        output += '최근 메시지 (최대 5개):\n\n';
+                        const recentMessages = messages.slice(-5).reverse();
+                        for (const msg of recentMessages) {
+                            let role = '';
+                            switch (msg.role) {
+                                case 'user':
+                                    role = '사용자';
+                                    break;
+                                case 'assistant':
+                                    role = 'Claude';
+                                    break;
+                                case 'system':
+                                    role = '시스템';
+                                    break;
+                                default: role = msg.role;
+                            }
+                            // 내용 일부만 표시
+                            const content = String(msg.content).replace(/<[^>]*>/g, ''); // HTML 태그 제거
+                            const truncatedContent = content.substring(0, 30) + (content.length > 30 ? '...' : '');
+                            const timestamp = msg.timestamp.toLocaleTimeString();
+                            output += `* ${timestamp} | ${role}: ${truncatedContent}\n`;
+                        }
+                        output += '\n';
+                    }
+                }
+                // 사용자에게 정보 표시
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
+                    role: 'assistant',
+                    content: output
+                });
+            }
+            catch (error) {
+                console.error('시스템 상태 명령어 오류:', error);
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage(`시스템 상태 조회 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        },
+        provideCompletions: (partialArgs) => {
+            const subCommands = ['memory', '메모리'];
+            const parts = partialArgs.split(' ');
+            // 첫 번째 인자 자동완성
+            if (parts.length <= 1) {
+                return subCommands.filter(cmd => cmd.toLowerCase().startsWith(parts[0]?.toLowerCase() || ''));
+            }
+            return [];
         }
     });
     // 파일 열기
@@ -16232,10 +16809,10 @@ function createDefaultCommands(services) {
     });
     // 대화 내역 저장 기능
     commands.push({
-        name: 'save-chat',
+        name: 'save',
         aliases: ['stack', 'history', 'save', '기록', '대화기록', '저장'],
         description: '현재 채팅 내역을 저장하고 관리합니다',
-        examples: ['/save-chat', '/stack', '/history', '/기록'],
+        examples: ['/save', '/stack', '/history', '/기록'],
         category: 'utility',
         priority: 25,
         execute: async () => {
@@ -16317,8 +16894,8 @@ function createDefaultCommands(services) {
                     vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('워크스페이스 폴더를 찾을 수 없습니다');
                     return;
                 }
-                // Vault 내 채팅 내역 경로 확인 및 생성
-                const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+                // .ape/vault/chat-history 디렉토리 경로 확인 및 생성
+                const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
                 const chatHistoryUri = vscode__WEBPACK_IMPORTED_MODULE_0__.Uri.file(chatHistoryDir);
                 try {
                     await vscode__WEBPACK_IMPORTED_MODULE_0__.workspace.fs.stat(chatHistoryUri);
@@ -16380,8 +16957,8 @@ function createDefaultCommands(services) {
                     vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('워크스페이스 폴더를 찾을 수 없습니다');
                     return;
                 }
-                // 채팅 내역 폴더 경로
-                const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+                // 채팅 내역 폴더 경로 (.ape/vault/chat-history)
+                const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
                 const chatHistoryUri = vscode__WEBPACK_IMPORTED_MODULE_0__.Uri.file(chatHistoryDir);
                 // 폴더 존재 확인
                 try {
@@ -16391,7 +16968,7 @@ function createDefaultCommands(services) {
                     // 폴더가 없는 경우
                     await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
                         role: 'assistant',
-                        content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+                        content: '저장된 대화 내역이 없습니다. `/save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
                     });
                     return;
                 }
@@ -16464,7 +17041,7 @@ function createDefaultCommands(services) {
             // 저장된 채팅 내역이 없는 경우
             await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendLlmResponse', {
                 role: 'assistant',
-                content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+                content: '저장된 대화 내역이 없습니다. `/save` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
             });
             return;
         }
@@ -16671,9 +17248,11 @@ async function generateHelpHtml(categoryId) {
     try {
         const categories = await getCommandsByCategory(categoryId);
         let content = `
-      <h1>APE 도움말</h1>
-      <p>사용 가능한 명령어 목록입니다. 각 명령어에 대한 자세한 정보를 보려면 명령어를 클릭하세요.</p>
-      
+      <header class="help-header">
+        <h1>APE 도움말</h1>
+        <p class="help-description">사용 가능한 명령어 목록입니다. 명령어를 클릭하면 자세한 정보를 볼 수 있습니다.</p>
+      </header>
+
       <div class="quick-actions">
         <h2>자주 사용하는 명령어</h2>
         <div class="quick-buttons">
@@ -16704,7 +17283,7 @@ async function generateHelpHtml(categoryId) {
             for (const command of category.commands) {
                 // 명령어 아이콘 선택
                 const iconName = getCategoryIcon(category.id);
-                // 명령어 요약 카드
+                // 명령어 요약 카드 - 미니멀 버전
                 content += `
           <div class="command-card" onclick="sendCommandToVSCode('${command.name}')">
             <div class="command-name">
@@ -16712,10 +17291,12 @@ async function generateHelpHtml(categoryId) {
               <span class="command-text">/${command.name}</span>
             </div>
             <div class="command-description">${command.description}</div>
-            ${command.examples && command.examples.length > 0 ?
+            <div class="command-card-footer">
+              ${command.examples && command.examples.length > 0 ?
                     `<div class="command-examples">예시: ${command.examples[0]}</div>` : ''}
-            ${command.aliases && command.aliases.length > 0 ?
-                    `<div class="command-aliases">별칭: ${command.aliases.map((a) => `/${a}`).join(', ')}</div>` : ''}
+              ${command.aliases && command.aliases.length > 0 ?
+                    `<div class="command-aliases">/${command.aliases[0]}${command.aliases.length > 1 ? ' +' + (command.aliases.length - 1) : ''}</div>` : ''}
+            </div>
           </div>
         `;
             }
@@ -16751,49 +17332,63 @@ async function generateCommandDetailHtml(commandName) {
       `);
         }
         let content = `
-      <div class="command-detail">
+      <header class="help-header">
         <h1>/${commandData.name}</h1>
-        <div class="command-description">${commandData.description}</div>
-        
-        <h2>상세 정보</h2>
-        <p>${commandData.longDescription || commandData.description}</p>
-        
-        <h2>사용법</h2>
-        <div class="command-usage">
-          <code>${commandData.usage || `/${commandData.name}`}</code>
+        <p class="help-description">${commandData.description}</p>
+      </header>
+
+      <div class="command-detail">
+        <div class="detail-section">
+          <h2>상세 정보</h2>
+          <p>${commandData.longDescription || commandData.description}</p>
+        </div>
+
+        <div class="detail-section">
+          <h2>사용법</h2>
+          <div class="command-usage">
+            <code>${commandData.usage || `/${commandData.name}`}</code>
+          </div>
         </div>
     `;
         // 예시
         if (commandData.examples && commandData.examples.length > 0) {
             content += `
-        <h2>예시</h2>
-        <ul class="command-examples-list">
-          ${commandData.examples.map((example) => `<li><code>${example}</code></li>`).join('')}
-        </ul>
+        <div class="detail-section">
+          <h2>예시</h2>
+          <ul class="command-examples-list">
+            ${commandData.examples.map((example) => `<li><code>${example}</code></li>`).join('')}
+          </ul>
+        </div>
       `;
         }
         // 별칭
         if (commandData.aliases && commandData.aliases.length > 0) {
             content += `
-        <h2>별칭</h2>
-        <div class="command-aliases">
-          ${commandData.aliases.map((alias) => `<code>/${alias}</code>`).join(', ')}
+        <div class="detail-section">
+          <h2>별칭</h2>
+          <div class="command-aliases-list">
+            ${commandData.aliases.map((alias) => `<span class="detail-alias">/${alias}</span>`).join('')}
+          </div>
         </div>
       `;
         }
         // 관련 명령어
         if (commandData.related && commandData.related.length > 0) {
             content += `
-        <h2>관련 명령어</h2>
-        <div class="related-commands">
-          ${commandData.related.map((cmd) => `<a href="#" class="related-command" onclick="sendCommandToVSCode('${cmd}')">${cmd}</a>`).join(', ')}
+        <div class="detail-section">
+          <h2>관련 명령어</h2>
+          <div class="related-commands">
+            ${commandData.related.map((cmd) => `<a href="#" class="related-command" onclick="sendCommandToVSCode('${cmd}')">${cmd}</a>`).join('')}
+          </div>
         </div>
       `;
         }
         content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 모든 명령어 보기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 모든 명령어 보기
+        </a>
       </div>
     `;
         return getHelpPageHtml(content);
@@ -16815,13 +17410,20 @@ async function generateFaqHtml() {
         const helpData = await loadHelpData();
         const faqs = helpData.faq || [];
         let content = `
-      <h1>APE 자주 묻는 질문 (FAQ)</h1>
+      <header class="help-header">
+        <h1>자주 묻는 질문 (FAQ)</h1>
+        <p class="help-description">APE 사용 시 자주 묻는 질문들과 그에 대한 답변입니다.</p>
+      </header>
+
       <div class="faq-list">
     `;
         for (const faq of faqs) {
             content += `
         <div class="faq-item">
-          <div class="faq-question">${faq.question}</div>
+          <div class="faq-question">
+            <span class="faq-icon codicon codicon-question"></span>
+            ${faq.question}
+          </div>
           <div class="faq-answer">${faq.answer}</div>
         </div>
       `;
@@ -16829,7 +17431,9 @@ async function generateFaqHtml() {
         content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 도움말로 돌아가기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 도움말로 돌아가기
+        </a>
       </div>
     `;
         return getHelpPageHtml(content);
@@ -16859,13 +17463,20 @@ async function generateGuideHtml(guideId) {
         <p><a href="#" onclick="sendCommandToVSCode('help guides')">모든 가이드 보기</a></p>
       `);
         }
-        // 마크다운 형식 그대로 표시
+        // 마크다운 형식 표시 개선
         const content = `
+      <header class="help-header">
+        <h1>${guide.title}</h1>
+      </header>
+
       <div class="guide-content markdown-body">
         ${guide.content}
       </div>
+
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help guides')">← 모든 가이드 보기</a>
+        <a href="#" onclick="sendCommandToVSCode('help guides')">
+          <span class="codicon codicon-arrow-left"></span> 모든 가이드 보기
+        </a>
       </div>
     `;
         return getHelpPageHtml(content);
@@ -16887,18 +17498,27 @@ async function generateGuidesListHtml() {
         const helpData = await loadHelpData();
         const guides = helpData.guides || [];
         let content = `
-      <h1>APE 가이드 문서</h1>
-      <p>사용 가능한 가이드 문서 목록입니다. 각 가이드에 대한 자세한 정보를 보려면 제목을 클릭하세요.</p>
+      <header class="help-header">
+        <h1>APE 가이드 문서</h1>
+        <p class="help-description">사용 가능한 가이드 문서 목록입니다. 제목을 클릭하면 해당 가이드의 자세한 내용을 볼 수 있습니다.</p>
+      </header>
+
       <div class="guides-list">
     `;
         for (const guide of guides) {
             content += `
         <div class="guide-item">
           <h2 class="guide-title">
+            <span class="guide-icon codicon codicon-book"></span>
             <a href="#" onclick="sendCommandToVSCode('help guide ${guide.id}')">${guide.title}</a>
           </h2>
           <div class="guide-description">
             ${guide.content.split('\n')[0].replace(/^#+\s+.*$/, '')}
+          </div>
+          <div class="guide-action">
+            <a href="#" class="read-more-link" onclick="sendCommandToVSCode('help guide ${guide.id}')">
+              자세히 읽기 <span class="codicon codicon-arrow-right"></span>
+            </a>
           </div>
         </div>
       `;
@@ -16906,7 +17526,9 @@ async function generateGuidesListHtml() {
         content += `
       </div>
       <div class="back-link">
-        <a href="#" onclick="sendCommandToVSCode('help')">← 도움말로 돌아가기</a>
+        <a href="#" onclick="sendCommandToVSCode('help')">
+          <span class="codicon codicon-arrow-left"></span> 도움말로 돌아가기
+        </a>
       </div>
     `;
         return getHelpPageHtml(content);
@@ -16974,348 +17596,720 @@ function getHelpPageHtml(content) {
       <title>APE 도움말</title>
       <link rel="stylesheet" href="${getCodiconCssUri().toString()}" />
       <style>
+        /* 핵심 변수 - Claude.ai 스타일 */
         :root {
-          --bg-color: var(--vscode-editor-background, #ffffff);
-          --text-color: var(--vscode-editor-foreground, #333333);
-          --link-color: var(--vscode-textLink-foreground, #3794ff);
-          --heading-color: var(--vscode-editor-foreground, #333333);
-          --border-color: var(--vscode-panel-border, #e7e7e7);
-          --accent-color: var(--vscode-button-background, #0e639c);
-          --accent-hover-color: var(--vscode-button-hoverBackground, #1177bb);
-          --card-bg-color: var(--vscode-editor-inactiveSelectionBackground, #f5f5f5);
-          --code-bg-color: var(--vscode-textBlockQuote-background, #f1f1f1);
+          /* 레이아웃 변수 */
+          --ape-container-max-width: 960px;
+          --ape-content-padding: 1.5rem;
+          --ape-mobile-padding: 1rem;
+
+          /* 색상 변수 - VS Code 테마 통합 */
+          --ape-bg-primary: var(--vscode-editor-background, #1e1e1e);
+          --ape-bg-secondary: var(--vscode-sideBar-background, #252526);
+          --ape-bg-tertiary: var(--vscode-dropdown-background, #3c3c3c);
+          --ape-bg-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+          --ape-bg-active: var(--vscode-list-activeSelectionBackground, #094771);
+
+          /* 경계선 강조 색상 */
+          --ape-border-highlight: var(--vscode-button-background, #0e639c);
+          --ape-highlight-light: var(--vscode-button-hoverBackground, #1177bb);
+          --ape-highlight-dark: #094771;
+          --ape-highlight-accent: var(--vscode-textLink-foreground, #3794ff);
+
+          /* 텍스트 색상 */
+          --ape-text-primary: var(--vscode-foreground, #cccccc);
+          --ape-text-secondary: var(--vscode-descriptionForeground, #8a8a8a);
+          --ape-text-accent: var(--vscode-textLink-foreground, #3794ff);
+          --ape-text-error: var(--vscode-errorForeground, #f48771);
+
+          /* 강조 색상 */
+          --ape-accent-primary: var(--vscode-button-background, #0e639c);
+          --ape-accent-secondary: var(--vscode-button-hoverBackground, #1177bb);
+          --ape-accent-tertiary: rgba(55, 148, 255, 0.1);
+
+          /* 테두리 및 구분선 */
+          --ape-border-subtle: var(--vscode-widget-border, #454545);
+          --ape-border-strong: var(--vscode-input-border, #6b6b6b);
+
+          /* 그림자 효과 */
+          --ape-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+          --ape-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+          --ape-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
+
+          /* 타이포그래피 */
+          --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+          --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Menlo, Consolas, 'Ubuntu Mono', monospace);
+
+          /* 레이아웃 값 */
+          --ape-border-radius-sm: 4px;
+          --ape-border-radius-md: 8px;
+          --ape-border-radius-lg: 12px;
+          --ape-border-radius-full: 9999px;
+
+          /* 애니메이션 */
+          --ape-transition-fast: 150ms ease;
+          --ape-transition-normal: 250ms ease;
+          --ape-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
+        /* 기본 레이아웃 - 미니멀 스타일 */
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          font-family: var(--ape-font-sans);
           line-height: 1.6;
-          color: var(--text-color);
-          background-color: var(--bg-color);
+          color: var(--ape-text-primary);
+          background-color: var(--ape-bg-primary);
           margin: 0;
-          padding: 20px;
-          max-width: 1000px;
+          padding: 0;
+          max-width: var(--ape-container-max-width);
           margin: 0 auto;
+          overflow-x: hidden;
+          font-size: 14px;
+          letter-spacing: -0.011em;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          box-sizing: border-box;
         }
-        
+
+        /* 도움말 콘텐츠 래퍼 */
+        .help-content {
+          max-width: var(--ape-container-max-width);
+          margin: 0 auto;
+          padding: 2rem;
+        }
+
+        /* 헤더 스타일 - 미니멀 */
+        .help-header {
+          margin-bottom: 2rem;
+          animation: fade-in 0.5s ease-out;
+        }
+
+        .help-description {
+          color: var(--ape-text-secondary);
+          font-size: 15px;
+          max-width: 600px;
+          margin-bottom: 1.5rem;
+        }
+
+        /* 타이포그래피 - 미니멀 */
         h1, h2, h3, h4, h5, h6 {
-          color: var(--heading-color);
-          margin-top: 24px;
-          margin-bottom: 16px;
+          color: var(--ape-text-primary);
+          margin-top: 2rem;
+          margin-bottom: 1rem;
           font-weight: 600;
-          line-height: 1.25;
+          line-height: 1.3;
+          letter-spacing: -0.02em;
         }
-        
+
         h1 {
-          font-size: 2em;
-          padding-bottom: 0.3em;
-          border-bottom: 1px solid var(--border-color);
-        }
-        
-        h2 {
-          font-size: 1.5em;
-          padding-bottom: 0.3em;
-        }
-        
-        a {
-          color: var(--link-color);
-          text-decoration: none;
-        }
-        
-        a:hover {
-          text-decoration: underline;
-        }
-        
-        p {
+          font-size: 2rem;
           margin-top: 0;
-          margin-bottom: 16px;
+          margin-bottom: 1.5rem;
+          font-weight: 700;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
         }
-        
+
+        h2 {
+          font-size: 1.4rem;
+          padding-bottom: 0.2rem;
+          margin-top: 2rem;
+        }
+
+        a {
+          color: var(--ape-text-accent);
+          text-decoration: none;
+          transition: color var(--ape-transition-fast);
+          border-radius: var(--ape-border-radius-sm);
+        }
+
+        a:hover {
+          color: var(--ape-accent-secondary);
+          background-color: var(--ape-accent-tertiary);
+        }
+
+        p {
+          margin: 0 0 1rem 0;
+          line-height: 1.6;
+        }
+
+        /* 코드 스타일 - 미니멀 */
         code {
-          font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+          font-family: var(--ape-font-mono);
           padding: 0.2em 0.4em;
           margin: 0;
-          font-size: 85%;
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
+          font-size: 90%;
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-sm);
+          color: var(--ape-text-primary);
         }
-        
+
         pre {
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
-          padding: 16px;
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1rem;
           overflow: auto;
+          margin-bottom: 1.5rem;
         }
-        
+
         pre code {
           background-color: transparent;
           padding: 0;
           margin: 0;
-          font-size: 100%;
-          word-break: normal;
+          font-size: 13px;
           white-space: pre;
         }
-        
+
+        /* 목록 스타일 */
         ul, ol {
-          margin-top: 0;
-          margin-bottom: 16px;
-          padding-left: 2em;
+          margin: 0 0 1.5rem 0;
+          padding-left: 1.5rem;
         }
-        
+
         li {
-          margin-top: 0.25em;
+          margin-bottom: 0.5rem;
         }
-        
+
+        /* 명령어 카테고리 - 미니멀 스타일 */
         .help-category {
-          margin-bottom: 30px;
+          margin-bottom: 2.5rem;
+          animation: fade-in 0.4s ease-out;
         }
-        
+
+        /* 명령어 그리드 - 미니멀 카드 */
         .command-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 12px;
-          margin-bottom: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
-        
+
+        /* 명령어 카드 - 미니멀 */
         .command-card {
-          background-color: var(--card-bg-color);
-          border-radius: 8px;
-          padding: 16px;
+          background-color: var(--ape-bg-secondary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1.2rem;
           cursor: pointer;
-          transition: all 0.2s ease;
-          border: 1px solid var(--border-color);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all var(--ape-transition-normal);
+          border: 1px solid var(--ape-border-subtle);
+          box-shadow: var(--ape-shadow-sm);
           position: relative;
           overflow: hidden;
         }
-        
+
         .command-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border-color: var(--accent-color);
+          transform: translateY(-3px);
+          box-shadow: var(--ape-shadow-md);
+          border-color: var(--ape-border-highlight);
+          background-color: var(--ape-bg-secondary);
         }
-        
+
         .command-card::before {
           content: '';
           position: absolute;
           top: 0;
           left: 0;
-          width: 4px;
+          width: 3px;
           height: 100%;
-          background-color: var(--accent-color);
+          background-color: var(--ape-border-highlight);
           opacity: 0;
-          transition: opacity 0.2s ease;
+          transition: opacity var(--ape-transition-fast);
         }
-        
+
         .command-card:hover::before {
           opacity: 1;
         }
-        
-        .clickable-command {
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        
-        .clickable-command:hover {
-          color: var(--accent-color);
-          text-decoration: underline;
-        }
-        
+
+        /* 명령어 이름 - 미니멀 */
         .command-name {
-          font-weight: bold;
-          margin-bottom: 10px;
-          color: var(--accent-color);
-          font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-          font-size: 1.1em;
+          font-weight: 600;
+          margin-bottom: 0.6rem;
+          color: var(--ape-text-accent);
+          font-family: var(--ape-font-mono);
+          font-size: 15px;
           display: flex;
           align-items: center;
         }
-        
-        .command-description {
-          margin-bottom: 10px;
-          color: var(--text-color);
-          line-height: 1.4;
-        }
-        
-        .command-examples {
-          font-size: 0.85em;
-          color: var(--vscode-descriptionForeground, #747474);
-          font-style: italic;
-          padding: 4px 0;
-        }
-        
-        .command-aliases {
-          font-size: 0.85em;
-          color: var(--vscode-descriptionForeground, #747474);
-          background-color: var(--code-bg-color);
-          border-radius: 3px;
-          padding: 2px 6px;
-          display: inline-block;
-          margin-top: 4px;
-        }
-        
+
         .command-icon {
-          font-size: 1em;
-          margin-right: 6px;
+          font-size: 16px;
+          margin-right: 0.5rem;
           position: relative;
           top: 1px;
+          color: var(--ape-text-accent);
         }
-        
+
         .command-text {
-          font-weight: bold;
-        }
-        
-        .command-usage {
-          margin-bottom: 16px;
-        }
-        
-        .command-aliases, .related-commands {
-          margin-bottom: 16px;
-        }
-        
-        .related-command {
-          margin-right: 8px;
-        }
-        
-        .back-link {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid var(--border-color);
-        }
-        
-        .faq-list {
-          margin-top: 24px;
-        }
-        
-        .faq-item {
-          margin-bottom: 24px;
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 16px;
-        }
-        
-        .faq-question {
           font-weight: 600;
-          font-size: 1.2em;
-          margin-bottom: 8px;
-          color: var(--accent-color);
         }
-        
-        .guides-list {
-          margin-top: 24px;
+
+        .command-description {
+          margin-bottom: 0.7rem;
+          color: var(--ape-text-primary);
+          line-height: 1.5;
+          font-size: 13px;
         }
-        
-        .guide-item {
-          margin-bottom: 24px;
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 16px;
+
+        /* 명령어 카드 푸터 - 미니멀 */
+        .command-card-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-top: 0.8rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          padding-top: 0.8rem;
+          font-size: 12px;
         }
-        
-        .guide-title {
-          margin-bottom: 8px;
+
+        /* 명령어 별칭 및 예시 - 미니멀 */
+        .command-examples {
+          font-size: 12px;
+          color: var(--ape-text-secondary);
+          font-style: italic;
+          flex: 1;
         }
-        
-        .guide-description {
-          margin-bottom: 8px;
+
+        .command-aliases {
+          font-size: 11px;
+          color: var(--ape-text-accent);
+          background-color: rgba(55, 148, 255, 0.1);
+          border-radius: var(--ape-border-radius-full);
+          padding: 0.1rem 0.6rem;
+          margin-left: 0.5rem;
+          white-space: nowrap;
         }
-        
-        .markdown-body {
+
+        /* 클릭 가능한 명령어 */
+        .clickable-command {
+          cursor: pointer;
+          transition: all var(--ape-transition-fast);
+        }
+
+        .clickable-command:hover {
+          color: var(--ape-text-accent);
+          background-color: var(--ape-accent-tertiary);
+          padding: 0.2em 0.4em;
+          border-radius: var(--ape-border-radius-sm);
+        }
+
+        /* 명령어 상세 페이지 */
+        .command-detail {
+          max-width: 800px;
+          margin: 0 auto;
+          animation: fade-in 0.4s ease-out;
+        }
+
+        .detail-section {
+          margin-bottom: 1.8rem;
+          padding-bottom: 1.2rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
+        }
+
+        .detail-section h2 {
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+          color: var(--ape-text-accent);
+        }
+
+        .detail-section p {
+          font-size: 14px;
           line-height: 1.6;
+          margin-bottom: 1rem;
         }
-        
-        .markdown-body img {
-          max-width: 100%;
-          box-sizing: content-box;
+
+        .command-usage {
+          background-color: var(--ape-bg-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1rem;
+          margin-bottom: 0.5rem;
+          font-family: var(--ape-font-mono);
+          font-size: 14px;
+          color: var(--ape-text-primary);
         }
-        
-        .markdown-body blockquote {
-          padding: 0 1em;
-          color: var(--vscode-editor-foreground, #6a737d);
-          border-left: 0.25em solid var(--vscode-panel-border, #dfe2e5);
-          margin: 0 0 16px 0;
+
+        .command-examples-list {
+          margin: 0;
+          padding-left: 1.5rem;
         }
-        
-        .markdown-body table {
-          display: block;
-          width: 100%;
-          overflow: auto;
-          border-collapse: collapse;
-          margin-bottom: 16px;
+
+        .command-examples-list li {
+          margin-bottom: 0.6rem;
         }
-        
-        .markdown-body table th,
-        .markdown-body table td {
-          padding: 6px 13px;
-          border: 1px solid var(--vscode-panel-border, #dfe2e5);
+
+        .command-examples-list code {
+          font-size: 13px;
+          color: var(--ape-text-primary);
         }
-        
-        .markdown-body table tr {
-          background-color: var(--bg-color);
-          border-top: 1px solid var(--vscode-panel-border, #c6cbd1);
+
+        .command-aliases-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.6rem;
         }
-        
-        .markdown-body table tr:nth-child(2n) {
-          background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
+
+        .detail-alias {
+          font-family: var(--ape-font-mono);
+          font-size: 13px;
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--ape-border-radius-full);
         }
-        
-        /* 퀵 액션 스타일 */
+
+        .related-commands {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .related-command {
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--ape-border-radius-full);
+          font-size: 13px;
+          transition: all var(--ape-transition-fast);
+        }
+
+        .related-command:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+        }
+
+        /* 퀵 액션 섹션 - 미니멀 디자인 */
         .quick-actions {
-          margin: 20px 0 30px;
-          background-color: var(--vscode-editor-inactiveSelectionBackground, #f6f8fa);
-          border-radius: 8px;
-          padding: 16px;
-          border: 1px solid var(--border-color);
+          margin: 1.5rem 0 2.5rem;
+          background-color: rgba(55, 148, 255, 0.05);
+          border-radius: var(--ape-border-radius-lg);
+          padding: 1.5rem;
+          border: 1px solid var(--ape-border-subtle);
+          animation: fade-in 0.4s ease-out;
         }
-        
+
         .quick-actions h2 {
           margin-top: 0;
-          font-size: 1.3em;
-          color: var(--accent-color);
-          padding-left: 4px;
+          margin-bottom: 1rem;
+          font-size: 16px;
+          color: var(--ape-text-primary);
+          font-weight: 600;
+          letter-spacing: -0.01em;
         }
-        
+
         .quick-buttons {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 0.6rem;
         }
-        
+
+        /* 퀵 버튼 - 미니멀 디자인 */
         .quick-button {
           display: flex;
           align-items: center;
-          padding: 8px 16px;
-          border-radius: 4px;
+          padding: 0.6rem 1.2rem;
+          border-radius: var(--ape-border-radius-md);
           cursor: pointer;
           font-weight: 500;
           border: none;
-          min-width: 120px;
-          font-size: 0.95em;
-          transition: all 0.2s ease;
+          font-size: 13px;
+          transition: all var(--ape-transition-normal);
           color: white;
+          box-shadow: var(--ape-shadow-sm);
         }
-        
+
         .quick-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--ape-shadow-md);
+          filter: brightness(1.1);
         }
-        
+
         .quick-button .codicon {
-          margin-right: 8px;
-          font-size: 1.2em;
+          margin-right: 0.5rem;
+          font-size: 16px;
         }
-        
+
+        /* 퀵 버튼 색상 */
         .quick-button.git {
           background-color: #F05033;
         }
-        
+
         .quick-button.code {
           background-color: #007ACC;
         }
-        
+
         .quick-button.utility {
           background-color: #6C757D;
         }
-        
+
         .quick-button.model {
           background-color: #28A745;
+        }
+
+        /* 돌아가기 링크 */
+        .back-link {
+          margin-top: 2rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--ape-border-subtle);
+          font-size: 14px;
+        }
+
+        .back-link a {
+          display: inline-flex;
+          align-items: center;
+          color: var(--ape-text-accent);
+          padding: 0.5rem 0.8rem;
+          background-color: var(--ape-accent-tertiary);
+          border-radius: var(--ape-border-radius-md);
+          transition: all var(--ape-transition-fast);
+        }
+
+        .back-link a:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+          text-decoration: none;
+        }
+
+        /* FAQ 스타일 - 미니멀 */
+        .faq-list {
+          margin-top: 2rem;
+          animation: fade-in 0.4s ease-out;
+        }
+
+        .faq-item {
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--ape-border-subtle);
+          padding-bottom: 1.5rem;
+        }
+
+        .faq-question {
+          font-weight: 600;
+          font-size: 16px;
+          margin-bottom: 0.8rem;
+          color: var(--ape-text-accent);
+          display: flex;
+          align-items: center;
+        }
+
+        .faq-icon {
+          margin-right: 0.5rem;
+          font-size: 14px;
+          background-color: var(--ape-accent-tertiary);
+          color: var(--ape-text-accent);
+          width: 22px;
+          height: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--ape-border-radius-full);
+        }
+
+        .faq-answer {
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        /* 가이드 목록 - 미니멀 */
+        .guides-list {
+          margin-top: 2rem;
+          animation: fade-in 0.4s ease-out;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .guide-item {
+          margin-bottom: 0;
+          background-color: var(--ape-bg-secondary);
+          border-radius: var(--ape-border-radius-md);
+          padding: 1.5rem;
+          border: 1px solid var(--ape-border-subtle);
+          box-shadow: var(--ape-shadow-sm);
+          transition: all var(--ape-transition-normal);
+        }
+
+        .guide-item:hover {
+          transform: translateY(-3px);
+          border-color: var(--ape-border-highlight);
+          box-shadow: var(--ape-shadow-md);
+        }
+
+        .guide-title {
+          font-size: 18px;
+          margin-bottom: 0.8rem;
+          margin-top: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .guide-icon {
+          margin-right: 0.6rem;
+          font-size: 16px;
+          color: var(--ape-text-accent);
+          background-color: var(--ape-accent-tertiary);
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--ape-border-radius-md);
+        }
+
+        .guide-title a {
+          color: var(--ape-text-accent);
+        }
+
+        .guide-description {
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--ape-text-secondary);
+          margin-bottom: 1.2rem;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          position: relative;
+          max-height: 4.8em;
+        }
+
+        .guide-action {
+          text-align: right;
+          margin-top: 1.2rem;
+          border-top: 1px solid var(--ape-border-subtle);
+          padding-top: 1rem;
+        }
+
+        .read-more-link {
+          font-size: 13px;
+          color: var(--ape-text-accent);
+          display: inline-flex;
+          align-items: center;
+          transition: all var(--ape-transition-fast);
+          padding: 0.4rem 0.8rem;
+          border-radius: var(--ape-border-radius-md);
+          background-color: var(--ape-accent-tertiary);
+        }
+
+        .read-more-link .codicon {
+          margin-left: 0.4rem;
+          font-size: 12px;
+          transition: transform var(--ape-transition-fast);
+        }
+
+        .read-more-link:hover {
+          background-color: var(--ape-accent-primary);
+          color: white;
+          text-decoration: none;
+        }
+
+        .read-more-link:hover .codicon {
+          transform: translateX(3px);
+        }
+
+        /* 마크다운 콘텐츠 스타일 */
+        .markdown-body {
+          line-height: 1.6;
+          font-size: 14px;
+        }
+
+        .markdown-body img {
+          max-width: 100%;
+          border-radius: var(--ape-border-radius-md);
+          margin: 1.5rem 0;
+        }
+
+        .markdown-body blockquote {
+          padding: 0.8rem 1.2rem;
+          color: var(--ape-text-secondary);
+          border-left: 4px solid var(--ape-border-highlight);
+          margin: 1.2rem 0;
+          background-color: rgba(55, 148, 255, 0.05);
+          border-radius: 0 var(--ape-border-radius-md) var(--ape-border-radius-md) 0;
+        }
+
+        .markdown-body table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1.5rem 0;
+          overflow-x: auto;
+          display: block;
+        }
+
+        .markdown-body table th,
+        .markdown-body table td {
+          padding: 0.6rem 1rem;
+          border: 1px solid var(--ape-border-subtle);
+        }
+
+        .markdown-body table th {
+          background-color: var(--ape-bg-tertiary);
+          font-weight: 600;
+        }
+
+        .markdown-body table tr:nth-child(2n) {
+          background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* 애니메이션 */
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+          .help-content {
+            padding: 1.2rem;
+          }
+
+          .command-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .quick-buttons {
+            flex-direction: column;
+          }
+
+          .quick-button {
+            width: 100%;
+          }
+
+          .guides-list {
+            grid-template-columns: 1fr;
+          }
+
+          .guide-action {
+            text-align: center;
+          }
+
+          .command-detail {
+            padding: 0 0.5rem;
+          }
+
+          .related-commands {
+            flex-direction: column;
+          }
+
+          .related-command {
+            margin-bottom: 0.5rem;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .help-content {
+            padding: 1rem;
+          }
+
+          h1 {
+            font-size: 1.8rem;
+          }
+
+          .command-card-footer {
+            flex-direction: column;
+          }
+
+          .command-aliases {
+            margin: 0.5rem 0 0 0;
+          }
         }
       </style>
     </head>
@@ -18343,7 +19337,44 @@ function createRulesCommands(rulesService) {
         priority: 15,
         execute: async (context) => {
             const subCommand = context.args[0]?.toLowerCase();
-            if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+            if (!subCommand) {
+                // Rules 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+                const rulesSubcommands = [
+                    { command: 'list', description: '모든 Rules 목록을 표시합니다' },
+                    { command: 'active', description: '활성화된 Rules 목록을 표시합니다' },
+                    { command: 'inactive', description: '비활성화된 Rules 목록을 표시합니다' },
+                    { command: 'activate', description: '지정한 Rule을 활성화합니다' },
+                    { command: 'deactivate', description: '지정한 Rule을 비활성화합니다' },
+                    { command: 'create', description: '새 Rule을 생성합니다' },
+                    { command: 'delete', description: '지정한 Rule을 삭제합니다' },
+                    { command: 'open', description: '지정한 Rule 파일을 엽니다' },
+                    { command: 'info', description: 'Rules 시스템 정보를 표시합니다' }
+                ];
+                // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+                const suggestions = rulesSubcommands.map(cmd => ({
+                    label: `/rules ${cmd.command}`,
+                    description: cmd.description,
+                    category: 'advanced',
+                    insertText: `/rules ${cmd.command} `
+                }));
+                // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+                vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+                // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showQuickPick(rulesSubcommands.map(cmd => ({
+                    label: cmd.command,
+                    description: cmd.description,
+                    detail: `Rules 하위 명령어: ${cmd.command}`
+                })), {
+                    placeHolder: 'Rules 명령어를 선택하세요',
+                    matchOnDescription: true
+                }).then(selected => {
+                    if (selected) {
+                        // 선택한 명령어를 채팅 입력창에 삽입
+                        vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.insertToChatInput', `/rules ${selected.label}`);
+                    }
+                });
+            }
+            else if (subCommand === 'list' || subCommand === '목록') {
                 // Rules 목록 표시
                 await listRules(rulesService);
             }
@@ -18428,29 +19459,6 @@ function createRulesCommands(rulesService) {
                 // 현재는 비어있는 배열 반환
                 // 모든 활성화된/비활성화된 Rule 목록을 가져오는 방법은 아직 구현되지 않음
                 return [];
-            }
-            return [];
-        }
-    });
-    // r 명령어: rules의 별칭
-    commands.push({
-        name: 'r',
-        description: 'rules 명령어의 축약형 (APE Rules 관리)',
-        category: 'advanced',
-        aliases: [],
-        priority: 0,
-        execute: async (context) => {
-            // rules 명령어로 리다이렉트
-            const rulesCommand = commands.find(cmd => cmd.name === 'rules');
-            if (rulesCommand && rulesCommand.execute) {
-                await rulesCommand.execute(context);
-            }
-        },
-        provideCompletions: (partialArgs) => {
-            // rules 명령어의 자동완성 재사용
-            const rulesCommand = commands.find(cmd => cmd.name === 'rules');
-            if (rulesCommand && rulesCommand.provideCompletions) {
-                return rulesCommand.provideCompletions(partialArgs);
             }
             return [];
         }
@@ -20882,7 +21890,41 @@ function createVaultCommands(vaultService) {
         priority: 5,
         execute: async (context) => {
             const subCommand = context.args[0]?.toLowerCase();
-            if (!subCommand || subCommand === 'list' || subCommand === '목록') {
+            if (!subCommand) {
+                // Vault 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+                const vaultSubcommands = [
+                    { command: 'list', description: '모든 컨텍스트 및 아이템 목록을 표시합니다' },
+                    { command: 'show', description: '특정 컨텍스트 또는 아이템 내용을 표시합니다' },
+                    { command: 'use', description: '아이템을 사용하여 채팅창에 내용을 삽입합니다' },
+                    { command: 'create', description: '새 컨텍스트 또는 아이템을 생성합니다' },
+                    { command: 'delete', description: '컨텍스트 또는 아이템을 삭제합니다' },
+                    { command: 'search', description: '컨텍스트 내에서 아이템을 검색합니다' }
+                ];
+                // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+                const suggestions = vaultSubcommands.map(cmd => ({
+                    label: `/vault ${cmd.command}`,
+                    description: cmd.description,
+                    category: 'utility',
+                    insertText: `/vault ${cmd.command} `
+                }));
+                // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+                vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+                // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showQuickPick(vaultSubcommands.map(cmd => ({
+                    label: cmd.command,
+                    description: cmd.description,
+                    detail: `Vault 하위 명령어: ${cmd.command}`
+                })), {
+                    placeHolder: 'Vault 명령어를 선택하세요',
+                    matchOnDescription: true
+                }).then(selected => {
+                    if (selected) {
+                        // 선택한 명령어를 채팅 입력창에 삽입
+                        vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.insertToChatInput', `/vault ${selected.label}`);
+                    }
+                });
+            }
+            else if (subCommand === 'list' || subCommand === '목록') {
                 // 컨텍스트 목록 표시
                 await showContextList(vaultService);
             }
@@ -23200,11 +24242,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vscode */ "vscode");
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _conflictSolver__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./conflictSolver */ "./src/core/git/conflictSolver.ts");
 /**
  * Git 명령어 모듈
  *
  * Git 관련 명령어들을 정의합니다.
  */
+
 
 /**
  * Git 명령어 목록 생성
@@ -23221,7 +24265,46 @@ function createGitCommands() {
         priority: 3,
         execute: async (context) => {
             const subCommand = context.args[0]?.toLowerCase();
-            if (!subCommand || subCommand === 'status' || subCommand === '상태') {
+            if (!subCommand) {
+                // Git 하위 명령어 목록 표시 (슬랙/디스코드 스타일 자동완성)
+                const gitSubcommands = [
+                    { command: 'status', description: 'Git 저장소 상태를 확인합니다' },
+                    { command: 'commit', description: '변경 사항을 커밋합니다' },
+                    { command: 'auto', description: '자동 커밋 기능을 켜거나 끕니다' },
+                    { command: 'auto-on', description: '자동 커밋 기능을 켭니다' },
+                    { command: 'auto-off', description: '자동 커밋 기능을 끕니다' },
+                    { command: 'consolidate', description: '임시 커밋들을 하나의 정식 커밋으로 통합합니다' },
+                    { command: 'solve', description: '웹뷰를 통한 Git 충돌 해결 제안을 제공합니다' },
+                    { command: 'solve-auto', description: '모든 Git 충돌을 자동으로 해결합니다' },
+                    { command: 'solve-ours', description: '모든 Git 충돌을 현재 브랜치의 코드로 해결합니다' },
+                    { command: 'solve-theirs', description: '모든 Git 충돌을 다른 브랜치의 코드로 해결합니다' },
+                    { command: 'solve-llm', description: 'LLM을 사용해 Git 충돌을 지능적으로 해결합니다' }
+                ];
+                // 명령어 제안을 채팅 인터페이스의 자동완성 UI에 표시
+                const suggestions = gitSubcommands.map(cmd => ({
+                    label: `/git ${cmd.command}`,
+                    description: cmd.description,
+                    category: 'git',
+                    insertText: `/git ${cmd.command} `
+                }));
+                // 명령어 제안 표시 - 채팅 입력창 자동완성 UI에 표시
+                vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.showCommandSuggestions', suggestions);
+                // VSCode의 퀵픽 UI도 함께 표시 (백업 방법)
+                vscode__WEBPACK_IMPORTED_MODULE_0__.window.showQuickPick(gitSubcommands.map(cmd => ({
+                    label: cmd.command,
+                    description: cmd.description,
+                    detail: `Git 하위 명령어: ${cmd.command}`
+                })), {
+                    placeHolder: 'Git 명령어를 선택하세요',
+                    matchOnDescription: true
+                }).then(selected => {
+                    if (selected) {
+                        // 선택한 명령어를 채팅 입력창에 삽입
+                        vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.insertToChatInput', `/git ${selected.label}`);
+                    }
+                });
+            }
+            else if (subCommand === 'status' || subCommand === '상태') {
                 // Git 상태 확인
                 await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.showStatus');
             }
@@ -23249,13 +24332,40 @@ function createGitCommands() {
                 // 임시 커밋 통합
                 await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.consolidateTemporaryCommits');
             }
+            else if (subCommand === 'solve' || subCommand === 'conflict' || subCommand === 'conflicts' || subCommand === '충돌' || subCommand === '충돌해결') {
+                // 충돌 해결 - 웹뷰 버전 (새로 추가)
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.solveConflictsWithReport');
+            }
+            else if (subCommand === 'solve-auto' || subCommand === '충돌자동해결') {
+                // 충돌 자동 해결 (기존 방식)
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.resolveConflict');
+            }
+            else if (subCommand === 'solve-ours' || subCommand === '충돌내것선택') {
+                // 충돌 해결 - 현재 브랜치 선택
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.resolveConflictWithStrategy', _conflictSolver__WEBPACK_IMPORTED_MODULE_1__.ConflictStrategy.OURS);
+            }
+            else if (subCommand === 'solve-theirs' || subCommand === '충돌저것선택') {
+                // 충돌 해결 - 대상 브랜치 선택
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.resolveConflictWithStrategy', _conflictSolver__WEBPACK_IMPORTED_MODULE_1__.ConflictStrategy.THEIRS);
+            }
+            else if (subCommand === 'solve-llm' || subCommand === '충돌지능해결') {
+                // 충돌 해결 - LLM 지능형 병합
+                await vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.git.resolveConflictWithStrategy', _conflictSolver__WEBPACK_IMPORTED_MODULE_1__.ConflictStrategy.LLM);
+            }
             else {
                 vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('알 수 없는 Git 하위 명령어입니다');
             }
         },
         provideCompletions: (partialArgs) => {
-            const subCommands = ['status', 'commit', 'auto', 'auto-on', 'auto-off', 'consolidate', 'squash',
-                '상태', '커밋', '저장', '자동', '자동커밋', '자동켜기', '자동끄기', '자동커밋켜기', '자동커밋끄기', '통합', '임시통합', '통합커밋'];
+            const subCommands = [
+                // 기존 명령어
+                'status', 'commit', 'auto', 'auto-on', 'auto-off', 'consolidate', 'squash',
+                // 충돌 해결 관련 명령어
+                'solve', 'conflict', 'conflicts', 'solve-auto', 'solve-ours', 'solve-theirs', 'solve-llm',
+                // 한국어 명령어
+                '상태', '커밋', '저장', '자동', '자동커밋', '자동켜기', '자동끄기', '자동커밋켜기', '자동커밋끄기', '통합', '임시통합', '통합커밋',
+                '충돌', '충돌해결', '충돌자동해결', '충돌내것선택', '충돌저것선택', '충돌지능해결'
+            ];
             // 첫 번째 인자 자동완성
             if (!partialArgs.includes(' ')) {
                 return subCommands.filter(cmd => cmd.startsWith(partialArgs.toLowerCase()));
@@ -23614,19 +24724,133 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vscode */ "vscode");
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! axios */ "./node_modules/axios/lib/axios.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! axios */ "./node_modules/axios/lib/axios.js");
 /* harmony import */ var ws__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ws */ "./node_modules/ws/wrapper.mjs");
-/* harmony import */ var _types_chat__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../types/chat */ "./src/types/chat.ts");
-/* harmony import */ var _vaultIntegration__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./vaultIntegration */ "./src/core/llm/vaultIntegration.ts");
-/* harmony import */ var _rulesIntegration__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./rulesIntegration */ "./src/core/llm/rulesIntegration.ts");
+/* harmony import */ var https__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! https */ "https");
+/* harmony import */ var https__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(https__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _types_chat__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../types/chat */ "./src/types/chat.ts");
+/* harmony import */ var _vaultIntegration__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./vaultIntegration */ "./src/core/llm/vaultIntegration.ts");
+/* harmony import */ var _rulesIntegration__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./rulesIntegration */ "./src/core/llm/rulesIntegration.ts");
 
 
 
 
 
 
+
+/**
+ * 내부망 모델 API 엔드포인트 정의 (하드코딩)
+ */
+const INTERNAL_API_ENDPOINTS = {
+    [_types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.NARRANS]: 'https://api-se-dev.narrans.samsungds.net/v1/chat/completions',
+    [_types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_SCOUT]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions',
+    [_types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_MAVERICK]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions'
+};
 // Define constants for WebSocket states
 const WS_OPEN = 1;
+/**
+ * 내부망 모델 여부 확인
+ * @param model 모델 ID
+ * @returns 내부망 모델 여부
+ */
+function isInternalModel(model) {
+    return model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.NARRANS ||
+        model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_SCOUT ||
+        model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_MAVERICK;
+}
+/**
+ * 내부망 모델용 요청 헤더 생성 (하드코딩)
+ */
+function createInternalApiHeaders(apiKey, requestId, isStreaming = false, model = '') {
+    // Narrans 모델 요청 헤더
+    if (model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.NARRANS) {
+        return {
+            'Content-Type': 'application/json',
+            'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
+            'Send-System-Name': 'narrans',
+            'User-Id': 'ape_ext',
+            'User-Type': 'ape_ext',
+            'Prompt-Msg-Id': requestId,
+            'Completion-Msg-Id': requestId,
+            'Authorization': 'Bearer dummytoken' // 하드코딩된 Bearer 토큰
+        };
+    }
+    // LLAMA4 모델 요청 헤더
+    else {
+        return {
+            'Content-Type': 'application/json',
+            'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
+            'Send-System-Name': 'narrans',
+            'User-Id': 'ape_ext',
+            'User-Type': 'ape_ext',
+            'Prompt-Msg-Id': requestId,
+            'Completion-Msg-Id': requestId,
+            'x-dep-ticket': 'dummy-credential-key' // 하드코딩된 x-dep-ticket
+        };
+    }
+}
+/**
+ * 내부망 모델용 요청 본문 생성 (하드코딩)
+ */
+function createInternalApiRequestBody(model, messages, options) {
+    // Narrans 모델 요청 본문
+    if (model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.NARRANS) {
+        return {
+            model: model,
+            messages: messages,
+            temperature: options?.temperature || 0.7,
+            stream: !!options?.stream,
+            max_tokens: 16000
+        };
+    }
+    // LLAMA4_SCOUT 모델 요청 본문
+    else if (model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_SCOUT) {
+        return {
+            model: model,
+            messages: messages,
+            temperature: options?.temperature || 0.7,
+            stream: !!options?.stream,
+            system_name: 'narrans',
+            user_id: 'ape_ext',
+            user_type: 'ape_ext',
+            max_tokens: 50000
+        };
+    }
+    // LLAMA4_MAVERICK 모델 요청 본문
+    else if (model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.LLAMA4_MAVERICK) {
+        return {
+            model: model,
+            messages: messages,
+            temperature: options?.temperature || 0.7,
+            stream: !!options?.stream,
+            system_name: 'narrans',
+            user_id: 'ape_ext',
+            user_type: 'ape_ext',
+            max_tokens: 50000
+        };
+    }
+    // 기본 요청 본문 (외부 API)
+    else {
+        return {
+            model: model,
+            messages: messages,
+            temperature: options?.temperature || 0.7,
+            stream: !!options?.stream
+        };
+    }
+}
+/**
+ * API 엔드포인트 선택
+ * @param model 모델 ID
+ * @param defaultEndpoint 기본 엔드포인트
+ * @returns 사용할 API 엔드포인트
+ */
+function selectApiEndpoint(model, defaultEndpoint) {
+    if (isInternalModel(model) && INTERNAL_API_ENDPOINTS[model]) {
+        return INTERNAL_API_ENDPOINTS[model];
+    }
+    return defaultEndpoint;
+}
 /**
  * LLM connection type
  */
@@ -23762,19 +24986,31 @@ class LLMService {
      */
     async sendRequest(messages, options) {
         try {
-            // 모델 지정 (디버깅 목적으로 사용됩니다)
-            // options?.model || this.getActiveModel();
+            const model = options?.model || this.getActiveModel();
+            console.log(`[LLMService] 요청 시작: 모델=${model}, 연결 타입=${this._connectionType}`);
+            console.log(`[LLMService] 현재 API 엔드포인트: ${this._endpoint}`);
+            if (isInternalModel(model)) {
+                console.log(`[LLMService] 내부망 모델 요청 - 엔드포인트: ${selectApiEndpoint(model, this._endpoint)}`);
+            }
             if (this._connectionType === ConnectionType.WebSocket) {
+                console.log(`[LLMService] WebSocket 요청 시작`);
                 const response = await this._sendWebSocketRequest(messages, options);
+                console.log(`[LLMService] WebSocket 응답 수신 완료`);
                 return { success: true, data: response };
             }
             else {
+                console.log(`[LLMService] HTTP 요청 시작`);
                 const response = await this._sendHttpRequest(messages, options);
+                console.log(`[LLMService] HTTP 응답 수신 완료`);
                 return { success: true, data: response };
             }
         }
         catch (error) {
-            console.error('Error sending LLM request:', error);
+            console.error('[LLMService] 요청 오류:', error);
+            if (error instanceof Error) {
+                console.error('[LLMService] 오류 메시지:', error.message);
+                console.error('[LLMService] 스택 트레이스:', error.stack);
+            }
             return {
                 success: false,
                 error: error instanceof Error
@@ -23792,19 +25028,36 @@ class LLMService {
      */
     async streamResponse(messages, streamCallback, options) {
         try {
-            // 모델 지정 (디버깅 목적으로 사용됩니다)
-            // options?.model || this.getActiveModel();
+            const model = options?.model || this.getActiveModel();
+            console.log(`[LLMService] 스트리밍 요청 시작: 모델=${model}, 연결 타입=${this._connectionType}`);
+            console.log(`[LLMService] 스트리밍 API 엔드포인트: ${this._endpoint}`);
+            if (isInternalModel(model)) {
+                const apiEndpoint = selectApiEndpoint(model, this._endpoint);
+                console.log(`[LLMService] 내부망 모델 스트리밍 요청 - 엔드포인트: ${apiEndpoint}`);
+                // Narrans 모델 특수 처리 로그
+                if (model === _types_chat__WEBPACK_IMPORTED_MODULE_3__.LLMModel.NARRANS) {
+                    console.log(`[LLMService] Narrans 모델 스트리밍 요청 - 프록시 무시 및 SSL 검증 비활성화 활성화됨`);
+                }
+            }
             if (this._connectionType === ConnectionType.WebSocket) {
+                console.log(`[LLMService] WebSocket 스트리밍 요청 시작`);
                 await this._streamWebSocketResponse(messages, streamCallback, options);
+                console.log(`[LLMService] WebSocket 스트리밍 완료`);
                 return { success: true };
             }
             else {
+                console.log(`[LLMService] HTTP 스트리밍 요청 시작`);
                 await this._streamHttpResponse(messages, streamCallback, options);
+                console.log(`[LLMService] HTTP 스트리밍 완료`);
                 return { success: true };
             }
         }
         catch (error) {
-            console.error('Error streaming LLM response:', error);
+            console.error('[LLMService] 스트리밍 요청 오류:', error);
+            if (error instanceof Error) {
+                console.error('[LLMService] 스트리밍 오류 메시지:', error.message);
+                console.error('[LLMService] 스트리밍 스택 트레이스:', error.stack);
+            }
             return {
                 success: false,
                 error: error instanceof Error
@@ -23834,29 +25087,103 @@ class LLMService {
      */
     async _sendHttpRequest(messages, options) {
         const formattedMessages = this._formatMessagesForAPI(messages, options);
-        // OpenRouter API 요청 형식으로 변환
-        const openRouterMessages = formattedMessages.map(msg => ({
+        const model = options?.model || this.getActiveModel();
+        const requestId = `req_${Date.now()}`;
+        // 메시지 형식을 표준화 (모든 API가 동일한 기본 구조 사용)
+        const standardMessages = formattedMessages.map(msg => ({
             role: msg.role,
             content: msg.content
         }));
-        const request = {
-            model: options?.model || this.getActiveModel(),
-            messages: openRouterMessages,
-            temperature: options?.temperature || 0.7,
-            max_tokens: options?.maxTokens || 1000,
-            stream: false
-        };
-        // OpenRouter API 요청에 필요한 헤더 추가
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this._apiKey}`,
-            'HTTP-Referer': 'APE-Extension',
-            'X-Title': 'APE (Agentic Pipeline Engine)'
-        };
+        let headers;
+        let request;
+        let endpoint;
+        // 내부망 모델인지 확인하고 적절한 설정 적용
+        if (isInternalModel(model)) {
+            // 내부망 모델 API 설정 적용
+            endpoint = selectApiEndpoint(model, this._endpoint);
+            headers = createInternalApiHeaders(this._apiKey, requestId, false, model);
+            request = createInternalApiRequestBody(model, standardMessages, options);
+        }
+        else {
+            // 기본 API 설정 (OpenRouter 등)
+            endpoint = this._endpoint;
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this._apiKey}`,
+                'HTTP-Referer': 'APE-Extension',
+                'X-Title': 'APE (Agentic Pipeline Engine)'
+            };
+            request = {
+                model: model,
+                messages: standardMessages,
+                temperature: options?.temperature || 0.7,
+                max_tokens: options?.maxTokens || 1000,
+                stream: false
+            };
+        }
         console.log("LLM 요청:", JSON.stringify(request, null, 2));
-        const response = await axios__WEBPACK_IMPORTED_MODULE_5__["default"].post(this._endpoint, request, { headers });
-        console.log("LLM 응답:", JSON.stringify(response.data, null, 2));
-        return this._processHttpResponse(response.data);
+        console.log("요청 엔드포인트:", endpoint);
+        // 요청 설정
+        const axiosConfig = { headers };
+        // 내부망 모델인 경우 특수 설정 적용
+        if (isInternalModel(model)) {
+            console.log(`[LLMService] 내부망 모델(${model}) 요청: 내부망 설정 적용`);
+            // 프록시 무시
+            console.log(`[LLMService] 프록시 설정 무시`);
+            axiosConfig.proxy = false;
+            // SSL 검증 비활성화
+            console.log(`[LLMService] SSL 인증서 검증 비활성화`);
+            axiosConfig.httpsAgent = new https__WEBPACK_IMPORTED_MODULE_2__.Agent({ rejectUnauthorized: false });
+            // 타임아웃 연장 (60초)
+            console.log(`[LLMService] 타임아웃 설정: 60초`);
+            axiosConfig.timeout = 60000;
+            // 최대 컨텐츠 길이 증가
+            axiosConfig.maxContentLength = 50 * 1024 * 1024; // 50MB
+            // 최대 본문 길이 증가
+            axiosConfig.maxBodyLength = 50 * 1024 * 1024; // 50MB
+        }
+        console.log("[LLMService] HTTP 요청 세부정보:");
+        console.log(`[LLMService] - URL: ${endpoint}`);
+        console.log(`[LLMService] - 메서드: POST`);
+        console.log(`[LLMService] - 헤더:`, headers);
+        console.log(`[LLMService] - 설정:`, JSON.stringify(axiosConfig, (key, value) => {
+            // httpsAgent 객체는 직렬화 불가능하므로 분리하여 로깅
+            if (key === 'httpsAgent')
+                return value ? 'SSL Agent (rejectUnauthorized: false)' : undefined;
+            return value;
+        }, 2));
+        try {
+            console.log("[LLMService] 요청 전송 중...");
+            const response = await axios__WEBPACK_IMPORTED_MODULE_6__["default"].post(endpoint, request, axiosConfig);
+            console.log("[LLMService] 응답 성공:", response.status, response.statusText);
+            console.log("[LLMService] 응답 헤더:", response.headers);
+            console.log("[LLMService] 응답 데이터:", JSON.stringify(response.data, null, 2));
+            return this._processHttpResponse(response.data);
+        }
+        catch (error) {
+            // axios 오류 상세 로깅
+            console.error("[LLMService] HTTP 요청 실패:");
+            if (error.response) {
+                // 서버가 응답을 반환했지만 상태 코드가 2xx 범위를 벗어남
+                console.error(`[LLMService] 상태 코드: ${error.response.status}`);
+                console.error(`[LLMService] 응답 데이터:`, error.response.data);
+                console.error(`[LLMService] 응답 헤더:`, error.response.headers);
+            }
+            else if (error.request) {
+                // 요청이 전송되었지만 응답이 없음
+                console.error('[LLMService] 응답이 수신되지 않음. 네트워크나 CORS 이슈 가능성');
+                console.error('[LLMService] 요청 세부 정보:', error.request);
+            }
+            else {
+                // 요청 설정 중 오류 발생
+                console.error('[LLMService] 요청 설정 오류:', error.message);
+            }
+            // 오류 스택 트레이스 출력
+            if (error.stack) {
+                console.error('[LLMService] 스택 트레이스:', error.stack);
+            }
+            throw error; // 오류를 다시 던져서 상위 핸들러에서 처리
+        }
     }
     /**
      * WebSocket implementation of sendRequest
@@ -23937,73 +25264,184 @@ class LLMService {
      */
     async _streamHttpResponse(messages, streamCallback, options) {
         const formattedMessages = this._formatMessagesForAPI(messages, options);
-        // OpenRouter API 요청 형식으로 변환
-        const openRouterMessages = formattedMessages.map(msg => ({
+        const model = options?.model || this.getActiveModel();
+        const requestId = `req_${Date.now()}`;
+        // 메시지 형식을 표준화
+        const standardMessages = formattedMessages.map(msg => ({
             role: msg.role,
             content: msg.content
         }));
-        const request = {
-            model: options?.model || this.getActiveModel(),
-            messages: openRouterMessages,
-            temperature: options?.temperature || 0.7,
-            max_tokens: options?.maxTokens || 1000,
-            stream: true
-        };
-        // OpenRouter API 요청에 필요한 헤더 추가
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this._apiKey}`,
-            'HTTP-Referer': 'APE-Extension',
-            'X-Title': 'APE (Agentic Pipeline Engine)'
-        };
+        let headers;
+        let request;
+        let endpoint;
+        // 내부망 모델인지 확인하고 적절한 설정 적용
+        if (isInternalModel(model)) {
+            // 내부망 모델 API 설정 적용
+            endpoint = selectApiEndpoint(model, this._endpoint);
+            headers = createInternalApiHeaders(this._apiKey, requestId, true, model); // 스트리밍 요청
+            // 내부망 모델 요청 본문 (스트리밍 활성화)
+            const internalOptions = { ...options, stream: true };
+            request = createInternalApiRequestBody(model, standardMessages, internalOptions);
+        }
+        else {
+            // 기본 API 설정 (OpenRouter 등)
+            endpoint = this._endpoint;
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this._apiKey}`,
+                'HTTP-Referer': 'APE-Extension',
+                'X-Title': 'APE (Agentic Pipeline Engine)'
+            };
+            request = {
+                model: model,
+                messages: standardMessages,
+                temperature: options?.temperature || 0.7,
+                max_tokens: options?.maxTokens || 1000,
+                stream: true
+            };
+        }
         // Create a cancellation token
-        this._cancelTokenSource = axios__WEBPACK_IMPORTED_MODULE_5__["default"].CancelToken.source();
+        this._cancelTokenSource = axios__WEBPACK_IMPORTED_MODULE_6__["default"].CancelToken.source();
         try {
-            // 누적 텍스트는 디버깅 목적으로 사용될 수 있음
-            const response = await axios__WEBPACK_IMPORTED_MODULE_5__["default"].post(this._endpoint, request, {
+            console.log("[LLMService] 스트리밍 요청 세부 정보:");
+            console.log(`[LLMService] - 요청 본문:`, JSON.stringify(request, null, 2));
+            console.log(`[LLMService] - 엔드포인트: ${endpoint}`);
+            // 스트리밍 요청 설정
+            const axiosConfig = {
                 responseType: 'stream',
                 cancelToken: this._cancelTokenSource.token,
                 headers: headers
-            });
+            };
+            // 내부망 모델인 경우 특수 설정 적용
+            if (isInternalModel(model)) {
+                console.log(`[LLMService] 내부망 모델(${model}) 스트리밍 요청: 내부망 설정 적용`);
+                // 프록시 무시
+                console.log(`[LLMService] 프록시 설정 무시`);
+                axiosConfig.proxy = false;
+                // SSL 검증 비활성화
+                console.log(`[LLMService] SSL 인증서 검증 비활성화`);
+                axiosConfig.httpsAgent = new https__WEBPACK_IMPORTED_MODULE_2__.Agent({ rejectUnauthorized: false });
+                // 타임아웃 연장 (5분)
+                console.log(`[LLMService] 타임아웃 설정: 300초`);
+                axiosConfig.timeout = 300000;
+                // 최대 컨텐츠 길이 증가
+                axiosConfig.maxContentLength = 100 * 1024 * 1024; // 100MB
+                // 최대 본문 길이 증가
+                axiosConfig.maxBodyLength = 50 * 1024 * 1024; // 50MB
+            }
+            console.log(`[LLMService] - 헤더:`, headers);
+            console.log(`[LLMService] - 설정:`, JSON.stringify(axiosConfig, (key, value) => {
+                // httpsAgent 객체는 직렬화 불가능하므로 분리하여 로깅
+                if (key === 'httpsAgent')
+                    return value ? 'SSL Agent (rejectUnauthorized: false)' : undefined;
+                if (key === 'cancelToken')
+                    return value ? 'CancelToken (present)' : undefined;
+                return value;
+            }, 2));
+            console.log("[LLMService] 스트리밍 요청 전송 중...");
+            const response = await axios__WEBPACK_IMPORTED_MODULE_6__["default"].post(endpoint, request, axiosConfig);
+            console.log("[LLMService] 스트리밍 응답 연결 성공:", response.status, response.statusText);
             response.data.on('data', (chunk) => {
-                const lines = chunk.toString().split('\n').filter(Boolean);
+                const chunkStr = chunk.toString();
+                console.log(`[LLMService] 스트리밍 청크 수신 (${chunkStr.length} 바이트)`);
+                const lines = chunkStr.split('\n').filter(Boolean);
+                console.log(`[LLMService] 청크 내 라인 수: ${lines.length}`);
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
+                        console.log(`[LLMService] 데이터 라인 발견: ${line.substring(0, 50)}${line.length > 50 ? '...' : ''}`);
                         const data = line.substring('data: '.length);
                         if (data === '[DONE]') {
+                            console.log(`[LLMService] 스트림 완료 신호 ([DONE]) 수신`);
                             streamCallback('', true); // 스트림 완료 신호
                         }
                         else {
                             try {
-                                const parsed = JSON.parse(data);
-                                if (parsed.choices && parsed.choices.length > 0) {
-                                    const content = parsed.choices[0].delta?.content ||
-                                        parsed.choices[0].message?.content || '';
+                                // 데이터 유효성 검사 및 잘린 JSON 처리
+                                let validData = data;
+                                try {
+                                    // JSON 파싱 시도
+                                    JSON.parse(validData);
+                                }
+                                catch (jsonError) {
+                                    // 잘린 JSON 문자열 처리 - 마지막 괄호 닫기 추가
+                                    if (jsonError instanceof SyntaxError && jsonError.message.includes('Unterminated string')) {
+                                        console.warn('[LLMService] 잘린 JSON 문자열 감지, 복구 시도 중');
+                                        console.warn('[LLMService] 원본 데이터:', validData);
+                                        // 닫는 큰따옴표와 괄호들 추가
+                                        validData = validData + '"}}}';
+                                        console.warn('[LLMService] 수정된 데이터:', validData);
+                                    }
+                                }
+                                console.log(`[LLMService] JSON 파싱 시도 중...`);
+                                const parsed = JSON.parse(validData);
+                                console.log(`[LLMService] JSON 파싱 성공`);
+                                // 내부망 API의 응답 형식은 표준 OpenAI와 다를 수 있으므로 분기 처리
+                                if (isInternalModel(model)) {
+                                    // 내부망 모델의 스트리밍 응답 처리
+                                    console.log(`[LLMService] 내부망 모델 응답 처리 중`);
+                                    const content = parsed.choices?.[0]?.delta?.content ||
+                                        parsed.choices?.[0]?.message?.content ||
+                                        parsed.delta?.content ||
+                                        parsed.content ||
+                                        '';
                                     if (content) {
+                                        console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
                                         streamCallback(content, false);
+                                    }
+                                    else {
+                                        console.log(`[LLMService] 콘텐츠 없음, 응답 구조:`, Object.keys(parsed));
+                                    }
+                                }
+                                else {
+                                    // 표준 OpenAI 형식의 스트리밍 응답 처리
+                                    console.log(`[LLMService] 표준 OpenAI 형식 응답 처리 중`);
+                                    if (parsed.choices && parsed.choices.length > 0) {
+                                        const content = parsed.choices[0].delta?.content ||
+                                            parsed.choices[0].message?.content || '';
+                                        if (content) {
+                                            console.log(`[LLMService] 콘텐츠 발견 (${content.length} 글자)`);
+                                            streamCallback(content, false);
+                                        }
+                                        else {
+                                            console.log(`[LLMService] 콘텐츠 없음, choices 구조:`, parsed.choices[0]);
+                                        }
+                                    }
+                                    else {
+                                        console.log(`[LLMService] choices 배열 없음, 응답 구조:`, Object.keys(parsed));
                                     }
                                 }
                             }
                             catch (err) {
-                                console.error('Stream parsing error:', err);
+                                console.error('[LLMService] 스트림 파싱 오류:', err);
+                                console.error('[LLMService] 문제가 된 데이터:', data);
+                                if (err instanceof Error) {
+                                    console.error('[LLMService] 오류 상세:', err.message, err.stack);
+                                }
                             }
                         }
+                    }
+                    else {
+                        console.log(`[LLMService] 데이터 라인 아님:`, line);
                     }
                 }
             });
             response.data.on('end', () => {
                 this._cancelTokenSource = null;
+                console.log('[LLMService] 스트림 데이터 수신 완료');
                 streamCallback('', true); // 스트림 완료 신호
             });
             response.data.on('error', (err) => {
                 this._cancelTokenSource = null;
-                console.error('Stream error:', err);
-                streamCallback('', true);
+                console.error('[LLMService] 스트림 오류:', err);
+                console.error('[LLMService] 스트림 오류 메시지:', err.message);
+                console.error('[LLMService] 스트림 오류 스택:', err.stack);
+                // 오류가 발생해도 클라이언트에게 스트림 완료 신호 전송
+                streamCallback('\n\n[연결 오류가 발생했습니다. 다시 시도해주세요.]', true);
             });
         }
         catch (error) {
             this._cancelTokenSource = null;
-            if (axios__WEBPACK_IMPORTED_MODULE_5__["default"].isCancel(error)) {
+            if (axios__WEBPACK_IMPORTED_MODULE_6__["default"].isCancel(error)) {
                 // Request was canceled intentionally
                 streamCallback('', true); // Signal completion with empty chunk and done=true
             }
@@ -24140,7 +25578,7 @@ class LLMService {
         if (options?.systemPrompt) {
             formattedMessages.unshift({
                 id: `system_${Date.now()}`,
-                role: _types_chat__WEBPACK_IMPORTED_MODULE_2__.MessageRole.System,
+                role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.System,
                 content: options.systemPrompt,
                 timestamp: new Date()
             });
@@ -24153,12 +25591,12 @@ class LLMService {
         if (this._vaultService && options?.vaultOptions) {
             const vaultOptions = options.vaultOptions;
             // vaultOptions가 undefined일 수 없지만 타입 에러를 해결하기 위해 기본 객체 제공
-            formattedMessages = (0,_vaultIntegration__WEBPACK_IMPORTED_MODULE_3__.applyVaultContext)(formattedMessages, this._vaultService, vaultOptions || {});
+            formattedMessages = (0,_vaultIntegration__WEBPACK_IMPORTED_MODULE_4__.applyVaultContext)(formattedMessages, this._vaultService, vaultOptions || {});
         }
         // Apply Rules if available
         if (this._rulesService) {
             const rulesOptions = options?.rulesOptions;
-            formattedMessages = (0,_rulesIntegration__WEBPACK_IMPORTED_MODULE_4__.applyRulesContext)(formattedMessages, this._rulesService, rulesOptions);
+            formattedMessages = (0,_rulesIntegration__WEBPACK_IMPORTED_MODULE_5__.applyRulesContext)(formattedMessages, this._rulesService, rulesOptions);
         }
         // Return formatted messages
         return formattedMessages;
@@ -24169,17 +25607,52 @@ class LLMService {
      * @returns Processed LLM response
      */
     _processHttpResponse(responseData) {
+        const model = responseData.model || this.getActiveModel();
+        // 내부망 모델 응답 처리
+        if (isInternalModel(model)) {
+            // 내부망 모델은 다양한 응답 형식을 가질 수 있음
+            // choices, content, message 등 다양한 필드 확인
+            let content = '';
+            if (responseData.choices && Array.isArray(responseData.choices)) {
+                content = responseData.choices[0]?.message?.content ||
+                    responseData.choices[0]?.content || '';
+            }
+            else if (responseData.message && responseData.message.content) {
+                content = responseData.message.content;
+            }
+            else if (responseData.content) {
+                content = responseData.content;
+            }
+            return {
+                message: {
+                    id: responseData.id || `msg_${Date.now()}`,
+                    role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.Assistant,
+                    content: content,
+                    timestamp: new Date(),
+                    metadata: {
+                        model: model
+                    }
+                },
+                usage: responseData.usage || {
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    totalTokens: 0
+                },
+                metadata: responseData.metadata || {},
+                content: content // 호환성을 위해 추가
+            };
+        }
         // OpenRouter/OpenAI 형식 응답 처리 (choices 배열 사용)
-        if (responseData.choices && Array.isArray(responseData.choices)) {
+        else if (responseData.choices && Array.isArray(responseData.choices)) {
             const content = responseData.choices[0]?.message?.content || '';
             return {
                 message: {
                     id: responseData.id || `msg_${Date.now()}`,
-                    role: _types_chat__WEBPACK_IMPORTED_MODULE_2__.MessageRole.Assistant,
+                    role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.Assistant,
                     content: content,
                     timestamp: new Date(),
                     metadata: {
-                        model: responseData.model || this.getActiveModel()
+                        model: model
                     }
                 },
                 usage: responseData.usage || {
@@ -24196,11 +25669,11 @@ class LLMService {
             return {
                 message: {
                     id: responseData.message?.id || `msg_${Date.now()}`,
-                    role: _types_chat__WEBPACK_IMPORTED_MODULE_2__.MessageRole.Assistant,
+                    role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.Assistant,
                     content: responseData.content || responseData.message?.content || '',
                     timestamp: new Date(),
                     metadata: responseData.message?.metadata || {
-                        model: responseData.model || this.getActiveModel()
+                        model: model
                     }
                 },
                 usage: responseData.usage || {
@@ -24222,7 +25695,7 @@ class LLMService {
         return {
             message: {
                 id: responseData.message?.id || `msg_${Date.now()}`,
-                role: _types_chat__WEBPACK_IMPORTED_MODULE_2__.MessageRole.Assistant,
+                role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.Assistant,
                 content: responseData.content || responseData.message?.content || '',
                 timestamp: new Date(),
                 metadata: responseData.message?.metadata || {
@@ -24273,7 +25746,7 @@ class LLMService {
             const messages = [
                 {
                     id: `user_${Date.now()}`,
-                    role: _types_chat__WEBPACK_IMPORTED_MODULE_2__.MessageRole.User,
+                    role: _types_chat__WEBPACK_IMPORTED_MODULE_3__.MessageRole.User,
                     content: prompt,
                     timestamp: new Date()
                 }
@@ -24434,10 +25907,20 @@ class ModelManager {
     _isValidModel(modelId) {
         // 표준 모델 확인
         const isStandardModel = Object.values(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel).includes(modelId);
-        // 테스트 모델 확인
-        const testModels = ['NARRNAS', 'LLAMA4-MAVERICK', 'LLAMA4-SCOUT'];
-        const isTestModel = testModels.includes(modelId);
-        return isStandardModel || isTestModel;
+        console.log(`[ModelManager] 모델 검증: ${modelId}, 표준 모델 여부: ${isStandardModel}`);
+        // 내부망 모델 별칭인지 확인
+        const isNarransAlias = modelId === 'NARRANS' || modelId === 'NARRNAS';
+        const isLlama4ScoutAlias = modelId === 'LLAMA4-SCOUT' || modelId === 'LLAMA4_SCOUT';
+        const isLlama4MaverickAlias = modelId === 'LLAMA4-MAVERICK' || modelId === 'LLAMA4_MAVERICK';
+        // 내부망 모델 확인 (LLMModel 열거형 값과 문자열 별칭 모두 지원)
+        const isInternalModel = modelId === _types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.NARRANS ||
+            modelId === _types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_SCOUT ||
+            modelId === _types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_MAVERICK ||
+            isNarransAlias ||
+            isLlama4ScoutAlias ||
+            isLlama4MaverickAlias;
+        console.log(`[ModelManager] 내부망 모델 여부: ${isInternalModel}`);
+        return isStandardModel || isInternalModel;
     }
     /**
      * 현재 활성 모델 가져오기
@@ -24452,41 +25935,70 @@ class ModelManager {
      * @returns 성공 여부를 나타내는 Promise
      */
     async setActiveModel(model) {
+        console.log(`[ModelManager] 모델 전환 요청: ${this._activeModel} → ${model}`);
         // 현재 모델과 동일하거나 이미 설정 업데이트 중이면 무시
-        if (this._activeModel === model || this._isUpdatingConfig) {
+        if (this._activeModel === model) {
+            console.log(`[ModelManager] 이미 ${model} 모델을 사용 중입니다.`);
+            return false;
+        }
+        if (this._isUpdatingConfig) {
+            console.log(`[ModelManager] 다른 모델 전환이 진행 중입니다. 요청 무시.`);
             return false;
         }
         // 유효한 모델인지 확인
         if (!this._isValidModel(model)) {
-            console.warn(`유효하지 않은 모델: ${model}, 현재 모델 유지: ${this._activeModel}`);
+            console.warn(`[ModelManager] 유효하지 않은 모델: ${model}, 현재 모델 유지: ${this._activeModel}`);
+            // 내부망 모델인 경우 정확한 enum 값 매핑 시도
+            const modelStr = String(model);
+            if (modelStr === 'NARRANS' || modelStr === 'NARRNAS') {
+                console.log(`[ModelManager] '${modelStr}'를 '${_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.NARRANS}'로 자동 매핑`);
+                return this.setActiveModel(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.NARRANS);
+            }
+            else if (modelStr === 'LLAMA4-SCOUT' || modelStr === 'LLAMA4_SCOUT') {
+                console.log(`[ModelManager] '${modelStr}'를 '${_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_SCOUT}'로 자동 매핑`);
+                return this.setActiveModel(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_SCOUT);
+            }
+            else if (modelStr === 'LLAMA4-MAVERICK' || modelStr === 'LLAMA4_MAVERICK') {
+                console.log(`[ModelManager] '${modelStr}'를 '${_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_MAVERICK}'로 자동 매핑`);
+                return this.setActiveModel(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_MAVERICK);
+            }
             return false;
         }
         try {
             // 설정 업데이트 플래그 설정
             this._isUpdatingConfig = true;
+            console.log(`[ModelManager] 설정 업데이트 시작`);
             // 이전 모델 저장
             const oldModel = this._activeModel;
             // 활성 모델 업데이트
             this._activeModel = model;
+            console.log(`[ModelManager] 내부 활성 모델 업데이트: ${oldModel} → ${model}`);
             // 설정에 변경 사항 저장
             const config = vscode__WEBPACK_IMPORTED_MODULE_0__.workspace.getConfiguration('ape.llm');
+            console.log(`[ModelManager] VSCode 설정 업데이트 'ape.llm.defaultModel' = ${model}`);
             await config.update('defaultModel', model, vscode__WEBPACK_IMPORTED_MODULE_0__.ConfigurationTarget.Global);
             // 모델 변경 이벤트 발생
+            console.log(`[ModelManager] 모델 변경 이벤트 발생`);
             this._onDidChangeModel.fire({
                 oldModel,
                 newModel: model
             });
-            console.log(`모델이 변경됨: ${oldModel} -> ${model}`);
+            console.log(`[ModelManager] 모델이 변경됨: ${oldModel} → ${model} (성공)`);
             return true;
         }
         catch (error) {
-            console.error('모델 설정 업데이트 실패:', error);
+            console.error('[ModelManager] 모델 설정 업데이트 실패:', error);
+            if (error instanceof Error) {
+                console.error('[ModelManager] 오류 세부 정보:', error.message);
+                console.error('[ModelManager] 오류 스택 트레이스:', error.stack);
+            }
             return false;
         }
         finally {
             // 설정 업데이트 플래그 해제 (지연 설정)
             setTimeout(() => {
                 this._isUpdatingConfig = false;
+                console.log(`[ModelManager] 설정 업데이트 플래그 해제됨`);
             }, 100);
         }
     }
@@ -24496,6 +26008,7 @@ class ModelManager {
      */
     getAvailableModels() {
         try {
+            console.log(`[ModelManager] 사용 가능한 모델 목록 가져오기`);
             // 설정에 정의된 모델 목록 확인
             const config = vscode__WEBPACK_IMPORTED_MODULE_0__.workspace.getConfiguration('ape.llm');
             // inspect 결과가 다양한 형태일 수 있으므로 안전하게 처리
@@ -24504,17 +26017,24 @@ class ModelManager {
                 inspection.properties?.enum : undefined;
             // 설정에 정의된 모델 배열이 있으면 사용
             if (configModels && Array.isArray(configModels)) {
+                console.log(`[ModelManager] 설정에서 ${configModels.length}개 모델 발견`);
                 return configModels;
             }
             // 설정에서 가져올 수 없으면 기본 정의 사용
+            console.log(`[ModelManager] 설정에서 모델을 가져올 수 없음, 기본 정의 사용`);
             const standardModels = Object.values(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel);
-            // 내부 테스트 모델 추가 (package.json에 정의되어 있어야 함)
-            const testModels = ['NARRNAS', 'LLAMA4-MAVERICK', 'LLAMA4-SCOUT'];
-            return [...standardModels, ...testModels];
+            // 내부망 모델이 이미 LLMModel enum에 포함되어 있으므로 중복 추가하지 않음
+            const availableModels = standardModels;
+            console.log(`[ModelManager] 총 ${availableModels.length}개 모델 사용 가능, 내부망 모델 포함: ${[_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.NARRANS, _types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_SCOUT, _types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel.LLAMA4_MAVERICK].join(', ')}`);
+            return availableModels;
         }
         catch (error) {
             // 오류 발생 시 기본 모델 목록만 반환
-            console.error('사용 가능한 모델 가져오기 오류:', error);
+            console.error('[ModelManager] 사용 가능한 모델 가져오기 오류:', error);
+            if (error instanceof Error) {
+                console.error('[ModelManager] 오류 세부 정보:', error.message);
+                console.error('[ModelManager] 오류 스택 트레이스:', error.stack);
+            }
             return Object.values(_types_chat__WEBPACK_IMPORTED_MODULE_1__.LLMModel);
         }
     }
@@ -25002,6 +26522,8 @@ class MemoryService {
             const existingSession = await this._loadSession(defaultSessionId);
             if (existingSession) {
                 this._sessions.set(defaultSessionId, existingSession);
+                // 기존 세션을 워크스페이스에도 저장
+                await this._saveSessionToWorkspace(existingSession);
             }
             else {
                 // Create new default session
@@ -25559,10 +27081,57 @@ class MemoryService {
         try {
             const sessionJson = JSON.stringify(session, null, 2);
             await fs_promises__WEBPACK_IMPORTED_MODULE_2__.writeFile(sessionFile, sessionJson, 'utf-8');
+            // 워크스페이스 .ape/vault/chat-history 디렉토리에도 저장
+            await this._saveSessionToWorkspace(session);
         }
         catch (error) {
             console.error(`Error saving session ${session.id}:`, error);
             throw error;
+        }
+    }
+    /**
+     * 세션을 워크스페이스의 .ape/vault/chat-history 디렉토리에 저장
+     */
+    async _saveSessionToWorkspace(session) {
+        try {
+            // 워크스페이스 폴더 확인
+            const workspaceFolder = vscode__WEBPACK_IMPORTED_MODULE_0__.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                return; // 워크스페이스가 없으면 종료
+            }
+            // .ape/vault/chat-history 디렉토리 경로
+            const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
+            // 디렉토리가 없으면 생성
+            if (!(0,fs__WEBPACK_IMPORTED_MODULE_3__.existsSync)(chatHistoryDir)) {
+                (0,fs__WEBPACK_IMPORTED_MODULE_3__.mkdirSync)(chatHistoryDir, { recursive: true });
+            }
+            // 메타데이터 파일 경로
+            const metaFile = path__WEBPACK_IMPORTED_MODULE_1__.join(chatHistoryDir, `${session.id}.meta.json`);
+            // 세션 내용 파일 경로
+            const contentFile = path__WEBPACK_IMPORTED_MODULE_1__.join(chatHistoryDir, `${session.id}.json`);
+            // 요약 생성 (첫 번째 사용자 메시지 기반)
+            const firstUserMessage = session.messages.find(m => m.role === _types_chat__WEBPACK_IMPORTED_MODULE_4__.MessageRole.User);
+            const summary = firstUserMessage
+                ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
+                : '새 대화';
+            // 세션 제목 설정
+            const title = session.metadata?.summary || session.name || summary || `대화 (${new Date().toLocaleString()})`;
+            // 메타데이터 생성
+            const metadata = {
+                id: session.id,
+                title: title,
+                createdAt: session.createdAt,
+                updatedAt: session.updatedAt,
+                messageCount: session.messages.length,
+                summary: summary
+            };
+            // 파일 저장
+            await fs_promises__WEBPACK_IMPORTED_MODULE_2__.writeFile(metaFile, JSON.stringify(metadata, null, 2), 'utf-8');
+            await fs_promises__WEBPACK_IMPORTED_MODULE_2__.writeFile(contentFile, JSON.stringify(session, null, 2), 'utf-8');
+        }
+        catch (error) {
+            console.error(`Error saving session to workspace ${session.id}:`, error);
+            // 워크스페이스 저장 실패는 무시하고 계속 진행
         }
     }
     /**
@@ -27651,6 +29220,187 @@ function createErrorResult(error) {
         success: false,
         error
     };
+}
+
+
+/***/ }),
+
+/***/ "./src/core/services/smartPromptingService.ts":
+/*!****************************************************!*\
+  !*** ./src/core/services/smartPromptingService.ts ***!
+  \****************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   SmartPromptingMode: () => (/* binding */ SmartPromptingMode),
+/* harmony export */   SmartPromptingService: () => (/* binding */ SmartPromptingService)
+/* harmony export */ });
+/* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vscode */ "vscode");
+/* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_0__);
+
+/**
+ * 스마트 프롬프팅 모드 열거형
+ */
+var SmartPromptingMode;
+(function (SmartPromptingMode) {
+    SmartPromptingMode["Basic"] = "basic";
+    SmartPromptingMode["Advanced"] = "advanced";
+    SmartPromptingMode["Expert"] = "expert"; // 전문가 모드
+})(SmartPromptingMode || (SmartPromptingMode = {}));
+/**
+ * 스마트 프롬프팅 서비스
+ *
+ * 메시지 처리 전에 프롬프트를 증강하여 LLM 응답 품질을 향상시킵니다.
+ * Chain of Thought(CoT) 및 동적 프롬프트 어셈블링을 지원합니다.
+ */
+class SmartPromptingService {
+    context;
+    llmService;
+    state = {
+        enabled: false,
+        mode: SmartPromptingMode.Basic
+    };
+    stateChangeEmitter = new vscode__WEBPACK_IMPORTED_MODULE_0__.EventEmitter();
+    onStateChanged = this.stateChangeEmitter.event;
+    /**
+     * 스마트 프롬프팅 서비스 생성자
+     * @param context VSCode 확장 컨텍스트
+     * @param llmService LLM 서비스
+     */
+    constructor(context, llmService) {
+        this.context = context;
+        this.llmService = llmService;
+        // 저장된 상태 복원
+        this.restoreState();
+        // 컨텍스트 서브스크립션에 이벤트 에미터 등록
+        this.context.subscriptions.push(this.stateChangeEmitter);
+    }
+    /**
+     * 저장된 상태 복원
+     */
+    restoreState() {
+        const savedState = this.context.globalState.get('ape.smartPrompting.state');
+        if (savedState) {
+            this.state = savedState;
+        }
+    }
+    /**
+     * 상태 저장
+     */
+    saveState() {
+        this.context.globalState.update('ape.smartPrompting.state', this.state);
+    }
+    /**
+     * 스마트 프롬프팅 활성화 여부 반환
+     */
+    isEnabled() {
+        return this.state.enabled;
+    }
+    /**
+     * 현재 스마트 프롬프팅 모드 반환
+     */
+    getMode() {
+        return this.state.mode;
+    }
+    /**
+     * 현재 상태 반환
+     */
+    getState() {
+        return { ...this.state };
+    }
+    /**
+     * 스마트 프롬프팅 활성화/비활성화
+     * @param enabled 활성화 여부
+     */
+    setEnabled(enabled) {
+        if (this.state.enabled !== enabled) {
+            this.state.enabled = enabled;
+            this.saveState();
+            this.stateChangeEmitter.fire(this.getState());
+        }
+    }
+    /**
+     * 스마트 프롬프팅 모드 설정
+     * @param mode 스마트 프롬프팅 모드
+     */
+    setMode(mode) {
+        if (this.state.mode !== mode) {
+            this.state.mode = mode;
+            this.saveState();
+            this.stateChangeEmitter.fire(this.getState());
+        }
+    }
+    /**
+     * 스마트 프롬프팅 토글
+     */
+    toggle() {
+        this.setEnabled(!this.state.enabled);
+    }
+    /**
+     * 사용자 메시지를 스마트 프롬프팅으로 처리
+     * @param message 원본 사용자 메시지
+     * @returns 증강된 메시지
+     */
+    processMessage(message) {
+        if (!this.state.enabled) {
+            return message;
+        }
+        // 현재 모드에 따라 다른 프롬프팅 전략 적용
+        switch (this.state.mode) {
+            case SmartPromptingMode.Basic:
+                return this.applyBasicPrompting(message);
+            case SmartPromptingMode.Advanced:
+                return this.applyAdvancedPrompting(message);
+            case SmartPromptingMode.Expert:
+                return this.applyExpertPrompting(message);
+            default:
+                return message;
+        }
+    }
+    /**
+     * 기본 스마트 프롬프팅 적용
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    applyBasicPrompting(message) {
+        // 기본 프롬프팅: 명확한 지시와 구조화된 응답 요청 추가
+        return `${message}\n\n당신의 응답은 명확하고 구조화된 방식으로 제공해 주세요. 필요한 경우 단계별 접근 방식을 사용하고, 코드 예제에는 주석과 설명을 포함해 주세요.`;
+    }
+    /**
+     * 고급 스마트 프롬프팅 적용
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    applyAdvancedPrompting(message) {
+        // 고급 프롬프팅: Chain of Thought 유도 및 다각적 분석 추가
+        return `${message}\n\n이 문제에 대해 단계별로 생각해 주세요. 먼저 문제를 분석하고, 가능한 접근 방식들을 고려한 후, 최적의 솔루션을 선택하여 구현해 주세요. 코드 예제는 효율성, 가독성, 유지보수성을 모두 고려하여 작성해 주세요. 대안적 접근 방식이 있다면 장단점과 함께 간략히 언급해 주세요.`;
+    }
+    /**
+     * 전문가 스마트 프롬프팅 적용
+     * @param message 원본 메시지
+     * @returns 증강된 메시지
+     */
+    applyExpertPrompting(message) {
+        // 전문가 프롬프팅: 심층적 분석과 종합적 접근 유도
+        return `${message}\n\n이 문제에 대해 전문가 수준의 분석을 제공해 주세요. 다음의 접근 방식으로 진행해 주세요:
+    
+1. 문제 정의 및 요구사항 분석
+2. 가능한 해결책과 접근 방식 탐색 (각각의 장단점 포함)
+3. 최적의 접근 방식 선택 및 그 이유 설명
+4. 구현 세부사항 및 코드 예제 제시
+5. 잠재적 리팩토링 기회 및 최적화 방안 고려
+6. 검증 및 테스트 전략 제안
+
+코드 예제는 최신 모범 사례, 패턴, 효율적인 알고리즘을 활용하고, 예외 처리 및 엣지 케이스를 고려해 주세요. 필요한 경우 성능, 확장성 또는 유지보수성 측면의 절충점을 명시적으로 언급해 주세요.`;
+    }
+    /**
+     * 서비스 정리
+     */
+    dispose() {
+        this.stateChangeEmitter.dispose();
+    }
 }
 
 
@@ -30820,7 +32570,11 @@ var LLMModel;
     LLMModel["DEEPSEEK"] = "deepseek/deepseek-coder";
     // 무료 모델들
     LLMModel["MISTRAL_7B"] = "mistralai/mistral-7b-instruct";
-    LLMModel["LLAMA3_8B"] = "meta-llama/llama-3-8b-instruct"; // 무료 오픈소스 모델
+    LLMModel["LLAMA3_8B"] = "meta-llama/llama-3-8b-instruct";
+    // 내부망 모델들
+    LLMModel["NARRANS"] = "narrans";
+    LLMModel["LLAMA4_SCOUT"] = "meta-llama/llama-4-scout-17b-16e-instruct";
+    LLMModel["LLAMA4_MAVERICK"] = "meta-llama/llama-4-maverick-17b-128e-instruct"; // 내부망 Llama-4 Maverick 모델
 })(LLMModel || (LLMModel = {}));
 
 
@@ -31571,7 +33325,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _types_chat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../types/chat */ "./src/types/chat.ts");
 /* harmony import */ var _chat_codeService__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./chat/codeService */ "./src/ui/chat/codeService.ts");
-/* harmony import */ var _welcomeView__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./welcomeView */ "./src/ui/welcomeView.ts");
+/* harmony import */ var _core_services_smartPromptingService__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../core/services/smartPromptingService */ "./src/core/services/smartPromptingService.ts");
+/* harmony import */ var _welcomeView__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./welcomeView */ "./src/ui/welcomeView.ts");
+
 
 
 
@@ -31593,6 +33349,8 @@ class MainChatViewProvider {
     _currentStreamMessageId = null;
     _streamUpdateTimeout = null;
     _modelChangeListener;
+    _smartPromptingService;
+    _smartPromptingStateListener;
     // Command suggestion event
     _onDidSuggestCommands = new vscode__WEBPACK_IMPORTED_MODULE_0__.EventEmitter();
     onDidSuggestCommands = this._onDidSuggestCommands.event;
@@ -31602,6 +33360,14 @@ class MainChatViewProvider {
         this._memoryService = _memoryService;
         this._commandManager = _commandManager;
         this._modelManager = _modelManager;
+        // Initialize SmartPromptingService
+        this._smartPromptingService = new _core_services_smartPromptingService__WEBPACK_IMPORTED_MODULE_3__.SmartPromptingService(_context, _llmService);
+        // Register state change listener
+        this._smartPromptingStateListener = this._smartPromptingService.onStateChanged(state => {
+            this._updateSmartPromptingUI(state);
+        });
+        // Add listener to context subscriptions for proper disposal
+        this._context.subscriptions.push(this._smartPromptingStateListener);
     }
     /**
      * Converts a URI to a webview-compatible URI
@@ -31694,6 +33460,70 @@ class MainChatViewProvider {
         return this._llmService.getModelDisplayName(modelId);
     }
     /**
+     * 랜덤 인사말 생성 - 유저 컨텍스트에 맞는 인사말과 팁 제공
+     */
+    getRandomGreeting() {
+        try {
+            // greetings.json 파일에서 인사말 데이터 불러오기 (빌드된 확장 프로그램의 경로 사용)
+            const greetingsUri = vscode__WEBPACK_IMPORTED_MODULE_0__.Uri.joinPath(this._context.extensionUri, 'out', 'data', 'greetings.json');
+            console.log('Loading greetings from:', greetingsUri.fsPath);
+            // 파일 읽기 - fs 모듈 사용
+            const fs = __webpack_require__(/*! fs */ "fs");
+            let greetingsContent;
+            try {
+                // 먼저 빌드된 경로에서 시도
+                greetingsContent = fs.readFileSync(greetingsUri.fsPath, 'utf8');
+            }
+            catch (fsError) {
+                console.warn('Failed to read from build output, trying source directory:', fsError);
+                // 빌드 경로에서 실패하면 소스 디렉토리에서 시도
+                const sourceGreetingsUri = vscode__WEBPACK_IMPORTED_MODULE_0__.Uri.joinPath(this._context.extensionUri, 'src', 'data', 'greetings.json');
+                greetingsContent = fs.readFileSync(sourceGreetingsUri.fsPath, 'utf8');
+            }
+            // JSON 파싱
+            const greetingsFile = JSON.parse(greetingsContent);
+            // 변경된 포맷의 greetings.json 파일 처리
+            if (greetingsFile.messages && Array.isArray(greetingsFile.messages) && greetingsFile.messages.length > 0) {
+                // 단순 messages 배열에서 랜덤 메시지 선택
+                return greetingsFile.messages[Math.floor(Math.random() * greetingsFile.messages.length)];
+            }
+            // 이전 포맷의 파일도 지원 (하위 호환성)
+            if (greetingsFile.greetings && Array.isArray(greetingsFile.greetings)) {
+                // 모든 개별 인사말 메시지 수집
+                const allMessages = [];
+                // 일반 카테고리 메시지 수집
+                for (const category of greetingsFile.greetings) {
+                    if (category.messages && Array.isArray(category.messages)) {
+                        allMessages.push(...category.messages);
+                    }
+                }
+                // 조합 카테고리도 포함
+                if (greetingsFile.combinations && Array.isArray(greetingsFile.combinations)) {
+                    for (const combo of greetingsFile.combinations) {
+                        if (combo.messages && Array.isArray(combo.messages)) {
+                            allMessages.push(...combo.messages);
+                        }
+                    }
+                }
+                // 유효한 메시지가 있는지 확인
+                if (allMessages.length > 0) {
+                    return allMessages[Math.floor(Math.random() * allMessages.length)];
+                }
+            }
+            throw new Error('No valid greeting messages found');
+        }
+        catch (error) {
+            console.error('Error loading greetings:', error);
+            // 오류 발생 시 기본 인사말 반환
+            const fallbackGreetings = [
+                "안녕하세요! 무엇을 도와드릴까요? 도움이 필요하시면 '/'를 입력해보세요.",
+                "어떤 개발 작업을 도와드릴까요? 슬래시(/) 명령어로 다양한 기능을 사용하실 수 있어요.",
+                "오늘은 어떤 코드를 작성하고 계신가요? 도움이 필요하시면 알려주세요."
+            ];
+            return fallbackGreetings[Math.floor(Math.random() * fallbackGreetings.length)];
+        }
+    }
+    /**
      * Sends a user message to the LLM and processes the response
      */
     async sendMessage(content) {
@@ -31711,11 +33541,16 @@ class MainChatViewProvider {
             await this._commandManager.slashCommandManager.executeCommand(content);
             return;
         }
+        // Apply smart prompting (if enabled)
+        let processedContent = content;
+        if (this._smartPromptingService && this._smartPromptingService.isEnabled()) {
+            processedContent = this._smartPromptingService.processMessage(content);
+        }
         // Create and add user message
         const userMessage = {
             id: `msg_${Date.now()}`,
             role: _types_chat__WEBPACK_IMPORTED_MODULE_1__.MessageRole.User,
-            content,
+            content: processedContent,
             timestamp: new Date()
         };
         this._messages.push(userMessage);
@@ -31755,6 +33590,13 @@ class MainChatViewProvider {
                             clearTimeout(this._streamUpdateTimeout);
                             this._streamUpdateTimeout = null;
                         }
+                        // 메시지가 오류 메시지인지 확인
+                        const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
+                        if (assistantMessage && assistantMessage.content.includes('[연결 오류가 발생했습니다]')) {
+                            // 오류 메시지를 시스템 메시지로 변경
+                            assistantMessage.role = _types_chat__WEBPACK_IMPORTED_MODULE_1__.MessageRole.System;
+                            assistantMessage.content = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+                        }
                         // Save messages to memory
                         this.saveMessages();
                         this.updateChatView();
@@ -31790,7 +33632,7 @@ class MainChatViewProvider {
         this._memoryService.clearMessages();
         try {
             // Get HTML content for welcome message
-            const welcomeHTML = _welcomeView__WEBPACK_IMPORTED_MODULE_3__.WelcomeViewProvider.getWelcomeMessageHTML();
+            const welcomeHTML = _welcomeView__WEBPACK_IMPORTED_MODULE_4__.WelcomeViewProvider.getWelcomeMessageHTML();
             console.log('WelcomeViewProvider used - welcome HTML generated, length:', welcomeHTML.length);
             // Create welcome messages
             const welcomeId = `welcome_${Date.now()}`;
@@ -31805,7 +33647,7 @@ class MainChatViewProvider {
                 {
                     id: assistantId,
                     role: _types_chat__WEBPACK_IMPORTED_MODULE_1__.MessageRole.Assistant,
-                    content: '안녕하세요! 무엇을 도와드릴까요?',
+                    content: this.getRandomGreeting(),
                     timestamp: new Date()
                 }
             ];
@@ -31839,7 +33681,7 @@ class MainChatViewProvider {
             console.log('No saved messages found, adding welcome message');
             try {
                 // Get HTML content for welcome message
-                const welcomeHTML = _welcomeView__WEBPACK_IMPORTED_MODULE_3__.WelcomeViewProvider.getWelcomeMessageHTML();
+                const welcomeHTML = _welcomeView__WEBPACK_IMPORTED_MODULE_4__.WelcomeViewProvider.getWelcomeMessageHTML();
                 console.log('WelcomeViewProvider used - welcome HTML generated, length:', welcomeHTML.length);
                 // Create welcome messages
                 const welcomeId = `welcome_${Date.now()}`;
@@ -31854,7 +33696,7 @@ class MainChatViewProvider {
                     {
                         id: assistantId,
                         role: _types_chat__WEBPACK_IMPORTED_MODULE_1__.MessageRole.Assistant,
-                        content: '안녕하세요! 무엇을 도와드릴까요?',
+                        content: this.getRandomGreeting(),
                         timestamp: new Date()
                     }
                 ];
@@ -31956,6 +33798,18 @@ class MainChatViewProvider {
                 catch (error) {
                     console.error('Unexpected error:', error);
                     vscode__WEBPACK_IMPORTED_MODULE_0__.window.showErrorMessage('Unexpected error during model selection');
+                }
+                break;
+            case 'toggleSmartPrompting':
+                // Toggle Smart Prompting service
+                if (this._smartPromptingService) {
+                    this._smartPromptingService.toggle();
+                }
+                break;
+            case 'setSmartPromptingMode':
+                // Set Smart Prompting mode
+                if (this._smartPromptingService && message.mode) {
+                    this._smartPromptingService.setMode(message.mode);
                 }
                 break;
             case 'copyCode':
@@ -32084,26 +33938,43 @@ class MainChatViewProvider {
     <body>
       <div id="chat-container">
         <div class="chat-header">
-          <div class="chat-title">APE Chat</div>
         </div>
         <div id="chat-messages"></div>
         <div id="chat-input-container">
-          <textarea id="chat-input" placeholder="메시지 입력..." rows="1"></textarea>
-          <div id="input-buttons">
-            <button id="clear-button" title="대화 지우기">
-              <span class="emoji-icon">ⓧ</span>
-            </button>
-            <button id="send-button" title="메시지 전송">
-              <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <div id="input-actions">
+            <button id="smart-prompting-toggle" title="스마트 프롬프팅 전환" class="input-top-button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3L14.057 8.17159L19.5 8.88418L15.75 12.8789L16.7135 19L12 16L7.2865 19L8.25 12.8789L4.5 8.88418L9.943 8.17159L12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+              <span id="smart-prompting-label">스마트 프롬프팅</span>
             </button>
+          </div>
+          <div class="input-wrapper">
+            <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1"></textarea>
+            <div id="input-buttons">
+              <button id="clear-button" title="대화 지우기" class="action-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 6L5 20M5 6L19 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button id="send-button" title="메시지 전송" class="action-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         <div id="model-indicator">
           <span id="model-name">LLM Model</span>
           <button id="model-selector" title="모델 변경">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 4L19 8V16L12 20L5 16V8L12 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12L19 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12L5 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             모델 변경
           </button>
         </div>
@@ -32154,6 +34025,20 @@ class MainChatViewProvider {
                 }
                 break;
               }
+
+              case 'updateSmartPrompting': {
+                // Update Smart Prompting UI state
+                if (smartPromptingToggle && smartPromptingLabel) {
+                  if (message.enabled) {
+                    smartPromptingToggle.classList.add('active');
+                    smartPromptingLabel.textContent = '스마트 프롬프팅 켜짐';
+                  } else {
+                    smartPromptingToggle.classList.remove('active');
+                    smartPromptingLabel.textContent = '스마트 프롬프팅';
+                  }
+                }
+                break;
+              }
             }
           });
           
@@ -32164,7 +34049,9 @@ class MainChatViewProvider {
           let clearButton;
           let modelIndicator;
           let modelSelector;
-          
+          let smartPromptingToggle;
+          let smartPromptingLabel;
+
           // Command suggestions container
           let commandSuggestionsContainer;
           
@@ -32400,7 +34287,6 @@ class MainChatViewProvider {
                 if (message.role === 'user') {
                   const statusElement = document.createElement('div');
                   statusElement.className = 'message-status';
-                  statusElement.textContent = '읽음';
                   messageElement.appendChild(statusElement);
                 }
                 
@@ -32873,8 +34759,13 @@ class MainChatViewProvider {
             modelSelector = document.getElementById('model-selector');
             commandSuggestionsContainer = document.getElementById('command-suggestions');
             
+            // Get Smart Prompting elements
+            smartPromptingToggle = document.getElementById('smart-prompting-toggle');
+            smartPromptingLabel = document.getElementById('smart-prompting-label');
+
             // Check if elements are found
-            if (!chatMessages || !chatInput || !sendButton || !clearButton || !commandSuggestionsContainer) {
+            if (!chatMessages || !chatInput || !sendButton || !clearButton ||
+                !commandSuggestionsContainer || !smartPromptingToggle || !smartPromptingLabel) {
               console.error("Critical UI elements missing");
               setTimeout(init, 500);
               return;
@@ -32953,6 +34844,11 @@ class MainChatViewProvider {
             modelSelector.addEventListener('click', () => {
               vscode.postMessage({ type: 'showModelSelector' });
             });
+
+            // Smart Prompting toggle click handler
+            smartPromptingToggle.addEventListener('click', () => {
+              vscode.postMessage({ type: 'toggleSmartPrompting' });
+            });
             
             // Set up code block action listeners
             setupCodeBlockListeners();
@@ -33004,11 +34900,19 @@ class MainChatViewProvider {
         return text;
     }
     /**
-     * Smart Prompting UI update - required for interface compatibility
-     * No-op in this implementation as we don't need this feature for the iPhone style
+     * Updates the Smart Prompting UI with the current state
+     * @param state The current SmartPromptingState
      */
-    _updateSmartPromptingUI(enabled) {
-        // No-op for this implementation
+    _updateSmartPromptingUI(state) {
+        if (!this._view) {
+            return;
+        }
+        // Send update message to webview
+        this._view.webview.postMessage({
+            type: 'updateSmartPrompting',
+            enabled: state.enabled,
+            mode: state.mode
+        });
     }
     /**
      * Open attached file - required for interface compatibility
@@ -34238,17 +36142,17 @@ class ApeTreeDataProvider {
                 return [this.createChatHistoryErrorNode('워크스페이스 폴더를 찾을 수 없습니다')];
             }
             // 채팅 내역 폴더 경로
-            const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+            const chatHistoryDir = path__WEBPACK_IMPORTED_MODULE_1__.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
             // 폴더 존재 확인
             if (!(0,fs__WEBPACK_IMPORTED_MODULE_2__.existsSync)(chatHistoryDir)) {
-                return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save-chat` 명령어를 사용하세요.')];
+                return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save` 명령어를 사용하세요.')];
             }
             // 파일 시스템에서 메타데이터 파일 목록 가져오기
             const fs = __webpack_require__(/*! fs */ "fs");
             const metaFiles = fs.readdirSync(chatHistoryDir)
                 .filter((name) => name.endsWith('.meta.json'));
             if (metaFiles.length === 0) {
-                return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save-chat` 명령어를 사용하세요.')];
+                return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save` 명령어를 사용하세요.')];
             }
             // 채팅 내역 아이템 목록
             const chatItems = [];
@@ -34547,11 +36451,11 @@ class WelcomeViewProvider {
       <div class="welcome-container">
         <div class="welcome-header">
           <div class="welcome-monologue">
-  <h1 class="welcome-title">APE</h1>
+  <h1 class="welcome-title">A.P.E</h1>
   <div class="title-separator"></div>
   <p class="welcome-tagline">AGENTIC PIPELINE ENGINE</p>
-  <p class="welcome-subtitle">Agentic Vision. Development Illuminated.
-Seamless • Plugin-driven • Lightweight For Our Developer.</p>
+  <p class="welcome-subtitle">Agentic Vision. Development Illuminated. <br>
+Seamless • Plugin-driven • Lightweight For S/W Engineers.</p>
 </div>
         </div>
         
@@ -34564,66 +36468,32 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
                 <div class="action-description">Begin a dialogue with your AI assistant</div>
               </div>
             </div>
-            
+          </div>
+
+          <div class="action-group">
             <div class="action-button">
               <div class="action-icon">✦</div>
               <div class="action-content">
-                <div class="action-title">Code Analysis</div>
-                <div class="action-description">Understand and improve your existing code</div>
+                <div class="action-title">Code Assistant</div>
+                <div class="action-description">Analyze, optimize, and improve your code</div>
               </div>
             </div>
-          </div>
-          
-          <div class="action-group">
+
             <div class="action-button">
               <div class="action-icon">⟐</div>
               <div class="action-content">
-                <div class="action-title">Rapid Development</div>
-                <div class="action-description">Implement new features with efficiency</div>
+                <div class="action-title">Development Tools</div>
+                <div class="action-description">Test, debug, and implement new features</div>
               </div>
-            </div>
-            
-            <div class="action-button">
-              <div class="action-icon">⟡</div>
-              <div class="action-content">
-                <div class="action-title">Code Discovery</div>
-                <div class="action-description">Find the code you need, when you need it</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="welcome-examples">
-          <h3 class="examples-header">Begin with these queries</h3>
-          
-          <div class="example-cards">
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Optimize this code for performance'})">
-              <div class="example-label">Optimization</div>
-              <div class="example-text">Optimize this code for performance</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Create unit tests for this functionality'})">
-              <div class="example-label">Testing</div>
-              <div class="example-text">Create unit tests for this functionality</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Find issues in this code'})">
-              <div class="example-label">Debugging</div>
-              <div class="example-text">Find issues in this code</div>
-            </div>
-            
-            <div class="example-card" onclick="vscode.postMessage({type: 'command', command: 'Implement user authentication'})">
-              <div class="example-label">Implementation</div>
-              <div class="example-text">Implement user authentication</div>
             </div>
           </div>
         </div>
         
         <div class="welcome-quick-actions">
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">Help</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">Change Model</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/settings'})">Settings</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">Reset Conversation</button>
+          <button class="quick-action" onclick="sendCommand('/help')">Help</button>
+          <button class="quick-action" onclick="sendCommand('/model')">Change Model</button>
+          <button class="quick-action" onclick="sendCommand('/settings')">Settings</button>
+          <button class="quick-action" onclick="sendCommand('/clear')">Reset Conversation</button>
         </div>
       </div>
     `;
@@ -34701,29 +36571,41 @@ Seamless • Plugin-driven • Lightweight For Our Developer.</p>
         </div>
         
         <script>
+          // Define vscode API globally for use in onclick handlers
           const vscode = acquireVsCodeApi();
-          
+
+          // Define global sendCommand function for quick action buttons
+          window.sendCommand = function(command) {
+            console.log('Quick action command sent:', command);
+            vscode.postMessage({ type: 'insertCommand', command });
+          };
+
           document.querySelectorAll('.example-card').forEach(card => {
             card.addEventListener('click', event => {
               const command = card.querySelector('.example-text').textContent;
               vscode.postMessage({ type: 'command', command });
             });
           });
-          
-          document.querySelectorAll('.quick-action').forEach(button => {
-            button.addEventListener('click', event => {
-              const command = button.textContent.toLowerCase();
-              vscode.postMessage({ type: 'insertCommand', command: '/' + command });
-            });
-          });
-          
+
           // Add subtle hover animations
-          document.querySelectorAll('.action-button, .example-card').forEach(element => {
+          document.querySelectorAll('.example-card').forEach(element => {
             element.addEventListener('mouseover', () => {
               element.style.transform = 'translateY(-2px)';
               element.style.boxShadow = 'var(--ape-shadow-md)';
             });
-            
+
+            element.addEventListener('mouseout', () => {
+              element.style.transform = '';
+              element.style.boxShadow = '';
+            });
+          });
+
+          document.querySelectorAll('.action-button').forEach(element => {
+            element.addEventListener('mouseover', () => {
+              element.style.transform = 'translateY(-2px)';
+              element.style.boxShadow = 'var(--ape-shadow-md)';
+            });
+
             element.addEventListener('mouseout', () => {
               element.style.transform = '';
               element.style.boxShadow = '';
@@ -35373,6 +37255,16 @@ function registerComponents(context, services) {
         services.chatViewProvider.handleChatInput(text);
     }), vscode__WEBPACK_IMPORTED_MODULE_0__.commands.registerCommand('ape.sendChatMessage', () => {
         vscode__WEBPACK_IMPORTED_MODULE_0__.commands.executeCommand('ape.sendMessage');
+    }), vscode__WEBPACK_IMPORTED_MODULE_0__.commands.registerCommand('ape.showCommandSuggestions', (suggestions) => {
+        // 채팅 인터페이스에 명령어 제안 전송
+        if (services.chatViewProvider && Array.isArray(suggestions)) {
+            services.chatViewProvider.updateCommandSuggestions(suggestions);
+        }
+    }), vscode__WEBPACK_IMPORTED_MODULE_0__.commands.registerCommand('ape.insertToChatInput', (text) => {
+        // 채팅 입력창에 텍스트 삽입
+        if (services.chatViewProvider && typeof text === 'string') {
+            services.chatViewProvider.insertToChatInput(text);
+        }
     }), 
     // VAULT 관련 명령어
     vscode__WEBPACK_IMPORTED_MODULE_0__.commands.registerCommand('ape.vaultShowItem', (item) => {

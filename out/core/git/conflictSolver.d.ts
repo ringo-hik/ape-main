@@ -15,6 +15,28 @@ export declare enum ConflictStrategy {
     LLM = "llm"
 }
 /**
+ * 충돌 정보
+ */
+interface ConflictInfo {
+    filePath: string;
+    conflicts: {
+        ours: string;
+        theirs: string;
+        marker: string;
+        branch: string;
+        startLine: number;
+        endLine: number;
+    }[];
+}
+/**
+ * 병합 결과
+ */
+interface MergeResult {
+    success: boolean;
+    resolvedContent?: string;
+    message?: string;
+}
+/**
  * Git 충돌 해결기
  */
 export declare class ConflictSolver {
@@ -39,7 +61,7 @@ export declare class ConflictSolver {
     /**
      * 충돌 정보 파싱
      */
-    private parseConflicts;
+    parseConflicts(filePath: string, content: string): ConflictInfo;
     /**
      * 충돌 내용 해결
      */
@@ -47,11 +69,11 @@ export declare class ConflictSolver {
     /**
      * 충돌에 가장 적합한 전략 결정
      */
-    private determineStrategy;
+    determineStrategy(conflict: ConflictInfo['conflicts'][0], fileType: string): ConflictStrategy;
     /**
      * 충돌 해결 전략 적용
      */
-    private applyStrategy;
+    applyStrategy(conflict: ConflictInfo['conflicts'][0], strategy: ConflictStrategy, fileType: string): Promise<MergeResult>;
     /**
      * 기본 병합 전략
      */
@@ -61,3 +83,4 @@ export declare class ConflictSolver {
      */
     private llmBasedMerge;
 }
+export {};

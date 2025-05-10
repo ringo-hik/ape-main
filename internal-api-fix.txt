@@ -1,0 +1,153 @@
+# 내부망 API 연결 문제 해결 가이드
+
+## 1. 문제 진단
+
+API 연결 테스트 스크립트를 실행하여 다음과 같은 문제를 진단할 수 있습니다:
+
+1. **네트워크 연결 문제**:
+   - 호스트에 대한 ping 불가능
+   - 포트 연결 실패
+   - 응답 타임아웃
+
+2. **인증 문제**:
+   - API 키 만료 또는 부적절한 형식
+   - 인증 헤더 오류
+
+3. **요청 구조 문제**:
+   - 부적절한in 요청 본문 형식
+   - 잘못된 모델 ID
+
+## 2. 문제 해결 방법
+
+### 네트워크 접근 문제 해결
+
+1. **VPN 연결 확인**:
+   ```bash
+   # VPN 상태 확인
+   nmcli connection show --active
+   
+   # 필요한 경우 VPN 재연결
+   # VPN 클라이언트 재시작
+   ```
+
+2. **프록시 설정 변경**:
+   ```bash
+   # 프록시 비활성화 테스트
+   export no_proxy="*"
+   unset http_proxy
+   unset https_proxy
+   
+   # 또는 특정 도메인만 프록시 우회
+   export no_proxy="api-se-dev.narrans.samsungds.net,apigw-stg.samsungds.net"
+   ```
+
+3. **방화벽 확인**:
+   ```bash
+   # 방화벽 상태 확인
+   sudo ufw status
+   # 또는
+   sudo iptables -L
+   ```
+
+### SSL 인증서 문제 해결
+
+Narrans API는 SSL 인증서 검증 오류가 발생할 수 있습니다:
+
+1. **임시 해결책 - curl 요청에서 `-k` 플래그 사용 (이미 적용됨)**
+
+2. **영구 해결책 - 인증서 추가**:
+   ```bash
+   # 인증서 경로 확인
+   openssl s_client -connect api-se-dev.narrans.samsungds.net:443 -showcerts
+   
+   # 인증서를 파일로 저장
+   echo -n | openssl s_client -connect api-se-dev.narrans.samsungds.net:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > narrans-cert.pem
+   
+   # 신뢰할 수 있는 인증서로 추가
+   sudo cp narrans-cert.pem /usr/local/share/ca-certificates/
+   sudo update-ca-certificates
+   ```
+
+## 3. 코드 수정
+
+`llmService.ts` 파일에서 다음 부분을 확인하세요:
+
+### 요청 헤더 수정
+
+`createInternalApiHeaders` 함수에서:
+
+```typescript
+// Narrans 모델은 Bearer 인증 방식 사용
+if (model === LLMModel.NARRANS) {
+  return {
+    ...headers,
+    // 실제 API 키로 교체
+    'Authorization': `Bearer ${actualApiKey}`  // 'dummy_key' 대신 실제 키 사용
+  };
+}
+```
+
+### 프록시 및 SSL 설정 확인
+
+Narrans 요청 처리 시:
+
+```typescript
+// Narrans 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+if (model === LLMModel.NARRANS) {
+  console.log("[LLMService] Narrans 모델 요청: 프록시 무시 및 SSL 검증 비활성화");
+  axiosConfig.proxy = false;
+  axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+  
+  // 추가 디버깅 정보
+  console.log("[LLMService] Narrans 요청에 사용된 헤더:", JSON.stringify(headers));
+}
+```
+
+## 4. 모니터링 및 로깅 개선
+
+1. **상세 로깅 추가**:
+   ```typescript
+   private async _sendHttpRequest(...) {
+     // 추가 디버깅 로그
+     console.log(`[LLMService] 내부망 API 요청 헤더:`, JSON.stringify(headers, null, 2));
+     console.log(`[LLMService] 내부망 API 요청 본문:`, JSON.stringify(request, null, 2));
+     
+     try {
+       // ...
+     } catch (error) {
+       // 자세한 오류 로깅
+       console.error('[LLMService] HTTP 요청 실패 상세:', error);
+       console.error(`[LLMService] 엔드포인트: ${endpoint}`);
+     }
+   }
+   ```
+
+2. **네트워크 진단 로그 추가**:
+   ```typescript
+   // 연결 진단 유틸리티 함수
+   private async _diagnoseConnection(endpoint: string): Promise<void> {
+     try {
+       const url = new URL(endpoint);
+       console.log(`[LLMService] 연결 진단 - 호스트: ${url.hostname}, 프로토콜: ${url.protocol}, 포트: ${url.port || (url.protocol === 'https:' ? '443' : '80')}`);
+       
+       // DNS 확인 로그
+       await dns.promises.lookup(url.hostname)
+         .then(result => console.log(`[LLMService] DNS 조회 성공: ${url.hostname} -> ${result.address}`))
+         .catch(err => console.error(`[LLMService] DNS 조회 실패: ${url.hostname}`, err));
+     } catch (error) {
+       console.error('[LLMService] 연결 진단 오류:', error);
+     }
+   }
+   ```
+
+## 5. API 엔드포인트 변경 테스트
+
+내부망 API 엔드포인트가 변경된 경우를 테스트하기 위해 다음과 같은 대체 엔드포인트를 시도해 볼 수 있습니다:
+
+### Narrans 대체 엔드포인트:
+- `https://api-se-test.narrans.samsungds.net/v1/chat/completions`
+- `https://api-se.narrans.samsungds.net/v1/chat/completions`
+
+### Llama4 대체 엔드포인트:
+- `http://apigw.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions`
+- `http://apigw-dev.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions`

@@ -1,0 +1,1036 @@
+/**
+ * 채팅 뷰 인터페이스 관련 스크립트
+ * CSP 순환 참조 문제 해결을 위해 인라인 스크립트에서 분리
+ */
+(function() {
+  // 공통 유틸리티 사용
+  const { vscode, dom, format, debounce } = window.apeUtils;
+  
+  // 상태 관리
+  let state = {
+    messages: [],
+    isStreaming: false,
+    activeSuggestionIndex: -1,
+    suggestions: [],
+    attachedFiles: [],
+    isUserScrolled: false,
+    isScrollNearBottom: true,
+    SCROLL_THRESHOLD: 100
+  };
+  
+  // DOM 요소
+  let elements = {
+    chatMessages: null,
+    chatInput: null,
+    sendButton: null,
+    clearButton: null,
+    attachButton: null,
+    modelIndicator: null,
+    modelSelector: null,
+    commandSuggestionsContainer: null
+  };
+  
+  // 초기화 함수
+  function initialize() {
+    console.log('DEBUG: initialize 함수 호출됨');
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setup);
+    } else {
+      setup();
+    }
+  }
+  
+  // 설정 함수
+  function setup() {
+    console.log('DEBUG: setup 함수 호출됨');
+    console.log('DEBUG: document.readyState =', document.readyState);
+    console.log('DEBUG: #chat-messages element =', document.querySelector('#chat-messages'));
+    console.log('DEBUG: #chat-input element =', document.querySelector('#chat-input'));
+    console.log("Initializing chat interface...");
+    
+    // DOM 요소 가져오기
+    elements.chatMessages = dom.getElement('#chat-messages');
+    elements.chatInput = dom.getElement('#chat-input');
+    elements.sendButton = dom.getElement('#send-button');
+    elements.clearButton = dom.getElement('#clear-button');
+    elements.attachButton = dom.getElement('#attach-button');
+    elements.modelIndicator = dom.getElement('#model-name');
+    elements.modelSelector = dom.getElement('#model-selector');
+    elements.commandSuggestionsContainer = dom.getElement('#command-suggestions');
+    
+    // 요소가 존재하는지 확인
+    if (!elements.chatMessages || !elements.chatInput || !elements.sendButton || !elements.clearButton) {
+      console.error('Critical UI elements missing');
+      setTimeout(setup, 500);
+      return;
+    }
+    
+    // 이벤트 리스너 설정
+    setupEventListeners();
+    
+    // 초기 메시지 설정
+    const initialState = vscode.getState();
+    if (initialState && initialState.messages) {
+      updateMessages(initialState.messages, initialState.isStreaming || false);
+    }
+    
+    // 입력창 초기 크기 조정
+    resizeInput();
+    
+    // 입력창에 포커스
+    setTimeout(() => {
+      if (elements.chatInput) {
+        elements.chatInput.focus();
+      }
+    }, 100);
+    
+    console.log('Chat interface initialized successfully');
+  }
+  
+  // 이벤트 리스너 설정
+  function setupEventListeners() {
+    // 스마트 스크롤 감지
+    elements.chatMessages.addEventListener('scroll', detectUserScroll);
+    
+    // 입력창 이벤트
+    elements.chatInput.addEventListener('input', () => {
+      resizeInput();
+      notifyInputChanged();
+    });
+    
+    // 키보드 이벤트
+    elements.chatInput.addEventListener('keydown', handleKeyDown);
+    
+    // 버튼 이벤트
+    elements.sendButton.addEventListener('click', handleSendClick);
+    elements.clearButton.addEventListener('click', handleClearClick);
+    
+    if (elements.attachButton) {
+      elements.attachButton.addEventListener('click', () => {
+        vscode.postMessage({ type: 'attachFile' });
+      });
+    }
+    
+    if (elements.modelSelector) {
+      elements.modelSelector.addEventListener('click', () => {
+        vscode.postMessage({ type: 'showModelSelector' });
+      });
+    }
+    
+    // 메시지 영역 클릭 이벤트 (코드 블록 등)
+    elements.chatMessages.addEventListener('click', handleChatMessagesClick);
+    
+    // VSCode 메시지 처리
+    window.addEventListener('message', handleVSCodeMessage);
+  }
+  
+  // VSCode 메시지 처리
+  function handleVSCodeMessage(event) {
+    const message = event.data;
+
+    switch (message.type) {
+      case 'updateMessages':
+        // Enhanced message handling with additional properties
+        updateMessages(
+          message.messages,
+          message.isStreaming,
+          message.forceUpdate || false,
+          message.timestamp
+        );
+        break;
+
+      case 'editorContent':
+        handleEditorContent(message.content);
+        break;
+
+      case 'commandSuggestions':
+        updateCommandSuggestions(message.suggestions);
+        break;
+
+      case 'insertCommandToInput':
+        insertCommandFromHelp(message.command);
+        break;
+
+      case 'updateModelIndicator':
+        updateModelName(message.modelName);
+        break;
+
+      case 'fileAttached':
+        handleFileAttachment(message.file);
+        break;
+
+      case 'updateSmartPrompting':
+        updateSmartPromptingUI(message.enabled, message.mode);
+        break;
+    }
+  }
+  
+  // 스마트 프롬프팅 UI 업데이트
+  function updateSmartPromptingUI(enabled, mode) {
+    const smartPromptingToggle = dom.getElement('#smart-prompting-toggle');
+    const smartPromptingLabel = dom.getElement('#smart-prompting-label');
+    
+    if (!smartPromptingToggle || !smartPromptingLabel) return;
+    
+    if (enabled) {
+      smartPromptingToggle.classList.add('active');
+      
+      let modeText = '스마트 프롬프팅';
+      switch (mode) {
+        case 'basic':
+          modeText = '기본 모드';
+          break;
+        case 'advanced':
+          modeText = '고급 모드';
+          break;
+        case 'expert':
+          modeText = '전문가 모드';
+          break;
+      }
+      
+      smartPromptingLabel.textContent = modeText;
+    } else {
+      smartPromptingToggle.classList.remove('active');
+      smartPromptingLabel.textContent = '스마트 프롬프팅';
+    }
+  }
+  
+  // 모델명 업데이트
+  function updateModelName(modelName) {
+    if (!elements.modelIndicator || !modelName) return;
+    
+    elements.modelIndicator.textContent = modelName;
+  }
+  
+  // 에디터 콘텐츠 처리
+  function handleEditorContent(content) {
+    if (!elements.chatInput || !content) return;
+    
+    elements.chatInput.value += '```\n' + content + '\n```\n';
+    resizeInput();
+  }
+  
+  // 파일 첨부 처리
+  function handleFileAttachment(file) {
+    if (!elements.chatInput || !file) return;
+    
+    // 첨부 파일 목록에 추가
+    state.attachedFiles.push({
+      path: file.relativePath || file.path,
+      name: file.name,
+      type: file.type,
+      content: file.hasContent ? file.content : undefined
+    });
+    
+    // 입력창에 첨부 파일 정보 추가
+    const fileName = file.name;
+    const fileInfo = "첨부된 파일: " + fileName;
+    
+    if (elements.chatInput.value) {
+      elements.chatInput.value += '\n' + fileInfo;
+    } else {
+      elements.chatInput.value = fileInfo;
+    }
+    
+    resizeInput();
+    elements.chatInput.focus();
+  }
+  
+  // 헬프에서 명령어 삽입
+  function insertCommandFromHelp(command) {
+    if (!elements.chatInput) return;
+    
+    // 슬래시가 없는 경우 추가
+    if (!command.startsWith('/')) {
+      command = '/' + command;
+    }
+    
+    // 채팅 입력창에 명령어 입력
+    elements.chatInput.value = command;
+    elements.chatInput.focus();
+    
+    // 커서를 마지막으로 이동
+    elements.chatInput.selectionStart = elements.chatInput.selectionEnd = elements.chatInput.value.length;
+    
+    // 입력창 크기 조정
+    resizeInput();
+    
+    // 입력 변경 필요
+    notifyInputChanged();
+  }
+  
+  // 메시지 전송 클릭 처리
+  function handleSendClick() {
+    if (elements.chatInput.disabled) {
+      // 스트리밍 중이면 취소 요청
+      vscode.postMessage({ type: 'cancelStream' });
+    } else {
+      // 일반 메시지 전송
+      sendMessage();
+    }
+  }
+  
+  // 초기화 클릭 처리
+  function handleClearClick() {
+    vscode.postMessage({ type: 'clearChat' });
+  }
+  
+  // 채팅 메시지 영역 클릭 처리
+  function handleChatMessagesClick(event) {
+    // 코드 블록 동작 처리
+    const target = event.target;
+    
+    // 복사 버튼 처리
+    if (target.closest('.copy-button')) {
+      const button = target.closest('.copy-button');
+      const codeId = button.getAttribute('data-code-id');
+      const codeElement = document.getElementById('code-' + codeId);
+      
+      if (codeElement) {
+        vscode.postMessage({
+          type: 'copyCode',
+          code: codeElement.textContent
+        });
+        
+        // 복사 피드백 표시
+        button.classList.add('copied');
+        setTimeout(() => {
+          button.classList.remove('copied');
+        }, 2000);
+      }
+    }
+    
+    // 삽입 버튼 처리
+    if (target.closest('.insert-code-button')) {
+      const button = target.closest('.insert-code-button');
+      const codeId = button.getAttribute('data-code-id');
+      const codeElement = document.getElementById('code-' + codeId);
+      
+      if (codeElement) {
+        vscode.postMessage({
+          type: 'insertCodeToEditor',
+          code: codeElement.textContent
+        });
+      }
+    }
+    
+    // 새 파일 버튼 처리
+    if (target.closest('.new-file-button')) {
+      const button = target.closest('.new-file-button');
+      const codeId = button.getAttribute('data-code-id');
+      const codeElement = document.getElementById('code-' + codeId);
+      const languageElement = button.closest('.code-block-container').querySelector('.code-block-language');
+      
+      if (codeElement) {
+        const language = languageElement ?
+          languageElement.textContent.trim() || 'plaintext' :
+          'plaintext';
+        
+        vscode.postMessage({
+          type: 'createFileWithCode',
+          code: codeElement.textContent,
+          language: language
+        });
+      }
+    }
+    
+    // 첨부 파일 뷰 버튼 클릭 처리
+    if (target.closest('.attachment-action.view-file')) {
+      const attachedFile = target.closest('.attached-file');
+      if (attachedFile) {
+        const fileName = attachedFile.querySelector('.attachment-name').textContent;
+        // VS Code에 파일 열기 요청
+        vscode.postMessage({
+          type: 'openFile',
+          fileName: fileName
+        });
+      }
+    }
+  }
+  
+  // 키보드 입력 처리
+  function handleKeyDown(e) {
+    // 슬래시 명령어 제안 목록이 있는 경우
+    if (state.suggestions.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateSuggestion('up');
+        return;
+      } 
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateSuggestion('down');
+        return;
+      }
+      
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        selectActiveSuggestion();
+        return;
+      }
+      
+      if (e.key === 'Enter' && state.activeSuggestionIndex >= 0) {
+        e.preventDefault();
+        selectSuggestion(state.activeSuggestionIndex);
+        
+        // 단독 실행 가능한 명령어인 경우 자동 실행
+        if (state.activeSuggestionIndex >= 0 && state.activeSuggestionIndex < state.suggestions.length) {
+          const suggestion = state.suggestions[state.activeSuggestionIndex];
+          if (isStandAloneCommand(suggestion.insertText)) {
+            sendMessage();
+          }
+        }
+        return;
+      }
+      
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hideCommandSuggestions();
+        return;
+      }
+    }
+    
+    // 일반 엔터 키 처리 (메시지 전송)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+  
+  // 슬래시 명령어 네비게이션
+  function navigateSuggestion(direction) {
+    if (state.suggestions.length === 0) return false;
+    
+    // 처음 방향키를 누르면 0번 항목 선택
+    if (state.activeSuggestionIndex === -1) {
+      state.activeSuggestionIndex = 0;
+      highlightActiveSuggestion();
+      return true;
+    }
+    
+    // 방향에 따라 인덱스 조정
+    if (direction === 'up') {
+      state.activeSuggestionIndex = state.activeSuggestionIndex <= 0 ?
+        state.suggestions.length - 1 : state.activeSuggestionIndex - 1;
+    } else {
+      state.activeSuggestionIndex = state.activeSuggestionIndex >= state.suggestions.length - 1 ?
+        0 : state.activeSuggestionIndex + 1;
+    }
+    
+    highlightActiveSuggestion();
+    return true;
+  }
+  
+  // 활성화된 제안 항목 강조
+  function highlightActiveSuggestion() {
+    if (!elements.commandSuggestionsContainer) return;
+    
+    // 모든 항목에서 활성 클래스 제거
+    dom.getElements('.command-suggestion').forEach(el => {
+      el.classList.remove('active');
+    });
+    
+    // 현재 활성 항목에 클래스 추가
+    if (state.activeSuggestionIndex >= 0 && state.activeSuggestionIndex < state.suggestions.length) {
+      const activeElement = dom.getElement(
+        `.command-suggestion[data-index="${state.activeSuggestionIndex}"]`
+      );
+      
+      if (activeElement) {
+        activeElement.classList.add('active');
+        
+        // 스크롤 영역 내로 표시
+        const container = elements.commandSuggestionsContainer;
+        const elementTop = activeElement.offsetTop;
+        const elementBottom = elementTop + activeElement.offsetHeight;
+        const containerTop = container.scrollTop;
+        const containerBottom = containerTop + container.offsetHeight;
+        
+        if (elementTop < containerTop) {
+          container.scrollTop = elementTop;
+        } else if (elementBottom > containerBottom) {
+          container.scrollTop = elementBottom - container.offsetHeight;
+        }
+      }
+    }
+  }
+  
+  // 활성화된 제안 선택
+  function selectActiveSuggestion() {
+    if (state.activeSuggestionIndex >= 0 && state.activeSuggestionIndex < state.suggestions.length) {
+      selectSuggestion(state.activeSuggestionIndex);
+    } else if (state.suggestions.length > 0) {
+      state.activeSuggestionIndex = 0;
+      highlightActiveSuggestion();
+    }
+  }
+  
+  // 특정 인덱스의 제안 선택
+  function selectSuggestion(index) {
+    if (index < 0 || index >= state.suggestions.length || !elements.chatInput) return;
+    
+    const suggestion = state.suggestions[index];
+    
+    // 입력창에 제안 텍스트 삽입
+    elements.chatInput.value = suggestion.insertText;
+    elements.chatInput.focus();
+    
+    // 커서를 마지막으로 이동
+    elements.chatInput.selectionStart = elements.chatInput.selectionEnd = elements.chatInput.value.length;
+    
+    // 입력창 크기 조정
+    resizeInput();
+    
+    // 제안 목록 숨김
+    hideCommandSuggestions();
+    
+    // 입력 변경 알림
+    notifyInputChanged();
+  }
+  
+  // 제안 목록 숨김
+  function hideCommandSuggestions() {
+    if (!elements.commandSuggestionsContainer) return;
+    
+    elements.commandSuggestionsContainer.style.display = 'none';
+    state.suggestions = [];
+    state.activeSuggestionIndex = -1;
+  }
+  
+  // 제안 목록 업데이트
+  function updateCommandSuggestions(newSuggestions) {
+    state.suggestions = newSuggestions || [];
+    state.activeSuggestionIndex = -1;
+    
+    if (!elements.commandSuggestionsContainer) return;
+    
+    // 컨테이너 초기화
+    elements.commandSuggestionsContainer.innerHTML = '';
+    
+    // 제안이 없으면 숨김
+    if (state.suggestions.length === 0) {
+      elements.commandSuggestionsContainer.style.display = 'none';
+      return;
+    }
+    
+    // 컨테이너 위치 설정
+    positionCommandSuggestions();
+    
+    // 카테고리별 그룹화
+    const categorizedSuggestions = {};
+    state.suggestions.forEach(suggestion => {
+      if (!categorizedSuggestions[suggestion.category]) {
+        categorizedSuggestions[suggestion.category] = [];
+      }
+      categorizedSuggestions[suggestion.category].push(suggestion);
+    });
+    
+    // 카테고리별로 제안 항목 추가
+    Object.keys(categorizedSuggestions).forEach(category => {
+      // 카테고리 헤더 추가
+      const categoryHeader = dom.createElement('div', {
+        className: 'suggestion-category',
+        textContent: getCategoryTitle(category)
+      });
+      elements.commandSuggestionsContainer.appendChild(categoryHeader);
+      
+      // 해당 카테고리의 제안 항목 추가
+      categorizedSuggestions[category].forEach((suggestion) => {
+        const suggestionIndex = state.suggestions.findIndex(s => s.label === suggestion.label);
+        
+        const suggestionElement = dom.createElement('div', {
+          className: 'command-suggestion',
+          dataset: {
+            index: String(suggestionIndex),
+            category: suggestion.category
+          },
+          onClick: () => selectSuggestion(suggestionIndex)
+        }, [
+          dom.createElement('span', {
+            className: 'suggestion-icon',
+            textContent: getSvgIconForCategory(suggestion.category)
+          }),
+          dom.createElement('span', {
+            className: 'suggestion-label',
+            textContent: suggestion.label
+          }),
+          dom.createElement('span', {
+            className: 'suggestion-description',
+            textContent: suggestion.description
+          })
+        ]);
+        
+        // 마우스 오버 시 강조
+        suggestionElement.addEventListener('mouseover', () => {
+          state.activeSuggestionIndex = suggestionIndex;
+          highlightActiveSuggestion();
+        });
+        
+        elements.commandSuggestionsContainer.appendChild(suggestionElement);
+      });
+    });
+    
+    // 컨테이너 표시
+    elements.commandSuggestionsContainer.style.display = 'block';
+  }
+  
+  // 제안 컨테이너 위치 조정
+  function positionCommandSuggestions() {
+    if (!elements.chatInput || !elements.commandSuggestionsContainer) return;
+    
+    const inputContainer = dom.getElement('#chat-input-container');
+    if (!inputContainer) return;
+    
+    const inputRect = inputContainer.getBoundingClientRect();
+    
+    // 컨테이너 위치 설정
+    elements.commandSuggestionsContainer.style.position = 'absolute';
+    elements.commandSuggestionsContainer.style.bottom = (inputRect.height + 8) + 'px';
+    elements.commandSuggestionsContainer.style.left = '12px';
+    elements.commandSuggestionsContainer.style.right = '12px';
+    elements.commandSuggestionsContainer.style.zIndex = '1000';
+  }
+  
+  // 카테고리 제목 변환
+  function getCategoryTitle(category) {
+    const titles = {
+      'general': '일반 명령어',
+      'git': 'Git 관련 명령어',
+      'code': '코드 관련 명령어',
+      'utility': '유틸리티 명령어',
+      'advanced': '고급 명령어'
+    };
+    
+    return titles[category] || category;
+  }
+  
+  // 카테고리별 아이콘 반환
+  function getSvgIconForCategory(category) {
+    const icons = {
+      'general': '●',  // 일반 명령어
+      'git': '◆',      // Git 명령어
+      'code': '▢',     // 코드 관련
+      'utility': '◈',  // 유틸리티
+      'advanced': '◎'  // 고급 설정
+    };
+    
+    return icons[category] || '○';
+  }
+  
+  // 단독 실행 가능 명령어 확인
+  function isStandAloneCommand(commandText) {
+    if (!commandText.startsWith('/')) return false;
+    
+    const commandParts = commandText.substring(1).split(/ +/);
+    const baseCommand = commandParts[0];
+    
+    // 단독 실행 가능한 명령어 목록
+    const standAloneCommands = ['help', 'clear', 'settings', 'model'];
+    
+    return standAloneCommands.includes(baseCommand) && commandParts.length === 1;
+  }
+  
+  // 입력 변경 알림
+  function notifyInputChanged() {
+    if (!elements.chatInput) return;
+    
+    vscode.postMessage({
+      type: 'inputChanged',
+      content: elements.chatInput.value
+    });
+  }
+  
+  // 메시지 전송
+  function sendMessage() {
+    if (!elements.chatInput) return;
+    
+    const content = elements.chatInput.value.trim();
+    if (!content) return;
+    
+    // 첨부 파일이 있는 경우 메타데이터 추가
+    if (state.attachedFiles.length > 0) {
+      vscode.postMessage({
+        type: 'sendMessage',
+        content,
+        metadata: {
+          attachedFiles: state.attachedFiles
+        }
+      });
+      
+      // 첨부 파일 목록 초기화
+      state.attachedFiles = [];
+    } else {
+      vscode.postMessage({ type: 'sendMessage', content });
+    }
+    
+    // 입력창 초기화
+    elements.chatInput.value = '';
+    resizeInput();
+    
+    // 명령어 제안 숨김
+    hideCommandSuggestions();
+  }
+  
+  // 채팅 메시지 업데이트
+  function updateMessages(messages, isStreaming) {
+    console.log('DEBUG: updateMessages 함수 호출됨', messages ? messages.length : 0, 'messages, isStreaming =', isStreaming);
+    if (!elements.chatMessages) {
+      console.error('DEBUG: CRITICAL ERROR - elements.chatMessages is null or undefined in updateMessages');
+      console.trace();
+    }
+    console.log(`[updateMessages] 리시브: 메시지 ${messages.length}개, 스트리밍: ${isStreaming}`);
+    if (!elements.chatMessages) return;
+    
+    // 상태 저장
+    state.messages = messages;
+    state.isStreaming = isStreaming;
+    vscode.setState({ messages, isStreaming });
+    
+    // 현재 메시지 ID 목록
+    const currentMessageIds = Array.from(elements.chatMessages.children)
+      .filter(el => el.classList.contains('message'))
+      .map(el => el.getAttribute('data-message-id'))
+      .filter(id => id);
+    
+    // 스크롤 위치 확인
+    detectUserScroll();
+    
+    // 타임스탬프 그룹 추가
+    const messagesWithTimestamps = addTimestampDividers(messages);
+    
+    // 현재 표시할 메시지 ID 목록
+    const shouldContainIds = messagesWithTimestamps.map(m => m.id);
+    
+    // 타입임 인디케이터 처리
+    if (isStreaming) {
+      if (!document.querySelector('.typing-indicator')) {
+        const typingIndicator = dom.createElement('div', {
+          className: 'typing-indicator'
+        }, [
+          dom.createElement('span', { className: 'typing-dot' }),
+          dom.createElement('span', { className: 'typing-dot' }),
+          dom.createElement('span', { className: 'typing-dot' })
+        ]);
+        
+        elements.chatMessages.appendChild(typingIndicator);
+      }
+    } else {
+      // 타이핑 인디케이터 제거 (requestAnimationFrame 사용)
+      const typingIndicator = document.querySelector('.typing-indicator');
+      if (typingIndicator) {
+        requestAnimationFrame(() => {
+          typingIndicator.remove();
+        });
+      }
+    }
+    
+    // 더 이상 표시할 필요 없는 요소 제거
+    Array.from(elements.chatMessages.children).forEach(el => {
+      const id = el.getAttribute('data-message-id');
+      if (!el.classList.contains('typing-indicator') && (!id || !shouldContainIds.includes(id))) {
+        el.remove();
+      }
+    });
+    
+    // 기존 타임스탬프 구분선 제거
+    Array.from(elements.chatMessages.querySelectorAll('.timestamp-divider')).forEach(el => {
+      el.remove();
+    });
+    
+    // 기존 요소 맵 생성
+    const elementMap = {};
+    Array.from(elements.chatMessages.children).forEach(el => {
+      const id = el.getAttribute('data-message-id');
+      if (id) {
+        elementMap[id] = el;
+      }
+    });
+    
+    // 메시지 업데이트 및 추가
+    let previousElement = null;
+    messagesWithTimestamps.forEach((item, index) => {
+      // 타임스탬프 구분선 처리
+      if (item.type === 'timestamp') {
+        const dividerElement = dom.createElement('div', {
+          className: 'timestamp-divider',
+          dataset: { messageId: item.id }
+        }, [
+          dom.createElement('span', {
+            className: 'timestamp-text',
+            textContent: item.content
+          })
+        ]);
+        
+        // 적절한 위치에 삽입
+        if (previousElement) {
+          previousElement.after(dividerElement);
+        } else {
+          elements.chatMessages.appendChild(dividerElement);
+        }
+        
+        previousElement = dividerElement;
+        return;
+      }
+      
+      // 일반 메시지 처리
+      const message = item;
+      const messageId = message.id;
+      const isLastMessage = message.id === messages[messages.length - 1].id;
+      const isStreamingLastMessage = isStreaming && isLastMessage && message.role === 'assistant';
+      
+      // 기존 메시지 요소 또는 새 요소 생성
+      let messageElement = elementMap[messageId];
+      if (!messageElement) {
+        messageElement = dom.createElement('div', {
+          className: `message ${message.role}`,
+          id: `msg-${messageId}`,
+          dataset: { messageId: messageId }
+        }, [
+          dom.createElement('div', { className: 'message-content' })
+        ]);
+        
+        // 사용자 메시지에 대한 읽음 표시 제거됨
+        
+        // 적절한 위치에 삽입
+        if (previousElement) {
+          previousElement.after(messageElement);
+        } else {
+          elements.chatMessages.appendChild(messageElement);
+        }
+      }
+      
+      // 스트리밍 클래스 처리
+      if (isStreamingLastMessage) {
+        messageElement.classList.add('streaming');
+      } else {
+        messageElement.classList.remove('streaming');
+      }
+      
+      // 메시지 내용 업데이트
+      const contentElement = messageElement.querySelector('.message-content');
+
+      try {
+        const formattedContent = formatMessageContent(message.content);
+
+        // 항상 DOM 업데이트 최적화
+        if (isStreamingLastMessage) {
+          // 스트리밍 중인 메시지 처리
+          if (contentElement.innerHTML && formattedContent.startsWith(contentElement.innerHTML)) {
+            // 증분 부분만 추출하여 추가 (효율적인 DOM 업데이트)
+            const newContent = formattedContent.substring(contentElement.innerHTML.length);
+            if (newContent) {
+              console.log(`[updateMessages] 증분 업데이트: 새 내용 ${newContent.length}바이트`);
+              try {
+                // DocumentFragment를 사용하여 DOM 조작 최소화
+                const fragment = document.createRange().createContextualFragment(newContent);
+                contentElement.appendChild(fragment);
+              } catch (fragmentError) {
+                // Fragment 오류 시 텍스트 노드 추가로 대체
+                console.warn('[updateMessages] 프래그먼트 생성 오류, 텍스트 노드 추가로 대체', fragmentError);
+                contentElement.appendChild(document.createTextNode(newContent));
+              }
+            }
+          } else {
+            // 콘텐츠 불일치 - 전체 교체 필요
+            console.log(`[updateMessages] 스트리밍 전체 교체: 이전 ${contentElement.innerHTML.length}바이트 -> 새로운 ${formattedContent.length}바이트`);
+            contentElement.innerHTML = formattedContent;
+          }
+        } else if (contentElement.innerHTML !== formattedContent) {
+          // 일반 메시지이고 내용이 다른 경우 전체 교체
+          console.log(`[updateMessages] 일반 전체 교체: 이전 ${contentElement.innerHTML.length}바이트 -> 새로운 ${formattedContent.length}바이트`);
+          contentElement.innerHTML = formattedContent;
+        }
+
+        // 하드웨어 가속으로 렌더링 성능 개선
+        messageElement.style.transform = 'translateZ(0)';
+        messageElement.style.willChange = 'transform';
+        messageElement.style.backfaceVisibility = 'hidden';
+      } catch (error) {
+        // 오류 복구 전략: 원본 내용 직접 표시
+        console.error('[updateMessages] 메시지 콘텐츠 업데이트 오류:', error);
+        try {
+          contentElement.textContent = message.content || '(메시지 렌더링 오류)';
+        } catch (finalError) {
+          console.error('[updateMessages] 최종 복구 실패:', finalError);
+        }
+      }
+      
+      previousElement = messageElement;
+    });
+    
+    // 스마트 스크롤 (새 메시지가 추가되었거나 스트리밍이 종료된 경우 강제 스크롤)
+    performSmartScroll(messages.length !== currentMessageIds.length || !isStreaming);
+    
+    // 스트리밍 상태에 따른 UI 업데이트
+    updateStreamingState(isStreaming);
+  }
+  
+  // 타임스탬프 구분선 추가
+  function addTimestampDividers(messages) {
+    const result = [];
+    let currentGroup = null;
+    
+    messages.forEach((message, index) => {
+      // 이 메시지의 타임스탬프 그룹 결정
+      const group = getTimestampGroup(message.timestamp);
+      
+      // 그룹이 바뀌었으면 타임스탬프 구분선 추가
+      if (group !== currentGroup) {
+        currentGroup = group;
+        
+        // 웰컴 메시지가 아닌 경우에만 타임스탬프 추가
+        if (index > 0) {
+          const divider = {
+            id: `timestamp_${Date.now()}_${index}`,
+            type: 'timestamp',
+            content: format.formatDate(message.timestamp),
+            timestamp: message.timestamp
+          };
+          result.push(divider);
+        }
+      }
+      
+      // 실제 메시지 추가
+      result.push(message);
+    });
+    
+    return result;
+  }
+  
+  // 타임스탬프 그룹 결정
+  function getTimestampGroup(date) {
+    if (!date) return 'unknown';
+    
+    const messageDate = new Date(date);
+    return messageDate.toDateString();
+  }
+  
+  // 메시지 내용 포맷팅
+  function formatMessageContent(content) {
+    console.log('DEBUG: formatMessageContent 함수 호출됨', content ? content.length : 0, 'bytes');
+    if (!content) {
+      console.warn('DEBUG: 콘텐츠가 비어있음');
+      return '';
+    }
+    if (!content) return '';
+
+    // 디버그 로깅 추가
+    console.log(`[formatMessageContent] 콘텐츠 길이: ${content.length}, 시작: '${content.substring(0, 30)}...'`);
+
+    try {
+      // HTML이 이미 포함된 경우 그대로 반환
+      const trimmedContent = content.trim();
+      if (trimmedContent.startsWith('<') && (
+        trimmedContent.includes('</div>') ||
+        trimmedContent.includes('</p>') ||
+        trimmedContent.includes('</h') ||
+        trimmedContent.includes('</span>') ||
+        trimmedContent.includes('</ul>') ||
+        trimmedContent.includes('</li>') ||
+        trimmedContent.includes('</table>') ||
+        trimmedContent.match(/<[a-zA-Z0-9_]+[^>]*>/)
+      )) {
+        console.log('[formatMessageContent] HTML 콘텐츠로 감지, 그대로 반환');
+        return content;
+      }
+    } catch (error) {
+      console.error('[formatMessageContent] HTML 감지 오류:', error);
+      // 오류 발생 시 원본 내용 반환
+      return content || '';
+    }
+    
+    // 마크다운 스타일 포맷팅
+    let formatted = content;
+    
+    // 코드 블록 변환
+    formatted = formatted.replace(/```([a-zA-Z0-9_]*)\n([\s\S]*?)\n```/g, function(match, language, code) {
+      return format.formatCodeBlock(code, language);
+    });
+    
+    // 인라인 코드 변환
+    formatted = formatted.replace(/`([^`]+)`/g, function(match, code) {
+      return `<code class="inline-code">${dom.escapeHtml(code)}</code>`;
+    });
+    
+    // 첨부 파일 표시 개선
+    formatted = formatted.replace(/첨부된 파일: ([^\n]+)/g, function(match, fileName) {
+      return `<div class="attached-file">
+        <span class="attachment-icon">📎</span>
+        <span class="attachment-name">${fileName}</span>
+        <div class="attachment-actions">
+          <button class="attachment-action view-file" title="파일 열기">
+            <span class="emoji-icon">👁️</span>
+          </button>
+        </div>
+      </div>`;
+    });
+    
+    // 줄바꿈 처리
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    return formatted;
+  }
+  
+  // 스트리밍 상태 UI 업데이트
+  function updateStreamingState(isStreaming) {
+    if (!elements.sendButton || !elements.chatInput) return;
+    
+    if (isStreaming) {
+      elements.sendButton.innerHTML = '<span class="emoji-icon">■</span>';
+      elements.sendButton.title = '생성 중단';
+      elements.chatInput.disabled = true;
+    } else {
+      elements.sendButton.innerHTML = '<span class="emoji-icon">↑</span>';
+      elements.sendButton.title = '메시지 전송';
+      elements.chatInput.disabled = false;
+    }
+  }
+  
+  // 사용자 스크롤 감지
+  function detectUserScroll() {
+    if (!elements.chatMessages) return;
+    
+    // 스크롤 위치 계산
+    const scrollPosition = elements.chatMessages.scrollTop + elements.chatMessages.clientHeight;
+    const scrollThreshold = elements.chatMessages.scrollHeight - state.SCROLL_THRESHOLD;
+    
+    // 스크롤이 바닥 근처에 있는지 체크
+    state.isScrollNearBottom = scrollPosition >= scrollThreshold;
+    
+    // 사용자 스크롤 이벤트 감지
+    if (!state.isScrollNearBottom) {
+      state.isUserScrolled = true;
+    }
+  }
+  
+  // 스마트 스크롤 수행
+  function performSmartScroll(forceScroll = false) {
+    if (!elements.chatMessages) return;
+
+    // 사용자가 스크롤을 올리지 않았거나 강제 스크롤이 필요한 경우, 또는 스크롤이 바닥 근처에 있는 경우에만 스크롤
+    if (forceScroll || !state.isUserScrolled || state.isScrollNearBottom) {
+      // requestAnimationFrame을 사용하여 스크롤 렌더링 최적화
+      requestAnimationFrame(() => {
+        // 부드러운 스크롤을 위한 setTimeout 추가
+        setTimeout(() => {
+          elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+          state.isUserScrolled = false;
+        }, 10);
+      });
+    }
+  }
+  
+  // 입력창 크기 자동 조절 (debounce 적용)
+  const resizeInput = debounce(function() {
+    if (!elements.chatInput) return;
+
+    requestAnimationFrame(() => {
+      elements.chatInput.style.height = 'auto';
+      elements.chatInput.style.height = (elements.chatInput.scrollHeight) + 'px';
+    });
+  }, 10);
+  
+  // 초기화 실행
+  initialize();
+})();

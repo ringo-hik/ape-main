@@ -1,0 +1,551 @@
+
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>APE Extension 보안 테스트 보고서</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 20px;
+          color: #333;
+        }
+        header {
+          margin-bottom: 30px;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 20px;
+        }
+        .summary {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+        .summary-item {
+          padding: 15px;
+          border-radius: 5px;
+          flex: 1;
+          text-align: center;
+        }
+        .total { background-color: #f0f0f0; }
+        .passed { background-color: #d4edda; }
+        .failed { background-color: #f8d7da; }
+        .skipped { background-color: #e2e3e5; }
+        
+        .test-result {
+          margin-bottom: 20px;
+          padding: 15px;
+          border-radius: 5px;
+          border-left: 5px solid #ddd;
+        }
+        .test-result.passed { border-left-color: green; }
+        .test-result.failed { border-left-color: red; }
+        .test-result.skipped { border-left-color: gray; }
+        
+        .test-error {
+          background-color: #fff3f3;
+          border-left: 3px solid #dc3545;
+          padding: 10px;
+          margin: 10px 0;
+        }
+        
+        .test-output {
+          background-color: #f8f9fa;
+          padding: 10px;
+          overflow-x: auto;
+          font-size: 14px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        
+        details summary {
+          cursor: pointer;
+          padding: 8px 0;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+    <body>
+      <header>
+        <h1>APE Extension 보안 테스트 보고서</h1>
+        <p>실행 시간: 2025-05-09T13:58:04.471Z</p>
+      </header>
+      
+      <div class="summary">
+        <div class="summary-item total">
+          <h2>4</h2>
+          <p>총 테스트</p>
+        </div>
+        <div class="summary-item passed">
+          <h2>2</h2>
+          <p>통과</p>
+        </div>
+        <div class="summary-item failed">
+          <h2>2</h2>
+          <p>실패</p>
+        </div>
+        <div class="summary-item skipped">
+          <h2>0</h2>
+          <p>건너뜀</p>
+        </div>
+      </div>
+      
+      <h2>테스트 결과 상세</h2>
+      
+      <div class="test-results">
+        
+    <div class="test-result passed">
+      <h3>CSP 검사</h3>
+      <div class="test-info">
+        <p><strong>상태:</strong> <span style="color: green">passed</span></p>
+        <p><strong>설명:</strong> WebView HTML 템플릿의 Content Security Policy를 분석하여 보안 문제 검사</p>
+        <p><strong>실행 시간:</strong> 99ms</p>
+        <p><strong>명령어:</strong> <code>node /home/hik90/ape/new_ape-extension/scripts/csp-check.js</code></p>
+      </div>
+      
+      <details>
+        <summary>출력 로그</summary>
+        <pre class="test-output">🔍 Content Security Policy 검사 시작...
+
+⚠️ CSP 정책을 찾을 수 없습니다. 모든 WebView HTML 파일에 CSP 메타 태그를 추가하는 것이 좋습니다.
+</pre>
+      </details>
+    </div>
+  
+    <div class="test-result failed">
+      <h3>순환 참조 감지</h3>
+      <div class="test-info">
+        <p><strong>상태:</strong> <span style="color: red">failed</span></p>
+        <p><strong>설명:</strong> 소스 코드 내 모듈 간 순환 참조를 검사하여 잠재적 문제 식별</p>
+        <p><strong>실행 시간:</strong> 2907ms</p>
+        <p><strong>명령어:</strong> <code>node /home/hik90/ape/new_ape-extension/scripts/detect-circular-deps.js</code></p>
+      </div>
+      <div class="test-error"><strong>오류:</strong> Exit code: 1</div>
+      <details>
+        <summary>출력 로그</summary>
+        <pre class="test-output">🔄 순환 참조 감지 시작...
+🔍 Madge를 사용하여 순환 참조 분석 중...
+
+📊 의존성 그래프를 /home/hik90/ape/new_ape-extension/reports/circular-deps.svg에 생성합니다...
+
+✅ 순환 참조 감지 완료.
+
+❌ 3개의 순환 참조 감지됨:
+1) core/commands/slashCommand.ts -&gt; ui/command/commandFormProvider.ts -&gt; core/commands/slashCommand.ts
+2) core/commands/slashCommandManager.ts -&gt; core/commands/defaultCommands.ts -&gt; core/commands/themeCommands.ts -&gt; core/commands/slashCommandManager.ts
+3) core/commands/commandManager.ts -&gt; ui/chatViewProvider.ts -&gt; core/commands/commandManager.ts
+⚠️ 의존성 그래프 생성 실패: Graphviz could not be found. Ensure that "gvpr" is in your $PATH. Error: spawn gvpr ENOENT
+그래프 생성을 위해 Graphviz가 필요합니다: https://graphviz.org/
+</pre>
+      </details>
+    </div>
+  
+    <div class="test-result failed">
+      <h3>ESLint 정적 분석</h3>
+      <div class="test-info">
+        <p><strong>상태:</strong> <span style="color: red">failed</span></p>
+        <p><strong>설명:</strong> 소스 코드에 대한 정적 분석을 실행하여 코드 품질 및 잠재적 문제 검사</p>
+        <p><strong>실행 시간:</strong> 4967ms</p>
+        <p><strong>명령어:</strong> <code>npx eslint src --max-warnings=0</code></p>
+      </div>
+      <div class="test-error"><strong>오류:</strong> Exit code: 1</div>
+      <details>
+        <summary>출력 로그</summary>
+        <pre class="test-output">[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/commandManager.ts[24m[0m
+[0m  [2m6:10[22m  [31merror[39m  'LLMModel' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/commandService.ts[24m[0m
+[0m  [2m246:51[22m  [31merror[39m  'name' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/defaultCommands.ts[24m[0m
+[0m   [2m27:14[22m  [31merror[39m  'error' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m379:21[22m  [31merror[39m  'context' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m516:20[22m  [31merror[39m  'error' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m573:18[22m  [31merror[39m  'error' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m640:26[22m  [31merror[39m  'partialArgs' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/pocketCommands.ts[24m[0m
+[0m  [2m34:13[22m  [31merror[39m  Unexpected lexical declaration in case block  [2mno-case-declarations[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/slashCommandManager.ts[24m[0m
+[0m  [2m9:13[22m  [31merror[39m  'fs' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/themeCommands.ts[24m[0m
+[0m  [2m11:3[22m   [31merror[39m  'themeManager' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m21:21[22m  [31merror[39m  'context' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/commands/vaultCommands.ts[24m[0m
+[0m  [2m125:51[22m  [31merror[39m  'context' is defined but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m348:9[22m   [31merror[39m  Unexpected lexical declaration in case block  [2mno-case-declarations[22m[0m
+[0m  [2m417:11[22m  [31merror[39m  'editor' is assigned a value but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/git/minimal-git-commands.ts[24m[0m
+[0m   [2m35:29[22m  [31merror[39m  'context' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m94:24[22m  [31merror[39m  'args' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m108:24[22m  [31merror[39m  'args' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m122:26[22m  [31merror[39m  'args' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/llm/llmService.ts[24m[0m
+[0m  [2m18:3[22m  [31merror[39m  'VaultContextOptions' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/llm/vaultIntegration.ts[24m[0m
+[0m  [2m189:7[22m  [31merror[39m  'content' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/services/jiraService.ts[24m[0m
+[0m   [2m13:10[22m  [31merror[39m  'randomUUID' is defined but never used                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m574:13[22m  [31merror[39m  'requestData' is assigned a value but never used             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m882:11[22m  [31merror[39m  'unresolvedIssues' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/services/rulesService.ts[24m[0m
+[0m  [2m11:32[22m  [31merror[39m  'ServiceType' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/services/vaultService.ts[24m[0m
+[0m  [2m63:16[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m64:18[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/core/utils/logger.ts[24m[0m
+[0m  [2m155:16[22m  [31merror[39m  'e' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/extension.ts[24m[0m
+[0m    [2m19:10[22m  [31merror[39m  'StandardChatViewProvider' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m20:10[22m  [31merror[39m  'AdvancedChatViewProvider' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m25:5[22m   [31merror[39m  'autoPermissionHandler' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m31:14[22m  [31merror[39m  'error' is defined but never used                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m34:12[22m  [31merror[39m  'error' is defined but never used                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m184:32[22m  [31merror[39m  A `require()` style import is forbidden                     [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m511:15[22m  [31merror[39m  'rulePath' is assigned a value but never used               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m872:17[22m  [31merror[39m  'pluginId' is assigned a value but never used               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1051:24[22m  [31merror[39m  'e' is defined but never used                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1062:24[22m  [31merror[39m  'e' is defined but never used                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/api.ts[24m[0m
+[0m  [2m438:20[22m  [31merror[39m  'e' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m485:16[22m  [31merror[39m  'e' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/http-client.ts[24m[0m
+[0m  [2m130:11[22m  [31merror[39m  'url' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/json-plugin-loader.ts[24m[0m
+[0m    [2m2:13[22m  [31merror[39m  'fs' is defined but never used                                                                                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m12:3[22m   [31merror[39m  'PluginMetadata' is defined but never used                                                                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m186:20[22m  [31merror[39m  'error' is defined but never used                                                                                        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m196:20[22m  [31merror[39m  'error' is defined but never used                                                                                        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m225:39[22m  [31merror[39m  The `Function` type accepts any function-like value.[0m
+[0mPrefer explicitly defining any function parameters and return type  [2m@typescript-eslint/no-unsafe-function-type[22m[0m
+[0m  [2m241:18[22m  [31merror[39m  'context' is defined but never used                                                                                      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/llm-integration.ts[24m[0m
+[0m  [2m239:9[22m  [31merror[39m  'prompt' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/loader.ts[24m[0m
+[0m  [2m210:13[22m  [31merror[39m  'options' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/registry.ts[24m[0m
+[0m   [2m16:3[22m   [31merror[39m  Unexpected var, use let or const instead               [2mno-var[22m[0m
+[0m  [2m178:17[22m  [31merror[39m  'JsonPluginLoader' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m178:36[22m  [31merror[39m  A `require()` style import is forbidden                [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/settings-plugin-loader.ts[24m[0m
+[0m    [2m16:3[22m   [31merror[39m  'PluginTemplate' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1013:78[22m  [31merror[39m  'prop' is defined but never used                   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1136:28[22m  [31merror[39m  'context' is defined but never used                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1191:13[22m  [31merror[39m  'pluginConfig' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/slash-command-integration.ts[24m[0m
+[0m    [2m1:13[22m  [31merror[39m  'vscode' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m159:68[22m  [31merror[39m  'index' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m217:30[22m  [31merror[39m  '_' is assigned a value but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m322:22[22m  [31merror[39m  'error' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m330:22[22m  [31merror[39m  'error' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m555:44[22m  [31merror[39m  'userInput' is defined but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m555:63[22m  [31merror[39m  'functionDef' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m559:33[22m  [31merror[39m  'prompt' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/core/validators.ts[24m[0m
+[0m  [2m346:60[22m  [31merror[39m  'pluginPath' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m371:66[22m  [31merror[39m  'args' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/tools/plugin-cli.ts[24m[0m
+[0m  [2m4:13[22m  [31merror[39m  'path' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m5:13[22m  [31merror[39m  'readline' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/tools/plugin-runner.ts[24m[0m
+[0m    [2m2:13[22m  [31merror[39m  'path' is defined but never used                   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m21:9[22m   [31merror[39m  'result' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m  [2m273:5[22m   [31merror[39m  'plugin' is defined but never used                 [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m348:11[22m  [31merror[39m  Unexpected lexical declaration in case block       [2mno-case-declarations[22m[0m
+[0m  [2m349:11[22m  [31merror[39m  Unexpected lexical declaration in case block       [2mno-case-declarations[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/tools/plugin-tester.ts[24m[0m
+[0m    [2m9:23[22m  [31merror[39m  'Plugin' is defined but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m120:13[22m  [31merror[39m  'loader' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m132:28[22m  [31merror[39m  'context' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m189:23[22m  [31merror[39m  'key' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m190:32[22m  [31merror[39m  'key' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m190:45[22m  [31merror[39m  'value' is defined but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m210:31[22m  [31merror[39m  'func' is assigned a value but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/plugins/types/plugin.ts[24m[0m
+[0m  [2m70:3[22m  [31merror[39m  Duplicate enum member value command  [2m@typescript-eslint/no-duplicate-enum-values[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/code-analyzer.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/code-analyzer.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/csp-violation-detector.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/csp-violation-detector.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/log-analyzer.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/log-analyzer.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/log-collector.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/log-collector.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/orchestrator.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/orchestrator.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/scenario-runner.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/scenario-runner.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/wdio.conf.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/wdio.conf.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/framework/webview-dom-validator.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/framework/webview-dom-validator.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/llm-webview-tests/llm-dom-validator.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/llm-webview-tests/llm-dom-validator.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/llm-webview-tests/llm-message-test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/llm-webview-tests/llm-message-test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/llm-webview-tests/llm-orchestrator.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/llm-webview-tests/llm-orchestrator.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/mock-browser.js[24m[0m
+[0m   [2m7:1[22m   [31merror[39m  'global' is not defined               [2mno-undef[22m[0m
+[0m  [2m24:14[22m  [31merror[39m  'err' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m26:9[22m   [31merror[39m  'console' is not defined              [2mno-undef[22m[0m
+[0m  [2m32:35[22m  [31merror[39m  'setTimeout' is not defined           [2mno-undef[22m[0m
+[0m  [2m37:1[22m   [31merror[39m  'global' is not defined               [2mno-undef[22m[0m
+[0m  [2m37:19[22m  [31merror[39m  'selector' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m51:1[22m   [31merror[39m  'global' is not defined               [2mno-undef[22m[0m
+[0m  [2m51:40[22m  [31merror[39m  'global' is not defined               [2mno-undef[22m[0m
+[0m  [2m54:1[22m   [31merror[39m  'global' is not defined               [2mno-undef[22m[0m
+[0m  [2m60:16[22m  [31merror[39m  'expected' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m61:17[22m  [31merror[39m  'expected' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m67:1[22m   [31merror[39m  'process' is not defined              [2mno-undef[22m[0m
+[0m  [2m69:1[22m   [31merror[39m  'console' is not defined              [2mno-undef[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/mock-test.js[24m[0m
+[0m   [2m11:1[22m   [31merror[39m  'process' is not defined                 [2mno-undef[22m[0m
+[0m   [2m12:1[22m   [31merror[39m  'process' is not defined                 [2mno-undef[22m[0m
+[0m   [2m15:1[22m   [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m15:1[22m   [31merror[39m  'require' is not defined                 [2mno-undef[22m[0m
+[0m   [2m18:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m18:14[22m  [31merror[39m  'require' is not defined                 [2mno-undef[22m[0m
+[0m   [2m19:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m19:12[22m  [31merror[39m  'require' is not defined                 [2mno-undef[22m[0m
+[0m   [2m21:1[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m22:1[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m23:1[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m35:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m47:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m48:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m49:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m53:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m63:38[22m  [31merror[39m  '__dirname' is not defined               [2mno-undef[22m[0m
+[0m   [2m67:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m70:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m79:5[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m80:5[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m88:5[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m98:7[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m   [2m99:36[22m  [31merror[39m  'setTimeout' is not defined              [2mno-undef[22m[0m
+[0m  [2m102:5[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m  [2m103:5[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m  [2m112:3[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m  [2m113:3[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m  [2m114:3[22m   [31merror[39m  'console' is not defined                 [2mno-undef[22m[0m
+[0m  [2m117:3[22m   [31merror[39m  'process' is not defined                 [2mno-undef[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/mocks/llm-service-mock.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/mocks/llm-service-mock.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/run-llm-tests.js[24m[0m
+[0m   [2m2:23[22m  [31merror[39m  A `require()` style import is forbidden    [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m2:23[22m  [31merror[39m  'require' is not defined                   [2mno-undef[22m[0m
+[0m   [2m3:7[22m   [31merror[39m  'path' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m3:14[22m  [31merror[39m  A `require()` style import is forbidden    [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m3:14[22m  [31merror[39m  'require' is not defined                   [2mno-undef[22m[0m
+[0m   [2m5:1[22m   [31merror[39m  'console' is not defined                   [2mno-undef[22m[0m
+[0m   [2m8:1[22m   [31merror[39m  'process' is not defined                   [2mno-undef[22m[0m
+[0m  [2m18:8[22m   [31merror[39m  'process' is not defined                   [2mno-undef[22m[0m
+[0m  [2m22:1[22m   [31merror[39m  'process' is not defined                   [2mno-undef[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/setup-test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/setup-test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/simple-webview-test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/simple-webview-test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/simple-welcome-provider.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/simple-welcome-provider.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/simple/llm-test-runner.js[24m[0m
+[0m   [2m26:1[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m27:1[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m28:1[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m31:1[22m   [31merror[39m  'process' is not defined                          [2mno-undef[22m[0m
+[0m   [2m34:12[22m  [31merror[39m  A `require()` style import is forbidden           [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m34:12[22m  [31merror[39m  'require' is not defined                          [2mno-undef[22m[0m
+[0m   [2m35:14[22m  [31merror[39m  A `require()` style import is forbidden           [2m@typescript-eslint/no-require-imports[22m[0m
+[0m   [2m35:14[22m  [31merror[39m  'require' is not defined                          [2mno-undef[22m[0m
+[0m   [2m40:34[22m  [31merror[39m  '__dirname' is not defined                        [2mno-undef[22m[0m
+[0m   [2m53:5[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m56:5[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m71:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m75:5[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m   [2m78:5[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m100:11[22m  [31merror[39m  'userMessage' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m131:9[22m   [31merror[39m  'process' is not defined                          [2mno-undef[22m[0m
+[0m  [2m172:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m173:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m174:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m175:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m176:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m177:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m178:3[22m   [31merror[39m  'console' is not defined                          [2mno-undef[22m[0m
+[0m  [2m185:1[22m   [31merror[39m  'process' is not defined                          [2mno-undef[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/basic.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/basic.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/code-fix.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/code-fix.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/csp-tests.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/csp-tests.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/integration.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/integration.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/llm-full.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/llm-full.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/llm-self.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/llm-self.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/log-analysis.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/log-analysis.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/plugin-settings.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/plugin-settings.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/suite/webview.test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/suite/webview.test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/types/expect-webdriverio.d.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/types/expect-webdriverio.d.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/types/global.d.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/types/global.d.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/types/webdriverio.d.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/types/webdriverio.d.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/test/webview-test.ts[24m[0m
+[0m  [2m0:0[22m  [31merror[39m  Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.[0m
+[0mThe file was not found in any of the provided project(s): src/test/webview-test.ts[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/advancedChatViewProvider.ts[24m[0m
+[0m   [2m7:10[22m  [31merror[39m  'ChatViewService' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m10:54[22m  [31merror[39m  'SmartPromptingMode' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m62:5[22m   [31merror[39m  '_context' is defined but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m63:5[22m   [31merror[39m  '_token' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/chatViewProvider.ts[24m[0m
+[0m   [2m7:10[22m  [31merror[39m  'ChatViewService' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m10:54[22m  [31merror[39m  'SmartPromptingMode' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m66:5[22m   [31merror[39m  '_context' is defined but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m67:5[22m   [31merror[39m  '_token' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/command/commandFormProvider.ts[24m[0m
+[0m  [2m153:11[22m  [31merror[39m  'mainStylesUri' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m413:9[22m   [31merror[39m  Unexpected lexical declaration in case block        [2mno-case-declarations[22m[0m
+[0m  [2m414:9[22m   [31merror[39m  Unexpected lexical declaration in case block        [2mno-case-declarations[22m[0m
+[0m  [2m426:9[22m   [31merror[39m  Unexpected lexical declaration in case block        [2mno-case-declarations[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/customModelView.ts[24m[0m
+[0m   [2m253:11[22m  [31merror[39m  'activeModel' is assigned a value but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m292:11[22m  [31merror[39m  'mainScriptUri' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1177:14[22m  [31merror[39m  'e' is defined but never used                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/interfaces/chatViewProvider.ts[24m[0m
+[0m  [2m2:10[22m  [31merror[39m  'Message' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/standardChatViewProvider.ts[24m[0m
+[0m     [2m7:10[22m  [31merror[39m  'CodeService' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m52:5[22m   [31merror[39m  '_context' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m53:5[22m   [31merror[39m  '_token' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1542:34[22m  [31merror[39m  'enabled' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1550:28[22m  [31merror[39m  'filePath' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/home/hik90/ape/new_ape-extension/src/ui/tree/apeTreeDataProvider.ts[24m[0m
+[0m  [2m1257:18[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[31m[1m✖ 206 problems (206 errors, 0 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  6 errors and 0 warnings potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
+</pre>
+      </details>
+    </div>
+  
+    <div class="test-result passed">
+      <h3>TypeScript 타입 검사</h3>
+      <div class="test-info">
+        <p><strong>상태:</strong> <span style="color: green">passed</span></p>
+        <p><strong>설명:</strong> TypeScript 컴파일러를 사용하여 타입 오류 검사</p>
+        <p><strong>실행 시간:</strong> 3657ms</p>
+        <p><strong>명령어:</strong> <code>npx tsc --noEmit</code></p>
+      </div>
+      
+      <details>
+        <summary>출력 로그</summary>
+        <pre class="test-output"></pre>
+      </details>
+    </div>
+  
+      </div>
+    </body>
+    </html>
+  

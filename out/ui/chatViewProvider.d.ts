@@ -78,6 +78,14 @@ export declare class ChatViewProvider implements vscode.WebviewViewProvider {
      */
     handleChatInput(text: string): void;
     /**
+     * 채팅 입력창에 텍스트 삽입 (ape.insertToChatInput 명령어용)
+     */
+    insertToChatInput(text: string): void;
+    /**
+     * 명령어 제안 갱신 (ape.showCommandSuggestions 명령어용)
+     */
+    updateCommandSuggestions(suggestions: any[]): void;
+    /**
      * 외부에서 직접 LLM 응답을 채팅 창에 추가
      */
     sendLlmResponse(message: {

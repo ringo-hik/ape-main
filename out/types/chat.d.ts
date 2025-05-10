@@ -22,7 +22,10 @@ export declare enum LLMModel {
     QWEN_72B = "qwen/qwen-72b-chat",// Alibaba의 고성능 모델
     DEEPSEEK = "deepseek/deepseek-coder",// 코딩 특화 모델
     MISTRAL_7B = "mistralai/mistral-7b-instruct",// 무료 오픈소스 모델
-    LLAMA3_8B = "meta-llama/llama-3-8b-instruct"
+    LLAMA3_8B = "meta-llama/llama-3-8b-instruct",// 무료 오픈소스 모델
+    NARRANS = "narrans",// 내부 LLM Narrans 모델
+    LLAMA4_SCOUT = "meta-llama/llama-4-scout-17b-16e-instruct",// 내부망 Llama-4 Scout 모델
+    LLAMA4_MAVERICK = "meta-llama/llama-4-maverick-17b-128e-instruct"
 }
 /**
  * Represents a chat message
