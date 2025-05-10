@@ -6,7 +6,6 @@
   "publisher": "ape-team",
   "private": true,
   "license": "UNLICENSED",
-  "icon": "media/icons/mascot.svg",
   "engines": {
     "vscode": "^1.80.0"
   },
