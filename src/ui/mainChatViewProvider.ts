@@ -100,35 +100,28 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
 
   /**
    * Updates the model indicator UI with the current model
+   * (Minimal UI version - only logs the model change)
    */
   public updateModelIndicator(): void {
     if (!this._view) {
-      console.log('Model indicator update failed: no webview');
       return;
     }
-    
+
     try {
-      // Use ModelManager if available, otherwise fall back to LLMService
-      let currentModel, displayName;
-      
+      // Get the current model for logging only
+      let currentModel;
+
       if (this._modelManager) {
         currentModel = this._modelManager.getActiveModel();
-        displayName = this._modelManager.getModelDisplayName(currentModel);
-        console.log('Using ModelManager to get current model info:', currentModel);
+        console.log('Model changed to:', currentModel);
       } else {
         currentModel = this._llmService.getActiveModel();
-        displayName = this.getModelDisplayName(currentModel);
-        console.log('Using LLMService to get current model info:', currentModel);
+        console.log('Model changed to:', currentModel);
       }
-      
-      // Send message to webview to update model name display
-      this._view.webview.postMessage({
-        type: 'updateModelIndicator',
-        modelName: displayName
-      });
-      console.log('Model indicator update message sent to webview');
+
+      // Just log the change - UI element has been removed for minimal interface
     } catch (error) {
-      console.error('Error updating model indicator:', error);
+      console.error('Error logging model update:', error);
     }
   }
   
@@ -632,12 +625,67 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
       <link href="${codiconsUri}" rel="stylesheet" onload="console.log('codicon.css loaded')" onerror="console.error('Failed to load codicon.css')">
       <link href="${codeBlockStylesUri}" rel="stylesheet" onload="console.log('code-block.css loaded')" onerror="console.error('Failed to load code-block.css')">
       <title>APE Chat</title>
+      <style>
+        /* Additional minimal styling */
+        #chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          padding: 0;
+          margin: 0;
+        }
+
+        #chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+
+        #chat-input-container {
+          padding: 12px;
+          border-top: 1px solid var(--vscode-input-border);
+          background: var(--vscode-editor-background);
+        }
+
+        #chat-input {
+          width: 100%;
+          min-height: 40px;
+          max-height: 120px;
+          padding: 10px 12px;
+          resize: none;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+
+        #input-buttons {
+          display: flex;
+          margin-top: 8px;
+          justify-content: flex-end;
+        }
+
+        #clear-button, #send-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          margin-left: 6px;
+        }
+
+        #command-suggestions {
+          background-color: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-input-border);
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          max-height: 300px;
+          overflow-y: auto;
+          z-index: 1000;
+        }
+      </style>
     </head>
     <body>
       <div id="chat-container">
-        <div class="chat-header">
-          <div class="chat-title">APE Chat</div>
-        </div>
         <div id="chat-messages"></div>
         <div id="chat-input-container">
           <textarea id="chat-input" placeholder="메시지 입력..." rows="1"></textarea>
@@ -652,12 +700,6 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
               </svg>
             </button>
           </div>
-        </div>
-        <div id="model-indicator">
-          <span id="model-name">LLM Model</span>
-          <button id="model-selector" title="모델 변경">
-            모델 변경
-          </button>
         </div>
         <div id="command-suggestions"></div>
       </div>
@@ -700,10 +742,8 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
               }
                 
               case 'updateModelIndicator': {
-                // Update model name display
-                if (modelIndicator) {
-                  modelIndicator.textContent = message.modelName;
-                }
+                // Model indicator removed for minimal UI
+                console.log('Model updated:', message.modelName);
                 break;
               }
             }
@@ -714,9 +754,7 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
           let chatInput;
           let sendButton;
           let clearButton;
-          let modelIndicator;
-          let modelSelector;
-          
+
           // Command suggestions container
           let commandSuggestionsContainer;
           
@@ -1420,10 +1458,8 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
             chatInput = document.getElementById('chat-input');
             sendButton = document.getElementById('send-button');
             clearButton = document.getElementById('clear-button');
-            modelIndicator = document.getElementById('model-name');
-            modelSelector = document.getElementById('model-selector');
             commandSuggestionsContainer = document.getElementById('command-suggestions');
-            
+
             // Check if elements are found
             if (!chatMessages || !chatInput || !sendButton || !clearButton || !commandSuggestionsContainer) {
               console.error("Critical UI elements missing");
@@ -1501,9 +1537,7 @@ export class MainChatViewProvider implements vscode.WebviewViewProvider {
               }
             });
             
-            modelSelector.addEventListener('click', () => {
-              vscode.postMessage({ type: 'showModelSelector' });
-            });
+            // Model selector removed for minimal UI
             
             // Set up code block action listeners
             setupCodeBlockListeners();

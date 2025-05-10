@@ -47,7 +47,7 @@ class WelcomeViewProvider {
     static getWelcomeMessageHTML() {
         try {
             console.log('Generating welcome view HTML');
-            // Enhanced welcome view HTML with improved UX
+            // Enhanced welcome view HTML with minimalist UX
             return `
       <div class="welcome-container">
         <div class="welcome-header">
@@ -66,10 +66,6 @@ class WelcomeViewProvider {
               <div class="action-content">
                 <div class="action-title">New Conversation</div>
                 <div class="action-description">Begin a dialogue with your AI assistant</div>
-                <div class="action-commands">
-                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/new'});">/new</span>
-                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/clear'});">/clear</span>
-                </div>
               </div>
             </div>
 
@@ -78,9 +74,6 @@ class WelcomeViewProvider {
               <div class="action-content">
                 <div class="action-title">Code Analysis</div>
                 <div class="action-description">Understand and improve your code</div>
-                <div class="action-commands">
-                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/analyze'});">/analyze</span>
-                </div>
               </div>
             </div>
           </div>
@@ -91,9 +84,6 @@ class WelcomeViewProvider {
               <div class="action-content">
                 <div class="action-title">Development</div>
                 <div class="action-description">Implement new features</div>
-                <div class="action-commands">
-                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/create'});">/create</span>
-                </div>
               </div>
             </div>
 
@@ -102,41 +92,9 @@ class WelcomeViewProvider {
               <div class="action-content">
                 <div class="action-title">Code Search</div>
                 <div class="action-description">Find code in your project</div>
-                <div class="action-commands">
-                  <span class="command-tag" onclick="event.stopPropagation(); vscode.postMessage({type: 'insertCommand', command: '/find'});">/find</span>
-                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="command-palette">
-          <h3>Command Palette</h3>
-          <div class="command-categories">
-            <button class="category-tab active" data-category="popular">Popular</button>
-            <button class="category-tab" data-category="git">Git</button>
-            <button class="category-tab" data-category="code">Code</button>
-          </div>
-          <div class="command-list" id="popular-commands">
-            <div class="command-item" onclick="vscode.postMessage({type: 'insertCommand', command: '/help'})">
-              <div class="command-name">/help</div>
-              <div class="command-desc">Display available commands and usage</div>
-            </div>
-            <div class="command-item" onclick="vscode.postMessage({type: 'insertCommand', command: '/model'})">
-              <div class="command-name">/model</div>
-              <div class="command-desc">Change the AI model</div>
-            </div>
-            <div class="command-item" onclick="vscode.postMessage({type: 'insertCommand', command: '/clear'})">
-              <div class="command-name">/clear</div>
-              <div class="command-desc">Clear the current conversation</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="welcome-quick-actions">
-          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/help'})">Help</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/model'})">Model</button>
-          <button class="quick-action" onclick="vscode.postMessage({type: 'command', command: '/clear'})">Reset</button>
         </div>
       </div>
       `;

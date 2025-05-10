@@ -381,7 +381,7 @@ export class AutoCommitService implements vscode.Disposable {
             
             if (commits && commits.length > 0) {
               // 커밋 이력을 포맷팅하여 예제로 사용
-              const formattedHistory = commits.map(commit => 
+              const formattedHistory = commits.map((commit: any) =>
                 `${commit.displayId} - ${commit.message}`
               ).join('\n');
               

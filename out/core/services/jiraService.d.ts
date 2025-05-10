@@ -251,6 +251,26 @@ export declare class JiraService implements vscode.Disposable {
      */
     private setError;
     /**
+     * 외부 API용 Jira 이슈 생성 함수
+     * 확장 프로그램이나 외부 모듈에서 프로그래밍 방식으로 호출할 수 있습니다.
+     * @param options 이슈 생성 옵션
+     * @returns 생성된 이슈 정보를 포함한 Promise
+     */
+    createIssueExternal(options: {
+        projectKey: string;
+        issueType: string;
+        summary: string;
+        description?: string;
+        assignee?: string;
+        components?: string[];
+        labels?: string[];
+        dueDate?: string;
+    }): Promise<{
+        success: boolean;
+        issueKey?: string;
+        error?: string;
+    }>;
+    /**
      * 리소스 해제
      */
     dispose(): void;

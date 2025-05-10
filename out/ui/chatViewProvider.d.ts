@@ -38,9 +38,13 @@ export declare class ChatViewProvider implements vscode.WebviewViewProvider {
      */
     updateModelIndicator(): void;
     /**
-     * 스마트 프롬프팅 UI 업데이트
+     * 스마트 프롬프팅 UI 업데이트 - Claude AI 스타일
      */
     private _updateSmartPromptingUI;
+    /**
+     * 모드에 따른 표시 이름을 반환하는 함수
+     */
+    private _getModeDisplayName;
     /**
      * Sends a user message to the LLM and processes the response
      */

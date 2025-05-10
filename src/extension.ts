@@ -16,6 +16,7 @@ import { CodeService } from './ui/chat/codeService';
 import { MainChatViewProvider } from './ui/mainChatViewProvider';
 
 // 개발/테스트 환경에서만 로딩 (프로덕션에서는 조건부로 로딩)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let autoPermissionHandler: any = null;
 if (process.env.NODE_ENV === 'development' || process.env.APE_TEST_MODE === 'true') {
   try {

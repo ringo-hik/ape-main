@@ -1092,6 +1092,37 @@ class JiraService {
         console.error(`Jira 오류 (${type}):`, message, details || '');
     }
     /**
+     * 외부 API용 Jira 이슈 생성 함수
+     * 확장 프로그램이나 외부 모듈에서 프로그래밍 방식으로 호출할 수 있습니다.
+     * @param options 이슈 생성 옵션
+     * @returns 생성된 이슈 정보를 포함한 Promise
+     */
+    async createIssueExternal(options) {
+        try {
+            // 기존 createIssue 메서드 활용
+            const result = await this.createIssue(options);
+            if (result.success && result.data) {
+                return {
+                    success: true,
+                    issueKey: result.data.key
+                };
+            }
+            else {
+                return {
+                    success: false,
+                    error: result.error?.message || '이슈 생성에 실패했습니다'
+                };
+            }
+        }
+        catch (error) {
+            console.error('외부 API Jira 이슈 생성 오류:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    }
+    /**
      * 리소스 해제
      */
     dispose() {

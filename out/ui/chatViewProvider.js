@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const chat_1 = require("../types/chat");
+// import { ChatViewService } from './chat/chatViewService'; // 사용하지 않음
 const codeService_1 = require("./chat/codeService");
 const smartPromptingService_1 = require("../core/services/smartPromptingService");
 const welcomeView_1 = require("./welcomeView");
@@ -87,7 +88,11 @@ class ChatViewProvider {
     /**
      * Called when the view is first created or becomes visible again
      */
-    async resolveWebviewView(webviewView, _context, _token) {
+    async resolveWebviewView(webviewView, 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _context, 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _token) {
         this._view = webviewView;
         // Set options for the webview
         webviewView.webview.options = {
@@ -502,7 +507,7 @@ class ChatViewProvider {
                 break;
             case 'cancelStream':
                 // 취소 메시지를 표시하기 위한 콜백 정의
-                const cancelCallback = (chunk, done) => {
+                const cancelCallback = (chunk, _done) => {
                     // 현재 스트리밍 중인 메시지가 있는 경우
                     if (this._currentStreamMessageId) {
                         const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
@@ -2323,76 +2328,66 @@ class ChatViewProvider {
       <link href="${codiconsUri}" rel="stylesheet">
       <link href="${codeBlockStylesUri}" rel="stylesheet">
       <title>APE Chat</title>
+      <style>
+        /* Additional minimal styling */
+        #chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          padding: 0;
+          margin: 0;
+        }
+
+        #chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+
+        #chat-input-container {
+          padding: 12px;
+          border-top: 1px solid var(--vscode-input-border);
+          background: var(--vscode-editor-background);
+        }
+
+        #input-wrapper {
+          display: flex;
+          align-items: flex-end;
+        }
+
+        #chat-input {
+          flex: 1;
+          min-height: 40px;
+          max-height: 120px;
+          padding: 10px 12px;
+          resize: none;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+
+        #input-buttons {
+          display: flex;
+          margin-left: 8px;
+        }
+
+        .input-action-button, #send-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          margin-left: 6px;
+        }
+      </style>
     </head>
     <body>
       <div id="chat-container">
         <div id="chat-messages"></div>
         <div id="chat-input-container">
-          <div id="input-actions">
-            <div id="smart-prompting-toggle" title="Toggle Smart Prompting">
-              <span class="toggle-icon">⚙</span>
-              <span id="smart-prompting-label">Smart Prompting</span>
-
-              <!-- 스마트 프롬프팅 팝오버 -->
-              <div id="smart-prompting-popover">
-                <div class="prompting-popover-header">
-                  <span class="prompting-popover-title">Smart Prompting</span>
-                  <button class="prompting-popover-close">✕</button>
-                </div>
-
-                <div class="prompting-modes">
-                  <div class="prompting-mode-option" data-mode="basic">
-                    <span class="prompting-mode-icon">◆</span>
-                    <span class="prompting-mode-label">디버깅</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="advanced">
-                    <span class="prompting-mode-icon">◎</span>
-                    <span class="prompting-mode-label">글쓰기</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="expert">
-                    <span class="prompting-mode-icon">⬡</span>
-                    <span class="prompting-mode-label">코드 분석</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="custom">
-                    <span class="prompting-mode-icon">⬢</span>
-                    <span class="prompting-mode-label">리팩토링</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="creative">
-                    <span class="prompting-mode-icon">✧</span>
-                    <span class="prompting-mode-label">아이디어</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="friendly">
-                    <span class="prompting-mode-icon">♥</span>
-                    <span class="prompting-mode-label">친구 모드</span>
-                  </div>
-                </div>
-
-                <div class="specialized-prompting">
-                  <div class="specialized-title">자주 사용하는 전문 프롬프트</div>
-                  <div class="specialized-options">
-                    <div class="specialized-option" data-prompt="코드 리뷰">코드 리뷰</div>
-                    <div class="specialized-option" data-prompt="성능 최적화">성능 최적화</div>
-                    <div class="specialized-option" data-prompt="문서화">문서화</div>
-                    <div class="specialized-option" data-prompt="보고서">보고서</div>
-                    <div class="specialized-option" data-prompt="디자인 패턴">디자인 패턴</div>
-                    <div class="specialized-option" data-prompt="테스트 작성">테스트 작성</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button id="search-button" title="Advanced Search" class="input-top-button">
-              <span class="emoji-icon">⌕</span>
-            </button>
-          </div>
           <div id="input-wrapper">
             <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
             <div id="input-buttons">
-              <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-                <img src="${webview.asWebviewUri(vscode.Uri.joinPath(this._context.extensionUri, 'media', 'icons', 'mascot.svg'))}" width="18" height="18" />
-              </button>
-              <button id="attach-button" title="Attach File" class="input-action-button">
-                <span class="emoji-icon">◈</span>
-              </button>
               <button id="clear-button" title="Clear Chat" class="input-action-button">
                 <span class="emoji-icon">⌫</span>
               </button>
@@ -2402,14 +2397,8 @@ class ChatViewProvider {
             </div>
           </div>
         </div>
-        <div id="model-indicator">
-          <span id="model-name">Loading model...</span>
-          <button id="model-selector" title="Change Model">
-            <span class="emoji-icon">◎</span> Change Model
-          </button>
-        </div>
       </div>
-      
+
       <script nonce="${nonce}">
         ${this._getChatScript()}
       </script>

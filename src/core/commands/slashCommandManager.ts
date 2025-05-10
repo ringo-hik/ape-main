@@ -1297,8 +1297,122 @@ ${JSON.stringify(similarCommandsInfo, null, 2)}
     // 슬래시 이후 텍스트 추출
     const searchText = isSlashCommand ? trimmedInput.substring(1).toLowerCase() : '';
 
-    // 명령어 필터링
+    // 명령어와 하위 명령어 분리
+    const parts = searchText.split(' ').filter(p => p.trim() !== '');
+    const mainCommand = parts[0] || '';
+    const subCommand = parts.length > 1 ? parts.slice(1).join(' ') : '';
+
+    // 하위 명령어가 있는 경우
+    if (parts.length > 1) {
+      return this.getSubCommandSuggestions(mainCommand, subCommand);
+    }
+
+    // 기본 명령어 필터링
     return this.filterCommands(searchText);
+  }
+
+  /**
+   * 하위 명령어 제안 항목 가져오기
+   */
+  private getSubCommandSuggestions(mainCommand: string, subCommand: string): CommandSuggestion[] {
+    const suggestions: CommandSuggestion[] = [];
+
+    // 메인 명령어 찾기
+    const command = this.getCommand(mainCommand);
+    if (!command) {
+      return [];
+    }
+
+    // 지원되는 하위 명령어가 있는 명령어들
+    const multiArgCommands = ['git', 'vault', 'jira', 'todo', 'model'];
+
+    if (!multiArgCommands.includes(command.name)) {
+      return [];
+    }
+
+    // 명령어별 하위 명령어 구성
+    let subCommands: {name: string, description: string}[] = [];
+
+    switch (command.name) {
+      case 'git':
+        subCommands = [
+          { name: 'status', description: 'Git 저장소 상태 확인' },
+          { name: 'commit', description: 'Git 변경사항 커밋' },
+          { name: 'push', description: '원격 저장소로 변경사항 푸시' },
+          { name: 'pull', description: '원격 저장소에서 변경사항 가져오기' },
+          { name: 'branch', description: '브랜치 목록 확인' },
+          { name: 'merge', description: '브랜치 병합' },
+          { name: 'checkout', description: '브랜치 전환' },
+          { name: 'log', description: '커밋 이력 확인' },
+          { name: 'add', description: '변경 파일 스테이징' },
+          { name: 'solve', description: '병합 충돌 해결' },
+          { name: 'auto', description: '자동 커밋 토글' }
+        ];
+        break;
+
+      case 'vault':
+        subCommands = [
+          { name: 'list', description: '컨텍스트 목록 표시' },
+          { name: 'show', description: '컨텍스트 또는 아이템 상세 정보' },
+          { name: 'use', description: '아이템 컨텍스트 사용' },
+          { name: 'create', description: '새 컨텍스트 또는 아이템 생성' },
+          { name: 'delete', description: '컨텍스트 또는 아이템 삭제' },
+          { name: 'search', description: '아이템 검색' }
+        ];
+        break;
+
+      case 'jira':
+        subCommands = [
+          { name: 'create', description: '새 Jira 이슈 생성' },
+          { name: 'search', description: 'Jira 이슈 검색' },
+          { name: 'status', description: 'Jira 이슈 상태 변경' },
+          { name: 'summary', description: 'Jira 프로젝트 요약 보기' },
+          { name: 'update', description: '이슈 업데이트' },
+          { name: 'issue', description: '이슈 세부정보 보기' }
+        ];
+        break;
+
+      case 'todo':
+        subCommands = [
+          { name: 'add', description: '할일 항목 추가' },
+          { name: 'list', description: '할일 목록 보기' },
+          { name: 'status', description: '할일 상태 변경' },
+          { name: 'delete', description: '할일 항목 삭제' },
+          { name: 'priority', description: '할일 우선순위 설정' }
+        ];
+        break;
+
+      case 'model':
+        subCommands = [
+          { name: 'list', description: '사용 가능한 모델 목록' },
+          { name: 'use', description: '특정 모델 선택' },
+          { name: 'info', description: '현재 모델 정보' }
+        ];
+        break;
+
+      default:
+        return [];
+    }
+
+    // 하위 명령어 필터링 (검색어가 있는 경우)
+    if (subCommand) {
+      subCommands = subCommands.filter(sc =>
+        sc.name.toLowerCase().includes(subCommand.toLowerCase())
+      );
+    }
+
+    // 하위 명령어 제안 항목 생성
+    for (const sc of subCommands) {
+      suggestions.push({
+        label: `/${command.name} ${sc.name}`,
+        description: sc.description,
+        category: command.category,
+        insertText: `/${command.name} ${sc.name} `,
+        iconPath: this.getIconForCategory(command.category)
+      });
+    }
+
+    return suggestions;
   }
 
   /**

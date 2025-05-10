@@ -135,6 +135,10 @@ export declare class SlashCommandManager {
      */
     getCommandSuggestions(input?: string): CommandSuggestion[];
     /**
+     * 하위 명령어 제안 항목 가져오기
+     */
+    private getSubCommandSuggestions;
+    /**
      * 명령어 필터링
      */
     private filterCommands;

@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 /**
  * Extension activation point
  * @param context Extension context
+ * @returns API object that can be used by other extensions
  */
-export declare function activate(context: vscode.ExtensionContext): Promise<void>;
+export declare function activate(context: vscode.ExtensionContext): Promise<any>;
 /**
  * Extension deactivation point
  *

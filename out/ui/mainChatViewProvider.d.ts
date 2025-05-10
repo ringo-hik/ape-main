@@ -34,6 +34,7 @@ export declare class MainChatViewProvider implements vscode.WebviewViewProvider 
     resolveWebviewView(webviewView: vscode.WebviewView, _context: vscode.WebviewViewResolveContext, _token: vscode.CancellationToken): Promise<void>;
     /**
      * Updates the model indicator UI with the current model
+     * (Minimal UI version - only logs the model change)
      */
     updateModelIndicator(): void;
     /**

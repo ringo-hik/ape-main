@@ -65,7 +65,9 @@ class VaultService {
     contexts = new Map();
     disposables = [];
     vaultDir;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     path = require('path');
     /**
      * 생성자

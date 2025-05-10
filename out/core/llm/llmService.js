@@ -98,7 +98,7 @@ class LogUtil {
         };
     }
     // 진단 가능한 구조화 정보 출력 (순환 참조 안전처리)
-    static formatObject(obj, depth = 2) {
+    static formatObject(obj, _depth = 2) {
         try {
             return JSON.stringify(obj, this.getCircularReplacer(), 2);
         }

@@ -42,7 +42,7 @@ const path = __importStar(require("path"));
 const commands_1 = require("../git/commands");
 const vaultCommands_1 = require("./vaultCommands");
 const rulesCommands_1 = require("./rulesCommands");
-const jiraCommands_1 = require("./jiraCommands");
+const minimalJiraCommands_1 = require("./minimalJiraCommands");
 /**
  * 기본 슬래시 커맨드 목록 생성
  */
@@ -58,11 +58,9 @@ function createDefaultCommands(services) {
         const rulesCommands = (0, rulesCommands_1.createRulesCommands)(services.rulesService);
         commands.push(...rulesCommands);
     }
-    // Jira 명령어 추가 (Jira 서비스가 있는 경우)
-    if (services?.jiraService) {
-        const jiraCommands = (0, jiraCommands_1.createJiraCommands)(services.jiraService);
-        commands.push(...jiraCommands);
-    }
+    // Jira 명령어 추가 (Atlassian Extension API 사용)
+    const jiraCommands = (0, minimalJiraCommands_1.createJiraCommands)();
+    commands.push(...jiraCommands);
     // Todo 관련 코드 삭제됨
     // 도움말 명령어
     commands.push({
@@ -456,108 +454,104 @@ function createDefaultCommands(services) {
                     vscode.window.showErrorMessage(`대화 내역 표시 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
-            provideCompletions: (partialArgs) => {
-                // 이 시점에서는 간단한 빈 배열만 반환
-                // 실제 자동완성은 SlashCommandManager에서 처리할 때 구현
-                return [];
-            };
-        }, else: {
-            vscode, : .window.showErrorMessage(`알 수 없는 채팅 명령어입니다: ${subCommand}. 사용 가능한 명령어: save, list, show`)
+            else {
+                vscode.window.showErrorMessage(`알 수 없는 채팅 명령어입니다: ${subCommand}. 사용 가능한 명령어: save, list, show`);
+            }
+        },
+        provideCompletions: (partialArgs) => {
+            const subCommands = ['save', 'list', 'show', 'help', '저장', '목록', '보기', '도움말'];
+            const parts = partialArgs.split(' ');
+            // 첫 번째 인자 자동완성 (서브커맨드)
+            if (parts.length <= 1) {
+                return subCommands.filter(cmd => cmd.toLowerCase().startsWith(parts[0]?.toLowerCase() || ''));
+            }
+            return [];
         }
-    }, provideCompletions, (partialArgs) => {
-        const subCommands = ['save', 'list', 'show', 'help', '저장', '목록', '보기', '도움말'];
-        const parts = partialArgs.split(' ');
-        // 첫 번째 인자 자동완성 (서브커맨드)
-        if (parts.length <= 1) {
-            return subCommands.filter(cmd => cmd.toLowerCase().startsWith(parts[0]?.toLowerCase() || ''));
+    });
+    /**
+     * 특정 채팅 내역 표시
+     * @param chatId 채팅 ID
+     * @param chatHistoryUri 채팅 내역 폴더 URI
+     */
+    async function showSpecificChat(chatId, chatHistoryUri) {
+        // 메타데이터 파일 경로
+        const metadataPath = vscode.Uri.joinPath(chatHistoryUri, `${chatId}.meta.json`);
+        // 채팅 내역 파일 경로
+        const chatHistoryPath = vscode.Uri.joinPath(chatHistoryUri, `${chatId}.md`);
+        // 파일 존재 확인
+        try {
+            await vscode.workspace.fs.stat(metadataPath);
+            await vscode.workspace.fs.stat(chatHistoryPath);
         }
-        return [];
-    });
-}
-;
-/**
- * 특정 채팅 내역 표시
- * @param chatId 채팅 ID
- * @param chatHistoryUri 채팅 내역 폴더 URI
- */
-async function showSpecificChat(chatId, chatHistoryUri) {
-    // 메타데이터 파일 경로
-    const metadataPath = vscode.Uri.joinPath(chatHistoryUri, `${chatId}.meta.json`);
-    // 채팅 내역 파일 경로
-    const chatHistoryPath = vscode.Uri.joinPath(chatHistoryUri, `${chatId}.md`);
-    // 파일 존재 확인
-    try {
-        await vscode.workspace.fs.stat(metadataPath);
-        await vscode.workspace.fs.stat(chatHistoryPath);
-    }
-    catch {
-        // 파일이 없는 경우
-        await vscode.commands.executeCommand('ape.sendLlmResponse', {
-            role: 'assistant',
-            content: `ID가 '${chatId}'인 채팅 내역을 찾을 수 없습니다.`
-        });
-        return;
-    }
-    // 메타데이터 읽기
-    const metadataData = await vscode.workspace.fs.readFile(metadataPath);
-    const metadata = JSON.parse(Buffer.from(metadataData).toString('utf8'));
-    // 채팅 내역 읽기
-    const fileData = await vscode.workspace.fs.readFile(chatHistoryPath);
-    const content = Buffer.from(fileData).toString('utf8');
-    // 결과를 채팅창에 표시
-    await vscode.commands.executeCommand('ape.sendLlmResponse', {
-        role: 'assistant',
-        content: `## ${metadata.title}\n\n\`\`\`markdown\n${content}\n\`\`\``
-    });
-}
-/**
- * 저장된 채팅 내역 목록 표시
- * @param chatHistoryUri 채팅 내역 폴더 URI
- */
-async function showChatList(chatHistoryUri) {
-    // 메타데이터 파일 목록 가져오기
-    const files = await vscode.workspace.fs.readDirectory(chatHistoryUri);
-    const metaFiles = files.filter(([name]) => name.endsWith('.meta.json'));
-    if (metaFiles.length === 0) {
-        // 저장된 채팅 내역이 없는 경우
-        await vscode.commands.executeCommand('ape.sendLlmResponse', {
-            role: 'assistant',
-            content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
-        });
-        return;
-    }
-    // 메타데이터 읽기
-    const chatList = [];
-    for (const [fileName] of metaFiles) {
-        const metadataPath = vscode.Uri.joinPath(chatHistoryUri, fileName);
+        catch {
+            // 파일이 없는 경우
+            await vscode.commands.executeCommand('ape.sendLlmResponse', {
+                role: 'assistant',
+                content: `ID가 '${chatId}'인 채팅 내역을 찾을 수 없습니다.`
+            });
+            return;
+        }
+        // 메타데이터 읽기
         const metadataData = await vscode.workspace.fs.readFile(metadataPath);
         const metadata = JSON.parse(Buffer.from(metadataData).toString('utf8'));
-        // 날짜 포맷팅
-        const createdDate = new Date(metadata.createdAt);
-        const dateStr = createdDate.toLocaleDateString();
-        const timeStr = createdDate.toLocaleTimeString();
-        chatList.push({
-            id: metadata.id,
-            title: metadata.title,
-            createdAt: `${dateStr} ${timeStr}`,
-            messageCount: metadata.messageCount
+        // 채팅 내역 읽기
+        const fileData = await vscode.workspace.fs.readFile(chatHistoryPath);
+        const content = Buffer.from(fileData).toString('utf8');
+        // 결과를 채팅창에 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: `## ${metadata.title}\n\n\`\`\`markdown\n${content}\n\`\`\``
         });
     }
-    // 최신순 정렬
-    chatList.sort((a, b) => b.id.localeCompare(a.id));
-    // 마크다운 테이블 생성
-    let output = '## 저장된 채팅 내역 목록\n\n';
-    output += '| 제목 | 저장 시간 | 메시지 수 | 명령어 |\n';
-    output += '|------|-------|----------|--------|\n';
-    for (const chat of chatList) {
-        output += `| ${chat.title} | ${chat.createdAt} | ${chat.messageCount}개 | \`/show ${chat.id}\` |\n`;
+    /**
+     * 저장된 채팅 내역 목록 표시
+     * @param chatHistoryUri 채팅 내역 폴더 URI
+     */
+    async function showChatList(chatHistoryUri) {
+        // 메타데이터 파일 목록 가져오기
+        const files = await vscode.workspace.fs.readDirectory(chatHistoryUri);
+        const metaFiles = files.filter(([name]) => name.endsWith('.meta.json'));
+        if (metaFiles.length === 0) {
+            // 저장된 채팅 내역이 없는 경우
+            await vscode.commands.executeCommand('ape.sendLlmResponse', {
+                role: 'assistant',
+                content: '저장된 대화 내역이 없습니다. `/save-chat` 명령어를 사용하여 먼저 대화 내역을 저장해주세요.'
+            });
+            return;
+        }
+        // 메타데이터 읽기
+        const chatList = [];
+        for (const [fileName] of metaFiles) {
+            const metadataPath = vscode.Uri.joinPath(chatHistoryUri, fileName);
+            const metadataData = await vscode.workspace.fs.readFile(metadataPath);
+            const metadata = JSON.parse(Buffer.from(metadataData).toString('utf8'));
+            // 날짜 포맷팅
+            const createdDate = new Date(metadata.createdAt);
+            const dateStr = createdDate.toLocaleDateString();
+            const timeStr = createdDate.toLocaleTimeString();
+            chatList.push({
+                id: metadata.id,
+                title: metadata.title,
+                createdAt: `${dateStr} ${timeStr}`,
+                messageCount: metadata.messageCount
+            });
+        }
+        // 최신순 정렬
+        chatList.sort((a, b) => b.id.localeCompare(a.id));
+        // 마크다운 테이블 생성
+        let output = '## 저장된 채팅 내역 목록\n\n';
+        output += '| 제목 | 저장 시간 | 메시지 수 | 명령어 |\n';
+        output += '|------|-------|----------|--------|\n';
+        for (const chat of chatList) {
+            output += `| ${chat.title} | ${chat.createdAt} | ${chat.messageCount}개 | \`/show ${chat.id}\` |\n`;
+        }
+        output += '\n특정 채팅 내역을 보려면 위 명령어를 사용하세요.';
+        // 결과를 채팅창에 표시
+        await vscode.commands.executeCommand('ape.sendLlmResponse', {
+            role: 'assistant',
+            content: output
+        });
     }
-    output += '\n특정 채팅 내역을 보려면 위 명령어를 사용하세요.';
-    // 결과를 채팅창에 표시
-    await vscode.commands.executeCommand('ape.sendLlmResponse', {
-        role: 'assistant',
-        content: output
-    });
+    return commands;
 }
-return commands;
 //# sourceMappingURL=defaultCommands.js.map

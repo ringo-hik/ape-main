@@ -110,6 +110,7 @@ function createVaultCommands(vaultService) {
             }
         },
         provideCompletions: (partialArgs) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const parts = partialArgs.split(' ');
             // 첫 번째 인자 자동완성 (하위 명령어)
             if (parts.length <= 1) {
@@ -415,6 +416,7 @@ async function createItem(vaultService, context, name) {
             content: '',
             language: 'markdown'
         });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const editor = await vscode.window.showTextDocument(document);
         // 사용자가 내용 편집을 완료할 때까지 대기
         const content = await new Promise(resolve => {

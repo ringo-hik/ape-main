@@ -151,19 +151,41 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * 스마트 프롬프팅 UI 업데이트
+   * 스마트 프롬프팅 UI 업데이트 - Claude AI 스타일
    */
   private _updateSmartPromptingUI(state: SmartPromptingState): void {
     if (!this._view) {
       return;
     }
-    
-    // 웹뷰에 상태 업데이트 메시지 전송
+
+    // 웹뷰에 상태 업데이트 메시지 전송 - Claude AI 스타일
     this._view.webview.postMessage({
       type: 'updateSmartPrompting',
       enabled: state.enabled,
-      mode: state.mode
+      mode: state.mode,
+      // 모드에 따른 표시 이름 추가
+      modeName: this._getModeDisplayName(state.mode)
     });
+  }
+
+  /**
+   * 모드에 따른 표시 이름을 반환하는 함수
+   */
+  private _getModeDisplayName(mode: string): string {
+    const modeNames: {[key: string]: string} = {
+      'basic': '디버깅하기',
+      'advanced': '글쓰기',
+      'expert': '코드 분석',
+      'custom': '리팩토링',
+      'creative': '아이디어 구상하기',
+      'friendly': '친근한 모드',
+      'idea': '아이디어 구상하기',
+      'debug': '디버깅하기',
+      'analysis': '코드 분석',
+      'refactor': '리팩토링'
+    };
+
+    return modeNames[mode] || '스타일 선택';
   }
   
   /**
@@ -1555,7 +1577,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ type: 'showModelSelector' });
     }
     
-    // 스마트 프롬프팅 토글 및 팝오버 처리
+    // 스마트 프롬프팅 토글 및 팝오버 처리 - Claude AI 스타일 UI
     function handleSmartPromptingToggle() {
       const popover = document.getElementById('smart-prompting-popover');
       if (popover) {
@@ -1563,66 +1585,193 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         if (popover.style.display === 'block') {
           popover.style.display = 'none';
         } else {
+          // 팝오버 위치 조정
+          const toggleButton = document.getElementById('smart-prompting-toggle');
+          const toggleRect = toggleButton.getBoundingClientRect();
+
           popover.style.display = 'block';
+          popover.style.bottom = 'auto';
+          popover.style.top = '100%';
+          popover.style.left = '0';
 
-          // 모드 옵션에 클릭 이벤트 추가
-          document.querySelectorAll('.prompting-mode-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-              const modeElement = e.currentTarget as HTMLElement;
-              const mode = modeElement.dataset.mode;
+          // 클릭 이벤트 설정
+          setupStyleOptions();
 
-              // 활성 클래스 업데이트
-              document.querySelectorAll('.prompting-mode-option').forEach(opt => {
-                opt.classList.remove('active');
-              });
-              modeElement.classList.add('active');
-
-              // LLM 서비스에 모드 변경 알림
-              vscode.postMessage({
-                type: 'setSmartPromptingMode',
-                mode: mode
-              });
-
-              // 스마트 프롬프팅 활성화
-              vscode.postMessage({ type: 'toggleSmartPrompting' });
-            });
-          });
-
-          // 전문 프롬프트 옵션에 클릭 이벤트 추가
-          document.querySelectorAll('.specialized-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-              const promptElement = e.currentTarget as HTMLElement;
-              const promptType = promptElement.dataset.prompt;
-
-              // LLM 서비스에 전문 프롬프트 타입 전송
-              vscode.postMessage({
-                type: 'applySpecializedPrompt',
-                promptType: promptType
-              });
-
-              // 팝오버 닫기
-              popover.style.display = 'none';
-
-              // 스마트 프롬프팅 활성화
-              vscode.postMessage({ type: 'toggleSmartPrompting' });
-            });
-          });
-
-          // 닫기 버튼 이벤트
-          const closeButton = document.querySelector('.prompting-popover-close');
-          if (closeButton) {
-            closeButton.addEventListener('click', (e) => {
-              e.stopPropagation(); // 토글 버튼 이벤트 전파 방지
-              popover.style.display = 'none';
-            });
-          }
+          // 외부 클릭 시 팝오버 닫기
+          document.addEventListener('click', closePopoverOnOutsideClick);
         }
-      } else {
-        // 팝오버가 없으면 기본 토글 동작
-        vscode.postMessage({ type: 'toggleSmartPrompting' });
       }
     }
-    
+
+    // 스타일 옵션 설정
+    function setupStyleOptions() {
+      // 모드 옵션에 클릭 이벤트 추가
+      document.querySelectorAll('.prompting-mode-option').forEach(option => {
+        // 기존 이벤트 리스너 제거
+        option.removeEventListener('click', handleModeSelection);
+        // 새 이벤트 리스너 추가
+        option.addEventListener('click', handleModeSelection);
+      });
+
+      // 전문 프롬프트 옵션에 클릭 이벤트 추가
+      document.querySelectorAll('.specialized-option').forEach(option => {
+        // 기존 이벤트 리스너 제거
+        option.removeEventListener('click', handleSpecializedSelection);
+        // 새 이벤트 리스너 추가
+        option.addEventListener('click', handleSpecializedSelection);
+      });
+
+      // 닫기 버튼 이벤트
+      const closeButton = document.querySelector('.prompting-popover-close');
+      if (closeButton) {
+        closeButton.removeEventListener('click', closePopover);
+        closeButton.addEventListener('click', closePopover);
+      }
+
+      // 활성 스타일 제거 버튼
+      const removeStyleButton = document.querySelector('.remove-style');
+      if (removeStyleButton) {
+        removeStyleButton.removeEventListener('click', removeActiveStyle);
+        removeStyleButton.addEventListener('click', removeActiveStyle);
+      }
+    }
+
+    // 모드 선택 핸들러
+    function handleModeSelection(e) {
+      const modeElement = e.currentTarget;
+      const mode = modeElement.dataset.mode;
+      const modeLabel = modeElement.querySelector('.prompting-mode-label').textContent;
+
+      // 활성 클래스 업데이트
+      document.querySelectorAll('.prompting-mode-option').forEach(opt => {
+        opt.classList.remove('active');
+      });
+      modeElement.classList.add('active');
+
+      // 활성 스타일 표시
+      setActiveStyle(modeLabel);
+
+      // LLM 서비스에 모드 변경 알림
+      vscode.postMessage({
+        type: 'setSmartPromptingMode',
+        mode: mode
+      });
+
+      // 스마트 프롬프팅 활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+
+      // 팝오버 닫기
+      closePopover();
+    }
+
+    // 전문 프롬프트 선택 핸들러
+    function handleSpecializedSelection(e) {
+      const promptElement = e.currentTarget;
+      const promptType = promptElement.dataset.prompt;
+      const promptLabel = promptElement.textContent;
+
+      // 활성 스타일 표시
+      setActiveStyle(promptLabel);
+
+      // LLM 서비스에 전문 프롬프트 타입 전송
+      vscode.postMessage({
+        type: 'applySpecializedPrompt',
+        promptType: promptType
+      });
+
+      // 스마트 프롬프팅 활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+
+      // 팝오버 닫기
+      closePopover();
+    }
+
+    // 활성 스타일 설정
+    function setActiveStyle(styleName) {
+      const activeStyle = document.getElementById('active-style');
+      const activeStyleName = document.getElementById('active-style-name');
+
+      if (activeStyle && activeStyleName) {
+        activeStyleName.textContent = styleName;
+        activeStyle.style.display = 'flex';
+      }
+    }
+
+    // 활성 스타일 제거
+    function removeActiveStyle(e) {
+      e.stopPropagation();
+
+      const activeStyle = document.getElementById('active-style');
+      if (activeStyle) {
+        activeStyle.style.display = 'none';
+      }
+
+      // 스마트 프롬프팅 비활성화
+      vscode.postMessage({ type: 'toggleSmartPrompting' });
+    }
+
+    // 팝오버 닫기
+    function closePopover(e) {
+      if (e) {
+        e.stopPropagation();
+      }
+
+      const popover = document.getElementById('smart-prompting-popover');
+      if (popover) {
+        popover.style.display = 'none';
+      }
+
+      // 외부 클릭 이벤트 리스너 제거
+      document.removeEventListener('click', closePopoverOnOutsideClick);
+    }
+
+    // 외부 클릭 시 팝오버 닫기
+    function closePopoverOnOutsideClick(e) {
+      const popover = document.getElementById('smart-prompting-popover');
+      const toggle = document.getElementById('smart-prompting-toggle');
+
+      if (popover && !popover.contains(e.target) && !toggle.contains(e.target)) {
+        closePopover();
+      }
+    }
+
+    // 스마트 프롬프팅 UI 업데이트 - Claude AI 스타일
+    function updateSmartPromptingUI(enabled, mode, modeName) {
+      const smartPromptingToggle = document.getElementById('smart-prompting-toggle');
+      const activeStyle = document.getElementById('active-style');
+      const activeStyleName = document.getElementById('active-style-name');
+
+      if (!smartPromptingToggle || !activeStyle || !activeStyleName) {
+        return;
+      }
+
+      if (enabled) {
+        // 활성화 스타일로 업데이트
+        smartPromptingToggle.classList.add('active');
+
+        // 선택된 모드 표시
+        activeStyleName.textContent = modeName || '스타일 적용됨';
+        activeStyle.style.display = 'flex';
+
+        // 해당 모드 옵션에 활성 클래스 추가
+        document.querySelectorAll('.prompting-mode-option').forEach(option => {
+          option.classList.remove('active');
+          if (option.dataset.mode === mode) {
+            option.classList.add('active');
+          }
+        });
+      } else {
+        // 비활성화 상태로 업데이트
+        smartPromptingToggle.classList.remove('active');
+        activeStyle.style.display = 'none';
+
+        // 모든 모드 옵션에서 활성 클래스 제거
+        document.querySelectorAll('.prompting-mode-option').forEach(option => {
+          option.classList.remove('active');
+        });
+      }
+    }
+
     // Handle clicks within message area (for file attachments, etc.)
     function handleMessageClick(event) {
       // File view button click handling
@@ -1669,7 +1818,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'updateSmartPrompting':
-          updateSmartPromptingUI(message.enabled, message.mode);
+          updateSmartPromptingUI(message.enabled, message.mode, message.modeName);
           break;
 
         case 'messageContextToggled':
@@ -2406,93 +2555,326 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       <link href="${codiconsUri}" rel="stylesheet">
       <link href="${codeBlockStylesUri}" rel="stylesheet">
       <title>APE Chat</title>
+      <style>
+        /* Modern minimal styling */
+        #chat-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          padding: 0;
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        #chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+
+        #chat-input-container {
+          padding: 12px;
+          border-top: 1px solid var(--vscode-input-border);
+          background: var(--vscode-editor-background);
+        }
+
+        #input-wrapper {
+          display: flex;
+          align-items: flex-end;
+          width: 100%;
+          position: relative;
+        }
+
+        #chat-input {
+          flex: 1;
+          min-height: 40px;
+          max-height: 120px;
+          padding: 10px 40px 10px 12px;
+          resize: none;
+          border-radius: 8px;
+          font-size: 14px;
+          background: var(--vscode-input-background);
+          border: 1px solid var(--vscode-input-border);
+          color: var(--vscode-input-foreground);
+          width: 100%;
+        }
+
+        #chat-input:focus {
+          outline: none;
+          border-color: var(--vscode-focusBorder);
+        }
+
+        #input-buttons {
+          display: flex;
+          position: absolute;
+          right: 8px;
+          bottom: 8px;
+        }
+
+        .input-action-button, #send-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          margin-left: 6px;
+          background: transparent;
+          border: none;
+          color: var(--vscode-foreground);
+          opacity: 0.7;
+          transition: opacity 0.2s, transform 0.2s;
+          cursor: pointer;
+        }
+
+        .input-action-button:hover, #send-button:hover {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+
+        /* Style selector bar */
+        #style-selector-bar {
+          display: flex;
+          align-items: center;
+          margin-top: 8px;
+          margin-bottom: 4px;
+          font-size: 12px;
+        }
+
+        #smart-prompting-toggle {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          background: transparent;
+          border: none;
+          font-size: 12px;
+          color: var(--vscode-foreground);
+        }
+
+        #smart-prompting-toggle:hover {
+          background: var(--vscode-list-hoverBackground);
+        }
+
+        #smart-prompting-toggle .toggle-icon {
+          margin-right: 6px;
+          font-size: 14px;
+        }
+
+        #active-style {
+          display: flex;
+          align-items: center;
+          margin-left: 8px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          background: var(--vscode-badge-background);
+          color: var(--vscode-badge-foreground);
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        #active-style .remove-style {
+          margin-left: 6px;
+          cursor: pointer;
+          font-size: 10px;
+        }
+
+        /* Style popover */
+        #smart-prompting-popover {
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          width: 280px;
+          background: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+          display: none;
+          padding: 12px;
+          margin-bottom: 8px;
+        }
+
+        .prompting-popover-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .prompting-popover-title {
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .prompting-popover-close {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-size: 14px;
+          color: var(--vscode-descriptionForeground);
+        }
+
+        .prompting-popover-description {
+          margin-bottom: 12px;
+          font-size: 12px;
+          line-height: 1.4;
+          color: var(--vscode-descriptionForeground);
+          padding: 0 2px;
+        }
+
+        .prompting-modes {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .prompting-mode-option {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 8px;
+          border-radius: 6px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          cursor: pointer;
+          text-align: center;
+          transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .prompting-mode-option:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+          transform: translateY(-2px);
+        }
+
+        .prompting-mode-option.active {
+          background: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+        }
+
+        .prompting-mode-icon {
+          font-size: 18px;
+          margin-bottom: 8px;
+        }
+
+        .prompting-mode-label {
+          font-size: 12px;
+        }
+
+        .specialized-title {
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: var(--vscode-descriptionForeground);
+        }
+
+        .specialized-options {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .specialized-option {
+          padding: 6px 8px;
+          border-radius: 4px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          cursor: pointer;
+          font-size: 12px;
+          text-align: center;
+          transition: background-color 0.2s;
+        }
+
+        .specialized-option:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+      </style>
     </head>
     <body>
       <div id="chat-container">
         <div id="chat-messages"></div>
         <div id="chat-input-container">
-          <div id="input-actions">
-            <div id="smart-prompting-toggle" title="Toggle Smart Prompting">
-              <span class="toggle-icon">⚙</span>
-              <span id="smart-prompting-label">Smart Prompting</span>
-
-              <!-- 스마트 프롬프팅 팝오버 -->
-              <div id="smart-prompting-popover">
-                <div class="prompting-popover-header">
-                  <span class="prompting-popover-title">Smart Prompting</span>
-                  <button class="prompting-popover-close">✕</button>
-                </div>
-
-                <div class="prompting-modes">
-                  <div class="prompting-mode-option" data-mode="basic">
-                    <span class="prompting-mode-icon">◆</span>
-                    <span class="prompting-mode-label">디버깅</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="advanced">
-                    <span class="prompting-mode-icon">◎</span>
-                    <span class="prompting-mode-label">글쓰기</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="expert">
-                    <span class="prompting-mode-icon">⬡</span>
-                    <span class="prompting-mode-label">코드 분석</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="custom">
-                    <span class="prompting-mode-icon">⬢</span>
-                    <span class="prompting-mode-label">리팩토링</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="creative">
-                    <span class="prompting-mode-icon">✧</span>
-                    <span class="prompting-mode-label">아이디어</span>
-                  </div>
-                  <div class="prompting-mode-option" data-mode="friendly">
-                    <span class="prompting-mode-icon">♥</span>
-                    <span class="prompting-mode-label">친구 모드</span>
-                  </div>
-                </div>
-
-                <div class="specialized-prompting">
-                  <div class="specialized-title">자주 사용하는 전문 프롬프트</div>
-                  <div class="specialized-options">
-                    <div class="specialized-option" data-prompt="코드 리뷰">코드 리뷰</div>
-                    <div class="specialized-option" data-prompt="성능 최적화">성능 최적화</div>
-                    <div class="specialized-option" data-prompt="문서화">문서화</div>
-                    <div class="specialized-option" data-prompt="보고서">보고서</div>
-                    <div class="specialized-option" data-prompt="디자인 패턴">디자인 패턴</div>
-                    <div class="specialized-option" data-prompt="테스트 작성">테스트 작성</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button id="search-button" title="Advanced Search" class="input-top-button">
-              <span class="emoji-icon">⌕</span>
-            </button>
-          </div>
           <div id="input-wrapper">
-            <textarea id="chat-input" placeholder="Type a message or / for commands..." rows="1"></textarea>
+            <textarea id="chat-input" placeholder="메시지를 입력하거나 / 명령어 사용..." rows="1"></textarea>
             <div id="input-buttons">
-              <button id="ape-mascot-button" title="APE MODE" class="input-action-button">
-                <img src="${webview.asWebviewUri(vscode.Uri.joinPath(this._context.extensionUri, 'media', 'icons', 'mascot.svg'))}" width="18" height="18" />
+              <button id="clear-button" title="대화 지우기" class="input-action-button">
+                <span class="emoji-icon">✕</span>
               </button>
-              <button id="attach-button" title="Attach File" class="input-action-button">
-                <span class="emoji-icon">◈</span>
-              </button>
-              <button id="clear-button" title="Clear Chat" class="input-action-button">
-                <span class="emoji-icon">⌫</span>
-              </button>
-              <button id="send-button" title="Send Message">
+              <button id="send-button" title="메시지 전송">
                 <span class="emoji-icon">↑</span>
               </button>
             </div>
           </div>
-        </div>
-        <div id="model-indicator">
-          <span id="model-name">Loading model...</span>
-          <button id="model-selector" title="Change Model">
-            <span class="emoji-icon">◎</span> Change Model
-          </button>
+
+          <div id="style-selector-bar">
+            <button id="smart-prompting-toggle" title="스마트 프롬프트 기반 스타일 선택">
+              <span class="toggle-icon">✦</span>
+              <span id="smart-prompting-label">스타일 선택</span>
+            </button>
+            <div id="active-style" style="display: none;">
+              <span id="active-style-name"></span>
+              <span class="remove-style">✕</span>
+            </div>
+
+            <div id="smart-prompting-popover">
+              <div class="prompting-popover-header">
+                <span class="prompting-popover-title">스타일 선택</span>
+                <button class="prompting-popover-close">✕</button>
+              </div>
+              <div class="prompting-popover-description">
+                스마트 프롬프트 기술을 활용하여 AI 응답의 스타일과 특성을 조절합니다
+              </div>
+
+              <div class="prompting-modes">
+                <div class="prompting-mode-option" data-mode="idea">
+                  <span class="prompting-mode-icon">✧</span>
+                  <span class="prompting-mode-label">아이디어 구상하기</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="debug">
+                  <span class="prompting-mode-icon">⚙</span>
+                  <span class="prompting-mode-label">디버깅하기</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="analysis">
+                  <span class="prompting-mode-icon">⬡</span>
+                  <span class="prompting-mode-label">코드 분석</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="refactor">
+                  <span class="prompting-mode-icon">⬢</span>
+                  <span class="prompting-mode-label">리팩토링</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="creative">
+                  <span class="prompting-mode-icon">✦</span>
+                  <span class="prompting-mode-label">창의적 작성</span>
+                </div>
+                <div class="prompting-mode-option" data-mode="friendly">
+                  <span class="prompting-mode-icon">♥</span>
+                  <span class="prompting-mode-label">친근한 모드</span>
+                </div>
+              </div>
+
+              <div class="specialized-prompting">
+                <div class="specialized-title">자주 사용하는 전문 프롬프트</div>
+                <div class="specialized-options">
+                  <div class="specialized-option" data-prompt="코드 리뷰">코드 리뷰</div>
+                  <div class="specialized-option" data-prompt="성능 최적화">성능 최적화</div>
+                  <div class="specialized-option" data-prompt="문서화">문서화</div>
+                  <div class="specialized-option" data-prompt="보고서">보고서</div>
+                  <div class="specialized-option" data-prompt="디자인 패턴">디자인 패턴</div>
+                  <div class="specialized-option" data-prompt="테스트 작성">테스트 작성</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
+
       <script nonce="${nonce}">
         ${this._getChatScript()}
       </script>
