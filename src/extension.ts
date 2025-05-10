@@ -212,26 +212,40 @@ function registerComponents(context: vscode.ExtensionContext, services: ServiceC
   services.commandManager.registerCommands();
   
   // Register code block insertion commands
+  // 이미 명령이 있는지 확인하는 안전한 명령어 등록 함수
+  const safeRegisterCommand = async (commandId: string, handler: (...args: any[]) => any) => {
+    // 먼저 기존 명령이 있는지 확인
+    const commands = await vscode.commands.getCommands(true);
+    if (!commands.includes(commandId)) {
+      // 명령이 없으면 등록
+      return vscode.commands.registerCommand(commandId, handler);
+    } else {
+      console.log(`명령 '${commandId}'는 이미 등록되어 있어 건너뜁니다.`);
+      return { dispose: () => {} }; // 더미 disposable 반환
+    }
+  };
+
+  // 중복 등록 방지를 위한 명령어 등록
+  const codeEditorCommand = await safeRegisterCommand('ape.insertCodeToEditor', (options) => {
+    return CodeService.insertCodeToEditor(options);
+  });
+
+  const newFileCommand = await safeRegisterCommand('ape.createNewFileWithCode', (options) => {
+    return CodeService.insertCodeToEditor({
+      ...options,
+      createNewFile: true
+    });
+  });
+
+  context.subscriptions.push(codeEditorCommand, newFileCommand);
   
-  context.subscriptions.push(
-    vscode.commands.registerCommand('ape.insertCodeToEditor', (options) => {
-      return CodeService.insertCodeToEditor(options);
-    }),
-    vscode.commands.registerCommand('ape.createNewFileWithCode', (options) => {
-      return CodeService.insertCodeToEditor({
-        ...options,
-        createNewFile: true
-      });
-    })
-  );
-  
-  // Register Git commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand('ape.git.resolveConflict', async () => {
-      const resolvedCount = await services.conflictSolver.resolveAllConflicts();
-      vscode.window.showInformationMessage(`${resolvedCount}개 파일의 충돌을 해결했습니다`);
-    })
-  );
+  // Register Git commands - 안전하게 중복 방지
+  const gitResolveCommand = await safeRegisterCommand('ape.git.resolveConflict', async () => {
+    const resolvedCount = await services.conflictSolver.resolveAllConflicts();
+    vscode.window.showInformationMessage(`${resolvedCount}개 파일의 충돌을 해결했습니다`);
+  });
+
+  context.subscriptions.push(gitResolveCommand);
   
   // Register tab completion for various languages
   context.subscriptions.push(
