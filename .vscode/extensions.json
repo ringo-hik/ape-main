@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "github.vscode-github-actions",
+    "firsttris.vscode-jest-runner",
+    "orta.vscode-jest"
+  ]
+}
