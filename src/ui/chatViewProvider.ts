@@ -220,7 +220,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       // Start streaming response from LLM
       await this._llmService.streamResponse(
         this._messages,
-        (chunk: string, done: boolean) => {
+        (chunk: string, done: boolean, statusCode?: number) => {
           // Update the assistant message with the new chunk
           const assistantMessage = this._messages.find(m => m.id === this._currentStreamMessageId);
           if (assistantMessage) {
@@ -243,6 +243,33 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               if (this._streamUpdateTimeout) {
                 clearTimeout(this._streamUpdateTimeout);
                 this._streamUpdateTimeout = null;
+              }
+
+              // 오류 발생여부 확인
+              if (statusCode && statusCode >= 400) {
+                console.log(`Error from LLM service with status code: ${statusCode}`);
+                // 오류 메시지를 시스템 메시지로 변경
+                assistantMessage.role = MessageRole.System;
+
+                // 422 오류는 특별히 처리 (unprocessable entity, 일반적으로 메시지 형식 오류)
+                if (statusCode === 422) {
+                  assistantMessage.content = '메시지 형식 오류: 입력이 모델 요구사항을 충족하지 않습니다. 메시지 길이를 줄이거나 형식을 변경해보세요.';
+                } else {
+                  assistantMessage.content = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+                }
+
+                // 스트리밍 요청 명시적 취소 - 스트리밍 UI 상태를 즉시 종료
+                this._llmService.cancelStream();
+              }
+              // 일반 연결 오류 메시지 포함 여부 확인 (하위 호환성)
+              else if (assistantMessage.content.includes('[연결 오류가 발생했습니다]') ||
+                       assistantMessage.content.includes('[API 연결 오류:')) {
+                // 오류 메시지를 시스템 메시지로 변경
+                assistantMessage.role = MessageRole.System;
+                assistantMessage.content = '연결 오류가 발생했습니다. 다시 시도해주세요.';
+
+                // 스트리밍 요청 명시적 취소 - 스트리밍 UI 상태를 즉시 종료
+                this._llmService.cancelStream();
               }
 
               // Save messages to memory

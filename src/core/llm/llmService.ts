@@ -433,7 +433,7 @@ export class LLMService implements vscode.Disposable {
           // 422 에러 특수 처리
           if (axiosError.response.status === 422) {
             console.error('[LLMService] 스트리밍 상위 핸들러에서 422 에러 감지 - 최상위 스택 로그');
-            console.error('[LLMService] 모델:', model);
+            console.error('[LLMService] 모델:', options?.model || this.getActiveModel());
 
             // 메시지 요약 정보
             const messagesSummary = messages.map(m => ({
@@ -530,7 +530,7 @@ export class LLMService implements vscode.Disposable {
       let largeMessagesCount = 0;
 
       // 각 메시지 내용 로그
-      request.messages.forEach((msg, index) => {
+      request.messages.forEach((msg: any, index: number) => {
         const role = msg.role || 'unknown';
         const content = msg.content || '';
         const contentLength = content.length;
@@ -558,7 +558,7 @@ export class LLMService implements vscode.Disposable {
               console.log(`[LLMService] 메시지 #${index}에 ${codeBlockMatches.length}개의 코드 블록이 포함됨`);
 
               // 코드 블록 총 길이 계산
-              const codeBlocksTotalLength = codeBlockMatches.reduce((total, block) => total + block.length, 0);
+              const codeBlocksTotalLength = codeBlockMatches.reduce((total: number, block: string) => total + block.length, 0);
               console.log(`[LLMService] 코드 블록 총 길이: ${codeBlocksTotalLength} 자 (전체 메시지의 ${Math.round(codeBlocksTotalLength / contentLength * 100)}%)`);
             }
           }
@@ -660,7 +660,7 @@ export class LLMService implements vscode.Disposable {
               // 메시지 길이 분석
               if (request.messages && Array.isArray(request.messages)) {
                 let totalChars = 0;
-                request.messages.forEach((msg, idx) => {
+                request.messages.forEach((msg: any, idx: number) => {
                   const contentLength = msg.content ? msg.content.length : 0;
                   totalChars += contentLength;
                   if (contentLength > 10000) {
@@ -678,7 +678,7 @@ export class LLMService implements vscode.Disposable {
 
               // 메시지 내용 분석
               if (request.messages && Array.isArray(request.messages)) {
-                const systemMessages = request.messages.filter(m => m.role === 'system');
+                const systemMessages = request.messages.filter((m: any) => m.role === 'system');
                 console.error(`[LLMService] 시스템 메시지 수: ${systemMessages.length}`);
 
                 // 시스템 메시지가 여러 개인 경우 문제가 될 수 있음
@@ -875,7 +875,7 @@ export class LLMService implements vscode.Disposable {
         let largeMessagesCount = 0;
 
         // 각 메시지 내용 로그
-        request.messages.forEach((msg, index) => {
+        request.messages.forEach((msg: any, index: number) => {
           const role = msg.role || 'unknown';
           const content = msg.content || '';
           const contentLength = content.length;
@@ -903,7 +903,7 @@ export class LLMService implements vscode.Disposable {
                 console.log(`[LLMService] 스트리밍 메시지 #${index}에 ${codeBlockMatches.length}개의 코드 블록이 포함됨`);
 
                 // 코드 블록 총 길이 계산
-                const codeBlocksTotalLength = codeBlockMatches.reduce((total, block) => total + block.length, 0);
+                const codeBlocksTotalLength = codeBlockMatches.reduce((total: number, block: string) => total + block.length, 0);
                 console.log(`[LLMService] 코드 블록 총 길이: ${codeBlocksTotalLength} 자 (전체 메시지의 ${Math.round(codeBlocksTotalLength / contentLength * 100)}%)`);
               }
             }
@@ -1117,7 +1117,7 @@ export class LLMService implements vscode.Disposable {
                 // 메시지 길이 분석
                 if (request.messages && Array.isArray(request.messages)) {
                   let totalChars = 0;
-                  request.messages.forEach((msg, idx) => {
+                  request.messages.forEach((msg: any, idx: number) => {
                     const contentLength = msg.content ? msg.content.length : 0;
                     totalChars += contentLength;
                     if (contentLength > 10000) {
@@ -1136,7 +1136,7 @@ export class LLMService implements vscode.Disposable {
 
                 // 메시지 내용 분석
                 if (request.messages && Array.isArray(request.messages)) {
-                  const systemMessages = request.messages.filter(m => m.role === 'system');
+                  const systemMessages = request.messages.filter((m: any) => m.role === 'system');
                   console.error(`[LLMService] 스트리밍 시스템 메시지 수: ${systemMessages.length}`);
 
                   // 시스템 메시지가 여러 개인 경우 문제가 될 수 있음
@@ -1174,8 +1174,8 @@ export class LLMService implements vscode.Disposable {
           console.error('[LLMService] 스트리밍 스택 트레이스:', error.stack);
         }
 
-        // 사용자에게 오류 메시지 전송
-        streamCallback('\n\n[API 연결 오류: 서버 응답 오류가 발생했습니다. 메시지 형식이나 크기를 확인해주세요.]', true);
+        // 사용자에게 오류 메시지 전송 - 오류 코드도 함께 전달
+        streamCallback('\n\n[API 연결 오류: 서버 응답 오류가 발생했습니다. 메시지 형식이나 크기를 확인해주세요.]', true, error.response ? error.response.status : 0);
         throw error; // 오류를 다시 던져서 상위 핸들러에서 처리
       }
     }

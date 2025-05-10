@@ -198,5 +198,8 @@ export interface LLMRequestOptions {
 
 /**
  * Callback for streaming responses
+ * @param chunk The text chunk of the streaming response
+ * @param done Whether the streaming is completed
+ * @param statusCode Optional status code in case of errors
  */
-export type StreamCallback = (chunk: string, done: boolean) => void;
+export type StreamCallback = (chunk: string, done: boolean, statusCode?: number) => void;
