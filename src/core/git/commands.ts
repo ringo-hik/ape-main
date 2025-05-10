@@ -31,18 +31,23 @@ export function createGitCommands(): SlashCommand[] {
         // Git 커밋
         await vscode.commands.executeCommand('ape.git.commit');
       } else if (subCommand === 'auto' || subCommand === '자동' || subCommand === '자동커밋') {
-        // 자동 커밋 토글
-        await vscode.commands.executeCommand('ape.git.toggleAutoCommit');
-      } else if (subCommand === 'auto-on' || subCommand === 'autoon' || subCommand === '자동켜기' || subCommand === '자동커밋켜기') {
-        // 자동 커밋 켜기
-        await vscode.workspace.getConfiguration('ape.git')
-          .update('autoCommit', true, vscode.ConfigurationTarget.Workspace);
-        vscode.window.showInformationMessage('자동 커밋이 켜졌습니다');
-      } else if (subCommand === 'auto-off' || subCommand === 'autooff' || subCommand === '자동끄기' || subCommand === '자동커밋끄기') {
-        // 자동 커밋 끄기
-        await vscode.workspace.getConfiguration('ape.git')
-          .update('autoCommit', false, vscode.ConfigurationTarget.Workspace);
-        vscode.window.showInformationMessage('자동 커밋이 꺼졌습니다');
+        // 자동 커밋 토글 또는 명시적 상태 설정
+        const secondArg = context.args[1]?.toLowerCase();
+
+        if (secondArg === 'on' || secondArg === '켜기' || secondArg === 'true') {
+          // 자동 커밋 켜기
+          await vscode.workspace.getConfiguration('ape.git')
+            .update('autoCommit', true, vscode.ConfigurationTarget.Workspace);
+          vscode.window.showInformationMessage('자동 커밋이 켜졌습니다');
+        } else if (secondArg === 'off' || secondArg === '끄기' || secondArg === 'false') {
+          // 자동 커밋 끄기
+          await vscode.workspace.getConfiguration('ape.git')
+            .update('autoCommit', false, vscode.ConfigurationTarget.Workspace);
+          vscode.window.showInformationMessage('자동 커밋이 꺼졌습니다');
+        } else {
+          // 토글 (인자 없는 경우)
+          await vscode.commands.executeCommand('ape.git.toggleAutoCommit');
+        }
       } else if (subCommand === 'consolidate' || subCommand === 'squash' || subCommand === '통합' || subCommand === '임시통합' || subCommand === '통합커밋') {
         // 임시 커밋 통합
         await vscode.commands.executeCommand('ape.git.consolidateTemporaryCommits');
@@ -51,8 +56,8 @@ export function createGitCommands(): SlashCommand[] {
       }
     },
     provideCompletions: (partialArgs) => {
-      const subCommands = ['status', 'commit', 'auto', 'auto-on', 'auto-off', 'consolidate', 'squash',
-                      '상태', '커밋', '저장', '자동', '자동커밋', '자동켜기', '자동끄기', '자동커밋켜기', '자동커밋끄기', '통합', '임시통합', '통합커밋'];
+      const subCommands = ['status', 'commit', 'auto', 'consolidate', 'squash',
+                      '상태', '커밋', '저장', '자동', '자동커밋', '통합', '임시통합', '통합커밋'];
       
       // 첫 번째 인자 자동완성
       if (!partialArgs.includes(' ')) {

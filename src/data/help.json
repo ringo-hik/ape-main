@@ -78,29 +78,11 @@
         {
           "name": "git auto",
           "aliases": ["g auto", "깃 자동", "깃 자동커밋"],
-          "description": "자동 커밋 기능을 켜거나 끕니다.",
-          "longDescription": "자동 커밋 기능을 토글합니다. 이 기능이 켜져 있으면 파일을 저장할 때마다 자동으로 변경 사항이 커밋됩니다. 이때 커밋 메시지에는 '[APE][Temporary]' 접두사가 붙어 나중에 쉽게 식별할 수 있습니다. 이 명령어는 해당 기능의 현재 상태를 반대로 바꿉니다.",
-          "examples": ["/git auto", "/g auto", "/깃 자동"],
-          "usage": "/git auto",
-          "related": ["git auto-on", "git auto-off", "git consolidate"]
-        },
-        {
-          "name": "git auto-on",
-          "aliases": ["g auto-on", "깃 자동켜기", "깃 자동커밋켜기"],
-          "description": "자동 커밋 기능을 켭니다.",
-          "longDescription": "자동 커밋 기능을 명시적으로 켭니다. 이 기능이 켜져 있으면 파일을 저장할 때마다 자동으로 변경 사항이 커밋됩니다. 커밋 메시지에는 '[APE][Temporary]' 접두사가 붙어 임시 커밋임을 표시합니다.",
-          "examples": ["/git auto-on", "/g auto-on", "/깃 자동켜기"],
-          "usage": "/git auto-on",
-          "related": ["git auto", "git auto-off", "git consolidate"]
-        },
-        {
-          "name": "git auto-off",
-          "aliases": ["g auto-off", "깃 자동끄기", "깃 자동커밋끄기"],
-          "description": "자동 커밋 기능을 끕니다.",
-          "longDescription": "자동 커밋 기능을 명시적으로 끕니다. 이 기능이 꺼지면 파일 저장 시 자동 커밋이 더 이상 발생하지 않습니다.",
-          "examples": ["/git auto-off", "/g auto-off", "/깃 자동끄기"],
-          "usage": "/git auto-off",
-          "related": ["git auto", "git auto-on", "git consolidate"]
+          "description": "자동 커밋 기능을 설정합니다.",
+          "longDescription": "자동 커밋 기능을 관리합니다. 인자 없이 사용하면 현재 상태를 반대로 토글합니다. 'on'이나 'off' 인자를 추가하여 명시적으로 켜거나 끌 수 있습니다. 이 기능이 켜져 있으면 파일을 저장할 때마다 자동으로 변경 사항이 커밋됩니다. 이때 커밋 메시지에는 '[APE][Temporary]' 접두사가 붙어 나중에 쉽게 식별할 수 있습니다.",
+          "examples": ["/git auto", "/git auto on", "/git auto off", "/깃 자동 켜기", "/깃 자동 끄기"],
+          "usage": "/git auto [on|off]",
+          "related": ["git consolidate"]
         },
         {
           "name": "git consolidate",
@@ -168,6 +150,15 @@
       "name": "유틸리티 명령어",
       "description": "기타 유용한 기능을 제공하는 명령어입니다.",
       "commands": [
+        {
+          "name": "chat",
+          "aliases": ["대화", "채팅", "c"],
+          "description": "채팅 내역을 저장하고 관리합니다",
+          "longDescription": "채팅 내역을 저장하고 관리하는 명령어입니다. 다양한 하위 명령어를 통해 현재 대화를 저장하거나, 이전에 저장한 대화 목록을 확인하거나, 특정 대화의 상세 내용을 볼 수 있습니다. 각 대화 내역에는 LLM이 자동으로 생성한 제목이 부여되어 나중에 쉽게 참조할 수 있습니다.",
+          "examples": ["/chat save", "/chat list", "/chat show ID", "/대화 저장", "/채팅 목록"],
+          "usage": "/chat [save|list|show] [채팅ID]",
+          "related": []
+        },
         {
           "name": "settings",
           "aliases": ["config", "preferences", "설정", "환경설정", "프리퍼런스"],
