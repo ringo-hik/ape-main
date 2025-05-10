@@ -854,24 +854,37 @@ export function createDefaultCommands(services?: any): SlashCommand[] {
     examples: ['/save', '/stack', '/history', '/기록'],
     category: 'utility',
     priority: 25,
-    execute: async () => {
+    execute: async (context) => {
       try {
-        // 메모리 서비스 가져오기
-        const memoryService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.memoryService;
+        // 메모리 서비스 가져오기 - services 객체를 통해 먼저 시도
+        let memoryService = services?.memoryService;
+
+        // services 객체에 없으면 확장 프로그램 exports에서 가져오기
         if (!memoryService) {
-          vscode.window.showErrorMessage('메모리 서비스를 찾을 수 없습니다');
-          return;
+          memoryService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.memoryService;
+          if (!memoryService) {
+            vscode.window.showErrorMessage('메모리 서비스를 찾을 수 없습니다');
+            return;
+          }
         }
-        
-        // VAULT 서비스 가져오기
-        const vaultService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.vaultService;
+
+        // VAULT 서비스 가져오기 - 같은 방식으로
+        let vaultService = services?.vaultService;
+
         if (!vaultService) {
-          vscode.window.showErrorMessage('VAULT 서비스를 찾을 수 없습니다');
-          return;
+          vaultService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.vaultService;
+          if (!vaultService) {
+            vscode.window.showErrorMessage('VAULT 서비스를 찾을 수 없습니다');
+            return;
+          }
         }
-        
-        // LLM 서비스 가져오기
-        const llmService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.llmService;
+
+        // LLM 서비스 가져오기 - 같은 방식으로
+        let llmService = services?.llmService;
+
+        if (!llmService) {
+          llmService = vscode.extensions.getExtension('ape-team.ape-extension')?.exports?.llmService;
+        }
         
         // 현재 메시지 목록 가져오기
         const messagesResult = await memoryService.getMessages();
