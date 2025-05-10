@@ -25,18 +25,12 @@ import {
 } from './rulesIntegration';
 
 /**
- * 내부망 모델 API 엔드포인트 정의
+ * 내부망 모델 API 엔드포인트 정의 (하드코딩)
  */
 const INTERNAL_API_ENDPOINTS: Record<string, string> = {
   [LLMModel.NARRANS]: 'https://api-se-dev.narrans.samsungds.net/v1/chat/completions',
   [LLMModel.LLAMA4_SCOUT]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/scout/v1/chat/completions',
   [LLMModel.LLAMA4_MAVERICK]: 'http://apigw-stg.samsungds.net:8000/llama4/1/llama/aiserving/llama-4/maverick/v1/chat/completions'
-};
-
-// 내부망 인증 정보 (고정값)
-const INTERNAL_AUTH = {
-  NARRANS_TOKEN: 'dummytoken', // Narrans 인증 토큰 (테스트용)
-  DEP_TICKET: 'dummy-credential-key' // x-dep-ticket 값 (테스트용)
 };
 
 // Define constants for WebSocket states
@@ -48,76 +42,92 @@ const WS_OPEN = 1;
  * @returns 내부망 모델 여부
  */
 function isInternalModel(model: string): boolean {
-  return Object.keys(INTERNAL_API_ENDPOINTS).includes(model);
+  return model === LLMModel.NARRANS ||
+         model === LLMModel.LLAMA4_SCOUT ||
+         model === LLMModel.LLAMA4_MAVERICK;
 }
 
 /**
- * 내부망 모델용 요청 헤더 생성
- * @param requestId 요청 ID
- * @param isStreaming 스트리밍 요청 여부
- * @param model 모델 ID
- * @returns 헤더 객체
+ * 내부망 모델용 요청 헤더 생성 (하드코딩)
  */
 function createInternalApiHeaders(apiKey: string, requestId: string, isStreaming: boolean = false, model: LLMModel = '' as LLMModel): Record<string, string> {
-  // 기본 헤더
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
-    'Send-System-Name': 'narrans',
-    'User-Id': 'ape_ext',
-    'User-Type': 'ape_ext',
-    'Prompt-Msg-Id': requestId,
-    'Completion-Msg-Id': requestId,
-  };
-
-  // Narrans 모델은 Bearer 인증 방식 사용
+  // Narrans 모델 요청 헤더
   if (model === LLMModel.NARRANS) {
     return {
-      ...headers,
-      'Authorization': `Bearer ${INTERNAL_AUTH.NARRANS_TOKEN}` // 고정 토큰
+      'Content-Type': 'application/json',
+      'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
+      'Send-System-Name': 'narrans',
+      'User-Id': 'ape_ext',
+      'User-Type': 'ape_ext',
+      'Prompt-Msg-Id': requestId,
+      'Completion-Msg-Id': requestId,
+      'Authorization': 'Bearer dummytoken'  // 하드코딩된 Bearer 토큰
     };
   }
-  // 기타 내부망 모델은 x-dep-ticket 사용
+  // LLAMA4 모델 요청 헤더
   else {
     return {
-      ...headers,
-      'x-dep-ticket': INTERNAL_AUTH.DEP_TICKET // 고정 티켓
+      'Content-Type': 'application/json',
+      'Accept': isStreaming ? 'text/event-stream; charset=utf-8' : 'application/json',
+      'Send-System-Name': 'narrans',
+      'User-Id': 'ape_ext',
+      'User-Type': 'ape_ext',
+      'Prompt-Msg-Id': requestId,
+      'Completion-Msg-Id': requestId,
+      'x-dep-ticket': 'dummy-credential-key'  // 하드코딩된 x-dep-ticket
     };
   }
 }
 
 /**
- * 내부망 모델용 요청 본문 생성
- * @param model 모델 ID
- * @param messages 메시지 배열
- * @param options 요청 옵션
- * @returns 모델에 맞는 요청 본문 객체
+ * 내부망 모델용 요청 본문 생성 (하드코딩)
  */
 function createInternalApiRequestBody(model: string, messages: any[], options?: LLMRequestOptions): any {
-  const baseRequest = {
-    model: model,
-    messages: messages,
-    temperature: options?.temperature || 0.7,
-    stream: !!options?.stream
-  };
-
+  // Narrans 모델 요청 본문
   if (model === LLMModel.NARRANS) {
     return {
-      ...baseRequest,
-      max_tokens: options?.maxTokens || 16000
-    };
-  } else if (model === LLMModel.LLAMA4_SCOUT || model === LLMModel.LLAMA4_MAVERICK) {
-    return {
-      ...baseRequest,
-      system_name: 'narrans',  // 통일된 system_name
-      user_id: 'ape_ext',
-      user_type: 'ape_ext',
-      max_tokens: options?.maxTokens || 50000
+      model: model,
+      messages: messages,
+      temperature: options?.temperature || 0.7,
+      stream: !!options?.stream,
+      max_tokens: 16000
     };
   }
-
-  // 기본 요청 본문 반환 (내부망 모델이 아닌 경우)
-  return baseRequest;
+  // LLAMA4_SCOUT 모델 요청 본문
+  else if (model === LLMModel.LLAMA4_SCOUT) {
+    return {
+      model: model,
+      messages: messages,
+      temperature: options?.temperature || 0.7,
+      stream: !!options?.stream,
+      system_name: 'narrans',
+      user_id: 'ape_ext',
+      user_type: 'ape_ext',
+      max_tokens: 50000
+    };
+  }
+  // LLAMA4_MAVERICK 모델 요청 본문
+  else if (model === LLMModel.LLAMA4_MAVERICK) {
+    return {
+      model: model,
+      messages: messages,
+      temperature: options?.temperature || 0.7,
+      stream: !!options?.stream,
+      system_name: 'narrans',
+      user_id: 'ape_ext',
+      user_type: 'ape_ext',
+      max_tokens: 50000
+    };
+  }
+  // 기본 요청 본문 (외부 API)
+  else {
+    return {
+      model: model,
+      messages: messages,
+      temperature: options?.temperature || 0.7,
+      stream: !!options?.stream
+    };
+  }
 }
 
 /**
@@ -455,11 +465,27 @@ export class LLMService implements vscode.Disposable {
     // 요청 설정
     const axiosConfig: any = { headers };
 
-    // 내부망 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+    // 내부망 모델인 경우 특수 설정 적용
     if (isInternalModel(model)) {
-      console.log(`[LLMService] 내부망 모델(${model}) 요청: 프록시 무시 및 SSL 검증 비활성화`);
+      console.log(`[LLMService] 내부망 모델(${model}) 요청: 내부망 설정 적용`);
+
+      // 프록시 무시
+      console.log(`[LLMService] 프록시 설정 무시`);
       axiosConfig.proxy = false;
+
+      // SSL 검증 비활성화
+      console.log(`[LLMService] SSL 인증서 검증 비활성화`);
       axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+      // 타임아웃 연장 (60초)
+      console.log(`[LLMService] 타임아웃 설정: 60초`);
+      axiosConfig.timeout = 60000;
+
+      // 최대 컨텐츠 길이 증가
+      axiosConfig.maxContentLength = 50 * 1024 * 1024; // 50MB
+
+      // 최대 본문 길이 증가
+      axiosConfig.maxBodyLength = 50 * 1024 * 1024; // 50MB
     }
 
     console.log("[LLMService] HTTP 요청 세부정보:");
@@ -656,11 +682,27 @@ export class LLMService implements vscode.Disposable {
         headers: headers
       };
 
-      // 내부망 모델인 경우 프록시 무시 및 SSL 인증서 검증 비활성화
+      // 내부망 모델인 경우 특수 설정 적용
       if (isInternalModel(model)) {
-        console.log(`[LLMService] 내부망 모델(${model}) 스트리밍 요청: 프록시 무시 및 SSL 검증 비활성화`);
+        console.log(`[LLMService] 내부망 모델(${model}) 스트리밍 요청: 내부망 설정 적용`);
+
+        // 프록시 무시
+        console.log(`[LLMService] 프록시 설정 무시`);
         axiosConfig.proxy = false;
+
+        // SSL 검증 비활성화
+        console.log(`[LLMService] SSL 인증서 검증 비활성화`);
         axiosConfig.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+        // 타임아웃 연장 (5분)
+        console.log(`[LLMService] 타임아웃 설정: 300초`);
+        axiosConfig.timeout = 300000;
+
+        // 최대 컨텐츠 길이 증가
+        axiosConfig.maxContentLength = 100 * 1024 * 1024; // 100MB
+
+        // 최대 본문 길이 증가
+        axiosConfig.maxBodyLength = 50 * 1024 * 1024; // 50MB
       }
 
       console.log(`[LLMService] - 헤더:`, headers);
