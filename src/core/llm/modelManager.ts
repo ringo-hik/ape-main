@@ -66,7 +66,7 @@ export class ModelManager implements vscode.Disposable {
         }
       } else {
         console.warn(`유효하지 않은 모델: ${configModel}, 기본 모델 사용: ${LLMModel.LLAMA4_MAVERICK}`);
-
+        
         // 활성 모델이 이미 기본 모델이 아닌 경우에만 업데이트
         if (this._activeModel !== LLMModel.LLAMA4_MAVERICK) {
           const oldModel = this._activeModel;
@@ -187,7 +187,7 @@ export class ModelManager implements vscode.Disposable {
       const inspection = config.inspect('defaultModel');
       const configModels = inspection && typeof inspection === 'object' ?
         (inspection as any).properties?.enum : undefined;
-
+      
       // 설정에 정의된 모델 배열이 있으면 사용하고 내부망 모델을 맨 앞으로 정렬
       if (configModels && Array.isArray(configModels)) {
         // 내부망 모델을 맨 앞으로 정렬
@@ -198,7 +198,7 @@ export class ModelManager implements vscode.Disposable {
           model === 'LLAMA4-SCOUT' ||
           model === LLMModel.LLAMA4_MAVERICK ||
           model === 'LLAMA4-MAVERICK');
-
+          
         const otherModels = configModels.filter(model =>
           model !== LLMModel.NARRANS &&
           model !== 'NARRNAS' &&
@@ -206,10 +206,10 @@ export class ModelManager implements vscode.Disposable {
           model !== 'LLAMA4-SCOUT' &&
           model !== LLMModel.LLAMA4_MAVERICK &&
           model !== 'LLAMA4-MAVERICK');
-
+          
         return [...internalModels, ...otherModels] as LLMModel[];
       }
-
+      
       // 설정에서 가져올 수 없으면 기본 정의 사용
       // 내부망 모델 정의 (LLMModel에 정의되지 않은 별칭들 포함)
       const internalModels = [
@@ -217,13 +217,13 @@ export class ModelManager implements vscode.Disposable {
         LLMModel.LLAMA4_SCOUT,
         LLMModel.LLAMA4_MAVERICK
       ];
-
+      
       // 표준 모델에서 내부망 모델 제외
       const standardModels = Object.values(LLMModel).filter(model =>
         model !== LLMModel.NARRANS &&
         model !== LLMModel.LLAMA4_SCOUT &&
         model !== LLMModel.LLAMA4_MAVERICK);
-
+      
       // 내부망 모델을 앞으로 배치
       return [...internalModels, ...standardModels];
     } catch (error) {
