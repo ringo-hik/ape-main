@@ -1246,11 +1246,11 @@ export class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeTreeItem>
       }
       
       // 채팅 내역 폴더 경로
-      const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, 'vault', 'chat-history');
+      const chatHistoryDir = path.join(workspaceFolder.uri.fsPath, '.ape', 'vault', 'chat-history');
       
       // 폴더 존재 확인
       if (!existsSync(chatHistoryDir)) {
-        return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save-chat` 명령어를 사용하세요.')];
+        return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save` 명령어를 사용하세요.')];
       }
       
       // 파일 시스템에서 메타데이터 파일 목록 가져오기
@@ -1259,7 +1259,7 @@ export class ApeTreeDataProvider implements vscode.TreeDataProvider<ApeTreeItem>
         .filter((name: string) => name.endsWith('.meta.json'));
       
       if (metaFiles.length === 0) {
-        return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save-chat` 명령어를 사용하세요.')];
+        return [this.createChatHistoryInfoNode('저장된 채팅 내역이 없습니다', '채팅 내역을 저장하려면 채팅 창에서 `/save` 명령어를 사용하세요.')];
       }
       
       // 채팅 내역 아이템 목록
