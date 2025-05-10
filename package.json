@@ -2,7 +2,7 @@
   "name": "ape-extension",
   "displayName": "APE: Agentic Pipeline Extension",
   "description": "VSCode extension for integrating AI capabilities into developer workflow with a focus on C++ development",
-  "version": "0.5.10",
+  "version": "0.5.10.1",
   "publisher": "ape-team",
   "private": true,
   "license": "UNLICENSED",
@@ -376,7 +376,7 @@
   "devDependencies": {
     "@eslint/js": "^9.26.0",
     "@types/glob": "^8.1.0",
-    "@types/node": "^20.17.42",
+    "@types/node": "^20.17.46",
     "@types/vscode": "^1.80.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
