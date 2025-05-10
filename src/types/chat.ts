@@ -16,21 +16,26 @@ export enum LLMModel {
   GPT_4_1_PREVIEW = 'openai/gpt-4.1-preview',      // 최신 고성능
   GPT_4O = 'openai/gpt-4o',                        // 고성능
   GPT_3_5_TURBO = 'openai/gpt-3.5-turbo',          // 경제적인 모델
-  
+
   // Anthropic models (Claude 모델들)
   CLAUDE_3_OPUS = 'anthropic/claude-3-opus-20240229',     // 최고 성능 모델
   CLAUDE_3_SONNET = 'anthropic/claude-3-sonnet-20240229', // 균형잡힌 성능
   CLAUDE_3_HAIKU = 'anthropic/claude-3-haiku-20240307',   // 빠른 응답 모델
-  
+
   // 추가 모델들
   GEMINI_PRO = 'google/gemini-pro',                // Google의 최신 모델
   GEMMA_7B = 'google/gemma-7b-it',                 // 소형 오픈소스 모델
   QWEN_72B = 'qwen/qwen-72b-chat',                 // Alibaba의 고성능 모델
   DEEPSEEK = 'deepseek/deepseek-coder',            // 코딩 특화 모델
-  
+
   // 무료 모델들
   MISTRAL_7B = 'mistralai/mistral-7b-instruct',    // 무료 오픈소스 모델
-  LLAMA3_8B = 'meta-llama/llama-3-8b-instruct'     // 무료 오픈소스 모델
+  LLAMA3_8B = 'meta-llama/llama-3-8b-instruct',    // 무료 오픈소스 모델
+
+  // 내부망 모델들
+  NARRANS = 'narrans',                            // 내부 LLM Narrans 모델
+  LLAMA4_SCOUT = 'meta-llama/llama-4-scout-17b-16e-instruct',  // 내부망 Llama-4 Scout 모델
+  LLAMA4_MAVERICK = 'meta-llama/llama-4-maverick-17b-128e-instruct'  // 내부망 Llama-4 Maverick 모델
 }
 
 /**
