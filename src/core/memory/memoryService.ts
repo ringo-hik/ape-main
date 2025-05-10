@@ -188,33 +188,91 @@ export class MemoryService implements vscode.Disposable {
   public async addMessage(message: Message): Promise<MemoryResult<void>> {
     try {
       if (!this._currentSessionId) {
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: new Error('No active session')
         };
       }
-      
+
       const session = this._sessions.get(this._currentSessionId);
       if (session) {
-        // Add message to the session
-        session.messages.push(message);
-        
+        // 기존 메시지가 있는지 확인
+        const existingIndex = session.messages.findIndex(m => m.id === message.id);
+
+        if (existingIndex >= 0) {
+          // 기존 메시지 업데이트
+          session.messages[existingIndex] = message;
+        } else {
+          // 새 메시지 추가
+          session.messages.push(message);
+        }
+
         // Limit messages if needed
         if (this._maxMessages > 0 && session.messages.length > this._maxMessages) {
           // Keep the most recent messages
           session.messages = session.messages.slice(-this._maxMessages);
         }
-        
+
         // Update session timestamp
         session.updatedAt = new Date();
-        
+
         // Save session
         await this._saveSession(session);
-        
+
         return { success: true };
       } else {
-        return { 
-          success: false, 
+        return {
+          success: false,
+          error: new Error('Session not found')
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+    }
+  }
+
+  /**
+   * 특정 메시지를 업데이트
+   * @param message 업데이트할 메시지
+   * @returns Promise that resolves to a MemoryResult indicating success or failure
+   */
+  public async updateMessage(message: Message): Promise<MemoryResult<void>> {
+    try {
+      if (!this._currentSessionId) {
+        return {
+          success: false,
+          error: new Error('No active session')
+        };
+      }
+
+      const session = this._sessions.get(this._currentSessionId);
+      if (session) {
+        // 기존 메시지 찾기
+        const index = session.messages.findIndex(m => m.id === message.id);
+
+        if (index === -1) {
+          return {
+            success: false,
+            error: new Error(`Message with ID ${message.id} not found`)
+          };
+        }
+
+        // 메시지 업데이트
+        session.messages[index] = message;
+
+        // Update session timestamp
+        session.updatedAt = new Date();
+
+        // Save session
+        await this._saveSession(session);
+
+        return { success: true };
+      } else {
+        return {
+          success: false,
           error: new Error('Session not found')
         };
       }

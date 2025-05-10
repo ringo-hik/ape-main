@@ -1,78 +1,77 @@
-/* 
+/*
  * Atelier APE - 미니멀 인터페이스 디자인
- * 프리미엄 개발 경험을 위한 고급스러운 VSCode 웹뷰 
- * 
- * 절제된 디자인, 뛰어난 품질, 현대적 감성이 융합된 
- * 디지털 인터페이스 컬렉션
+ * 프리미엄 개발 경험을 위한 고급스러운 VSCode 웹뷰
  */
 
 :root {
-  /* 레이아웃 핵심 변수 - 모든 컨테이너의 일관된 너비 관리 */
-  --ape-container-max-width: 960px; /* 800px에서 20% 증가 */
+  /* 레이아웃 핵심 변수 */
+  --ape-container-max-width: 960px;
   --ape-container-width: 100%;
   --ape-content-padding: 1.5rem;
   --ape-mobile-padding: 1rem;
-  
+
   /* 색상 변수 - 다크 모드 대응 */
   --ape-bg-primary: var(--vscode-editor-background, #1e1e1e);
   --ape-bg-secondary: var(--vscode-sideBar-background, #252526);
   --ape-bg-tertiary: var(--vscode-dropdown-background, #3c3c3c);
   --ape-bg-hover: var(--vscode-list-hoverBackground, #2a2d2e);
   --ape-bg-active: var(--vscode-list-activeSelectionBackground, #094771);
-  
-  /* 경계선 강조 색상 */
+
+  /* 강조 및 경계선 색상 */
   --ape-border-highlight: #0e639c;
   --ape-highlight-light: #1177bb;
   --ape-highlight-dark: #094771;
   --ape-highlight-accent: #3794ff;
-  
+  --ape-green-dark: #0e4330;
+  --ape-green-light: #1d6d4f;
+
   /* 텍스트 색상 */
   --ape-text-primary: var(--vscode-foreground, #cccccc);
   --ape-text-secondary: var(--vscode-descriptionForeground, #8a8a8a);
   --ape-text-accent: var(--vscode-textLink-foreground, #3794ff);
   --ape-text-error: var(--vscode-errorForeground, #f48771);
-  
-  /* 강조 색상 - 디자인 영감 */
+
+  /* 강조 색상 */
   --ape-accent-primary: var(--vscode-button-background, #0e639c);
   --ape-accent-secondary: var(--vscode-button-hoverBackground, #1177bb);
   --ape-accent-tertiary: rgba(55, 148, 255, 0.1);
   --ape-accent-gold: #d4af37;
   --ape-accent-silver: #aaa9ad;
-  
-  /* 테두리 및 구분선 */
+
+  /* 테두리 */
   --ape-border-subtle: var(--vscode-widget-border, #454545);
   --ape-border-strong: var(--vscode-input-border, #6b6b6b);
-  
-  /* 그림자 효과 */
+
+  /* 그림자 */
   --ape-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
   --ape-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
   --ape-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.14);
-  
-  /* 타이포그래피 */
-  --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
-  --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Menlo, Consolas, 'Ubuntu Mono', monospace);
-  --ape-font-display: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
-  
-  /* 레이아웃 값 */
+
+  /* 폰트 */
+  --ape-font-sans: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
+  --ape-font-mono: var(--vscode-editor-font-family, 'SF Mono', Monaco, Consolas, monospace);
+  --ape-font-display: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
+
+  /* 간격 */
   --ape-spacing-xs: 0.25rem;
   --ape-spacing-sm: 0.5rem;
   --ape-spacing-md: 1rem;
   --ape-spacing-lg: 1.5rem;
   --ape-spacing-xl: 2rem;
-  
+
   /* 애니메이션 */
   --ape-transition-fast: 150ms ease;
   --ape-transition-normal: 250ms ease;
   --ape-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  
-  /* 컴포넌트 크기 */
+
+  /* 테두리 반경 */
   --ape-border-radius-sm: 4px;
   --ape-border-radius-md: 8px;
   --ape-border-radius-lg: 12px;
   --ape-border-radius-full: 9999px;
 }
 
-/* 기본 레이아웃 - 기하학적 정밀함 */
+/* 기본 레이아웃 */
 body {
   margin: 0;
   padding: 0;
@@ -83,13 +82,13 @@ body {
   height: 100vh;
   font-size: 14px;
   line-height: 1.6;
-  letter-spacing: -0.011em;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
 }
 
-/* 채팅 컨테이너 - 모든 요소의 기준이 되는 캔버스 */
+/* 채팅 컨테이너 */
 #chat-container {
   display: flex;
   flex-direction: column;
@@ -98,11 +97,8 @@ body {
   position: relative;
   overflow: hidden;
   margin: 0 auto;
-  /* 뷰 영역 구분을 위한 좌측 경계 */
   border-left: 4px solid var(--ape-border-highlight);
-  /* 채팅 영역 배경 약간 강조 */
   background-color: rgba(14, 99, 156, 0.05);
-  /* 그라데이션 효과를 추가하여 미묘한 깊이감 제공 */
   background-image: linear-gradient(
     to right,
     rgba(14, 99, 156, 0.05),
@@ -112,22 +108,21 @@ body {
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
 }
 
-/* 메시지 영역 - 여백 미학 */
+/* 메시지 영역 */
 #chat-messages {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
-  padding: 0;
-  scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
-  padding-bottom: 60px; /* 하단 요소와의 간격 */
+  padding: 0 0 60px 0;
+  scroll-behavior: smooth;
 }
 
-/* 메시지 스크롤바 - 숨겨진 디테일 */
+/* 스크롤바 스타일 */
 #chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -141,7 +136,7 @@ body {
   border-radius: var(--ape-border-radius-full);
 }
 
-/* 메시지 스타일 - 현대적 실루엣 */
+/* 메시지 스타일 */
 .message {
   width: 100%;
   max-width: var(--ape-container-max-width);
@@ -155,7 +150,7 @@ body {
   transition: transform var(--ape-transition-normal), opacity 0.2s ease;
 }
 
-/* 메시지 헤더 (컨텍스트 토글 버튼) */
+/* 메시지 헤더 */
 .message-header {
   display: flex;
   justify-content: flex-end;
@@ -199,31 +194,26 @@ body {
   border-left: 3px dashed var(--ape-text-error);
 }
 
-/* 메시지 호버 효과 - 미묘한 텍스처 변화 */
+/* 메시지 호버 효과 */
 .message:hover {
   transform: translateY(-1px);
   box-shadow: var(--ape-shadow-md);
 }
 
+/* 메시지 애니메이션 */
 @keyframes message-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* 역할별 메시지 스타일 - 각자의 개성을 존중하는 철학 */
+/* 역할별 메시지 스타일 */
 .user {
   background-color: var(--ape-accent-tertiary);
   border-left: 2px solid var(--ape-accent-primary);
   margin-left: auto;
   margin-right: var(--ape-spacing-md);
   color: var(--ape-text-primary);
-  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+  max-width: calc(var(--ape-container-max-width) * 0.85);
 }
 
 .assistant {
@@ -231,7 +221,7 @@ body {
   border-left: 2px solid var(--ape-accent-silver);
   margin-right: auto;
   margin-left: var(--ape-spacing-md);
-  max-width: calc(var(--ape-container-max-width) * 0.85); /* 0.8에서 0.85로 증가 */
+  max-width: calc(var(--ape-container-max-width) * 0.85);
 }
 
 .system {
@@ -243,7 +233,7 @@ body {
   width: calc(100% - 2 * var(--ape-spacing-md));
 }
 
-/* 스트리밍 효과 - 역동적 생명력 */
+/* 스트리밍 효과 */
 .streaming {
   position: relative;
 }
@@ -261,18 +251,9 @@ body {
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0.8;
-  }
+  0% { transform: scale(0.8); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.8; }
 }
 
 .message-content {
@@ -280,7 +261,7 @@ body {
   overflow-wrap: break-word;
 }
 
-/* 코드 인라인 스타일 - 정교한 스티칭 */
+/* 코드 인라인 스타일 */
 .message-content code.inline-code {
   background-color: var(--ape-bg-tertiary);
   font-family: var(--ape-font-mono);
@@ -290,7 +271,7 @@ body {
   white-space: pre-wrap;
 }
 
-/* 첨부 파일 표시 - 센스 있는 인터페이스 요소 */
+/* 첨부 파일 스타일 */
 .attached-file {
   display: flex;
   align-items: center;
@@ -331,7 +312,7 @@ body {
   color: var(--ape-text-primary);
 }
 
-/* 입력 영역 - 균형 잡힌 구조미 */
+/* 입력 영역 */
 #chat-input-container {
   border-top: 2px solid var(--ape-border-highlight);
   padding: var(--ape-spacing-md);
@@ -343,16 +324,15 @@ body {
   max-width: var(--ape-container-max-width);
   margin: 0 auto;
   box-sizing: border-box;
-  /* 입력 영역 강조를 위한 그라데이션 */
   background-image: linear-gradient(
-    to bottom, 
-    rgba(14, 99, 156, 0.1), 
-    rgba(14, 99, 156, 0.05) 40%, 
+    to bottom,
+    rgba(14, 99, 156, 0.1),
+    rgba(14, 99, 156, 0.05) 40%,
     rgba(14, 99, 156, 0.02)
   );
 }
 
-/* 인풋 상단 액션 영역 - 기능성 디자인 */
+/* 인풋 상단 액션 */
 #input-actions {
   display: flex;
   align-items: center;
@@ -361,7 +341,7 @@ body {
   margin-bottom: var(--ape-spacing-sm);
 }
 
-/* 스마트 프롬프팅 토글 버튼 - 고급 기능 액세스 */
+/* 스마트 프롬프팅 토글 */
 #smart-prompting-toggle {
   display: flex;
   align-items: center;
@@ -377,7 +357,22 @@ body {
   position: relative;
 }
 
-/* 스마트 프롬프팅 팝오버 */
+#smart-prompting-toggle.active {
+  background-color: var(--ape-accent-tertiary);
+  border-color: var(--ape-accent-primary);
+  color: var(--ape-text-primary);
+}
+
+#smart-prompting-toggle .toggle-icon {
+  font-size: 14px;
+  transition: transform var(--ape-transition-fast);
+}
+
+#smart-prompting-toggle.active .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* 팝오버 */
 #smart-prompting-popover {
   position: absolute;
   top: calc(-100% - 180px);
@@ -394,7 +389,6 @@ body {
   animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 팝오버 화살표 */
 #smart-prompting-popover::after {
   content: "";
   position: absolute;
@@ -409,17 +403,11 @@ body {
 }
 
 @keyframes popover-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* 스마트 프롬프팅 팝오버 헤더 */
+/* 팝오버 헤더 */
 .prompting-popover-header {
   display: flex;
   justify-content: space-between;
@@ -454,7 +442,7 @@ body {
   color: var(--ape-text-primary);
 }
 
-/* 스마트 프롬프팅 모드 옵션 */
+/* 프롬프팅 모드 옵션 */
 .prompting-modes {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -494,7 +482,7 @@ body {
   font-weight: 500;
 }
 
-/* 특화된 프롬프팅 옵션 */
+/* 특화 프롬프팅 옵션 */
 .specialized-prompting {
   margin-top: var(--ape-spacing-md);
 }
@@ -527,7 +515,7 @@ body {
   color: var(--ape-text-secondary);
 }
 
-/* APE MODE 버튼 (마스코트) */
+/* 검색 버튼 */
 #search-button {
   height: 38px;
   width: 38px;
@@ -542,30 +530,12 @@ body {
   transition: all var(--ape-transition-fast);
 }
 
-/* 스마트 프롬프팅 토글 상태 */
-#smart-prompting-toggle.active {
-  background-color: var(--ape-accent-tertiary);
-  border-color: var(--ape-accent-primary);
-  color: var(--ape-text-primary);
-}
-
-/* 마스코트 버튼 스타일 */
 #search-button:hover {
   background-color: var(--ape-accent-tertiary);
   transform: translateY(-1px);
 }
 
-/* 스마트 프롬프팅 아이콘 스타일 */
-#smart-prompting-toggle .toggle-icon {
-  font-size: 14px;
-  transition: transform var(--ape-transition-fast);
-}
-
-#smart-prompting-toggle.active .toggle-icon {
-  transform: rotate(180deg);
-}
-
-/* 입력 필드 - 시대를 초월한 클래식함 */
+/* 입력 필드 */
 #input-wrapper {
   position: relative;
   width: 100%;
@@ -575,13 +545,13 @@ body {
 
 #chat-input {
   width: 100%;
-  min-height: 48px; /* 약간 더 높게 조정 */
+  min-height: 48px;
   max-height: 200px;
   padding: var(--ape-spacing-md);
-  padding-right: 150px; /* 버튼 영역 공간 확보 증가 */
+  padding-right: 150px;
   background-color: var(--ape-bg-tertiary);
   color: var(--ape-text-primary);
-  border: 2px solid var(--ape-border-subtle); /* 더 두꺼운 테두리 */
+  border: 2px solid var(--ape-border-subtle);
   border-radius: var(--ape-border-radius-md);
   resize: none;
   outline: none;
@@ -596,23 +566,13 @@ body {
 #chat-input:focus {
   border-color: var(--ape-border-highlight);
   box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.2);
-  /* 포커스 시 그린 애니메이션 효과 */
   animation: input-focus-pulse 3s infinite;
 }
 
 @keyframes input-focus-pulse {
-  0% {
-    box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25);
-    border-color: var(--ape-border-highlight);
-  }
-  50% {
-    box-shadow: 0 0 0 3px rgba(74, 153, 119, 0.15);
-    border-color: var(--ape-green-light);
-  }
-  100% {
-    box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25);
-    border-color: var(--ape-border-highlight);
-  }
+  0% { box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25); border-color: var(--ape-border-highlight); }
+  50% { box-shadow: 0 0 0 3px rgba(74, 153, 119, 0.15); border-color: var(--ape-green-light); }
+  100% { box-shadow: 0 0 0 2px rgba(29, 109, 79, 0.25); border-color: var(--ape-border-highlight); }
 }
 
 #chat-input::placeholder {
@@ -620,7 +580,7 @@ body {
   opacity: 0.7;
 }
 
-/* 버튼 영역 - 대담한 비대칭 미학 */
+/* 버튼 영역 */
 #input-buttons {
   display: flex;
   align-items: center;
@@ -630,14 +590,35 @@ body {
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  padding: 4px 6px; /* 버튼 영역 패딩 증가 */
-  background-color: rgba(35, 35, 35, 0.4); /* 버튼 영역 배경 살짝 더 강조 */
+  padding: 4px 6px;
+  background-color: rgba(35, 35, 35, 0.4);
   border-radius: var(--ape-border-radius-lg);
   border: 1px solid rgba(80, 80, 80, 0.2);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* APE MODE 마스코트 버튼 스타일 */
+/* 버튼 공통 스타일 */
+#input-buttons button, #send-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--ape-border-radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--ape-transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1px;
+}
+
+#input-buttons button:hover, #send-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* 마스코트 버튼 */
 #ape-mascot-button {
   background-color: var(--ape-bg-tertiary);
   color: var(--ape-text-primary);
@@ -655,27 +636,6 @@ body {
   transform: scale(1.2);
 }
 
-/* 버튼 공통 스타일 - 통일된 디자인 */
-#input-buttons button, #send-button {
-  width: 34px; /* 약간 크기 축소 */
-  height: 34px; /* 약간 크기 축소 */
-  padding: 0;
-  border: none;
-  border-radius: var(--ape-border-radius-full);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--ape-transition-fast);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin: 0 1px; /* 작은 여백 추가 */
-}
-
-#input-buttons button:hover, #send-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-}
-
 /* 일반 버튼 스타일 */
 .input-action-button {
   background-color: var(--ape-bg-tertiary);
@@ -687,39 +647,33 @@ body {
   background-color: var(--ape-bg-hover);
 }
 
-/* 전송 버튼 스타일 - 강조된 디자인 */
+/* 전송 버튼 스타일 */
 #send-button {
   background-color: var(--ape-border-highlight);
   color: white;
-  /* 그라데이션 효과 */
   background-image: linear-gradient(
-    135deg, 
-    var(--ape-border-highlight) 0%, 
-    var(--ape-border-highlight) 55%, 
+    135deg,
+    var(--ape-border-highlight) 0%,
+    var(--ape-border-highlight) 55%,
     var(--ape-accent-primary) 120%
   );
-  /* 그림자로 입체감 */
   box-shadow: 0 2px 4px rgba(14, 67, 48, 0.2);
-  /* 약간의 좌측 마진으로 다른 버튼들과 구분 */
   margin-left: 6px;
-  /* 살짝 더 큰 크기로 강조 */
   width: 38px;
   height: 38px;
 }
 
 #send-button:hover {
   background-color: var(--ape-accent-primary);
-  /* 호버 시 그라데이션 변화 */
   background-image: linear-gradient(
-    135deg, 
-    var(--ape-border-highlight) 0%, 
-    var(--ape-accent-primary) 70% 
+    135deg,
+    var(--ape-border-highlight) 0%,
+    var(--ape-accent-primary) 70%
   );
-  /* 호버 시 그림자 강화 */
   box-shadow: 0 3px 6px rgba(14, 67, 48, 0.3);
 }
 
-/* 모델 인디케이터 - 현대적 엣지 */
+/* 모델 인디케이터 */
 #model-indicator {
   display: flex;
   align-items: center;
@@ -733,19 +687,16 @@ body {
   max-width: var(--ape-container-max-width);
   margin: 0 auto;
   box-sizing: border-box;
-  /* 상태 바 강조를 위한 그린 그라데이션 효과 */
-  background-image: linear-gradient(to right, 
-    rgba(14, 67, 48, 0.15), 
-    rgba(29, 109, 79, 0.05) 30%, 
-    rgba(29, 109, 79, 0.05) 70%, 
+  background-image: linear-gradient(to right,
+    rgba(14, 67, 48, 0.15),
+    rgba(29, 109, 79, 0.05) 30%,
+    rgba(29, 109, 79, 0.05) 70%,
     rgba(14, 67, 48, 0.15)
   );
-  /* 상태 바 미묘한 패턴 */
   position: relative;
   overflow: hidden;
 }
 
-/* 그린 스타일 미묘한 패턴 오버레이 */
 #model-indicator::after {
   content: "";
   position: absolute;
@@ -753,9 +704,9 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(45deg, 
-    transparent 65%, 
-    rgba(121, 175, 137, 0.03) 80%, 
+  background-image: linear-gradient(45deg,
+    transparent 65%,
+    rgba(121, 175, 137, 0.03) 80%,
     transparent 90%);
   background-size: 10px 10px;
   pointer-events: none;
@@ -788,18 +739,14 @@ body {
   border-radius: var(--ape-border-radius-md);
   letter-spacing: 0.02em;
   box-shadow: 0 2px 6px rgba(14, 67, 48, 0.3);
-  /* 모델 이름 살짝 빛나는 효과 - 프리미엄 느낌 */
   text-shadow: 0 0 5px rgba(121, 175, 137, 0.4);
-  /* 그린 그라데이션으로 깊이감 추가 */
   background-image: linear-gradient(
-    135deg, 
-    var(--ape-green-dark) 0%, 
-    var(--ape-border-highlight) 60%, 
+    135deg,
+    var(--ape-green-dark) 0%,
+    var(--ape-border-highlight) 60%,
     var(--ape-green-light) 110%
   );
-  /* 미묘한 테두리 하이라이트 */
   border: 1px solid rgba(121, 175, 137, 0.3);
-  /* 모델 이름 위치 강조 */
   position: relative;
   transform: translateY(-1px);
 }

@@ -2438,6 +2438,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     <span class="prompting-mode-icon">⬢</span>
                     <span class="prompting-mode-label">리팩토링</span>
                   </div>
+                  <div class="prompting-mode-option" data-mode="creative">
+                    <span class="prompting-mode-icon">✧</span>
+                    <span class="prompting-mode-label">아이디어</span>
+                  </div>
+                  <div class="prompting-mode-option" data-mode="friendly">
+                    <span class="prompting-mode-icon">♥</span>
+                    <span class="prompting-mode-label">친구 모드</span>
+                  </div>
                 </div>
 
                 <div class="specialized-prompting">
